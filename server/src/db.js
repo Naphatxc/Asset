@@ -1,5 +1,7 @@
+// Connection Pool เปิด connection ซ้ำได้โดยไม่ต้องเชื่อม MySQL ใหม่ทุก request
 import 'dotenv/config.js';
 import mysql from 'mysql2/promise';
+
 
 export const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -9,4 +11,6 @@ export const pool = mysql.createPool({
   database: process.env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
+  // ให้ DATE/DATETIME เป็น string ป้องกันวันที่ถอยหนึ่งวันจากการแปลง timezone
+  dateStrings: true,
 });

@@ -1,5 +1,6 @@
 @import url("https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap");
 
+/* ===== Theme และค่าพื้นฐานของทั้งเว็บไซต์ ===== */
 :root {
   font-family: "Noto Sans Thai", "Segoe UI", sans-serif;
   color: #333333;
@@ -15,7 +16,9 @@
   --stat-pink-paper: #fffbfd;
 }
 
-* { box-sizing: border-box; }
+* {
+  box-sizing: border-box;
+}
 
 body {
   min-width: 320px;
@@ -24,7 +27,10 @@ body {
 
 button,
 input,
-select { font: inherit; }
+select,
+textarea {
+  font: inherit;
+}
 
 .app-shell {
   min-height: 100dvh;
@@ -37,6 +43,7 @@ select { font: inherit; }
     linear-gradient(145deg, #ffffff 0%, #fffbfd 48%, #f4f7f7 100%);
 }
 
+/* ===== Card หลักของหน้า Login และ Dashboard ===== */
 .welcome-card {
   position: relative;
   width: min(100%, 640px);
@@ -77,7 +84,9 @@ h2 {
   padding-left: 14px;
 }
 
-p { line-height: 1.65; }
+p {
+  line-height: 1.65;
+}
 
 a {
   color: var(--stat-plum);
@@ -130,6 +139,7 @@ a {
   box-shadow: 0 13px 26px rgba(237, 0, 130, 0.27);
 }
 
+/* ===== ข้อความผลลัพธ์จาก API ===== */
 .error-message {
   margin: 0;
   padding: 10px 12px;
@@ -145,11 +155,19 @@ button:disabled {
   transform: none;
 }
 
-.dashboard-card { width: min(100%, 880px); }
+.dashboard-card {
+  width: min(100%, 1180px);
+}
 
-.admin-section { margin-top: 30px; }
+/* ===== ตารางผู้ใช้และครุภัณฑ์ ===== */
+.admin-section,
+.equipment-section {
+  margin-top: 30px;
+}
 
-.admin-section h2 { margin-bottom: 8px; }
+.admin-section h2 {
+  margin-bottom: 8px;
+}
 
 .table-wrap {
   overflow-x: auto;
@@ -157,28 +175,343 @@ button:disabled {
   border-radius: 12px;
 }
 
-.user-table {
+.user-table,
+.equipment-table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
 }
 
 .user-table th,
-.user-table td {
+.user-table td,
+.equipment-table th,
+.equipment-table td {
   padding: 12px 14px;
   border-bottom: 1px solid #e6ebec;
 }
 
-.user-table th {
+.user-table th,
+.equipment-table th {
   color: #ffffff;
   background: var(--stat-slate);
   font-size: 0.84rem;
   letter-spacing: 0.025em;
 }
 
-.user-table tbody tr:last-child td { border-bottom: 0; }
+.user-table tbody tr:last-child td,
+.equipment-table tbody tr:last-child td {
+  border-bottom: 0;
+}
 
-.user-table tbody tr:hover { background: var(--stat-pink-paper); }
+.user-table tbody tr:hover,
+.equipment-table tbody tr:hover {
+  background: var(--stat-pink-paper);
+}
+
+.account-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  color: var(--stat-slate-dark);
+}
+
+.role-badge,
+.item-count {
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--stat-plum);
+  background: #fff0f7;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.section-heading h2 {
+  margin: 2px 0 0;
+}
+
+.section-kicker {
+  margin: 0;
+  color: var(--stat-plum);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.item-count {
+  flex: none;
+}
+
+.equipment-table {
+  min-width: 1080px;
+}
+
+.equipment-code {
+  color: var(--stat-plum);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-badge {
+  display: inline-flex;
+  padding: 5px 9px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.status-available {
+  color: #176b4d;
+  background: #e8fff5;
+}
+
+.status-borrowed {
+  color: #805600;
+  background: #fff4cc;
+}
+
+.status-pending_repair {
+  color: #a33a16;
+  background: #fff0e8;
+}
+
+.status-repairing {
+  color: #315b84;
+  background: #eaf4ff;
+}
+
+.empty-state,
+.loading-message {
+  padding: 22px;
+  border: 1px dashed #d8c8ce;
+  border-radius: 12px;
+  color: var(--stat-slate-dark);
+  background: #fffdfd;
+  text-align: center;
+}
+
+.empty-state p,
+.loading-message {
+  margin: 0;
+}
+
+.equipment-toolbar {
+  align-items: center;
+}
+
+/* ===== ปุ่มและ Action สำหรับ Admin ===== */
+.toolbar-actions,
+.form-actions,
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.button-primary,
+.button-secondary,
+.row-actions button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.button-primary {
+  border: 0;
+  color: #ffffff;
+  background: linear-gradient(90deg, var(--stat-gold), var(--stat-pink));
+}
+
+.button-secondary,
+.row-actions button {
+  border: 1px solid #d9cbd0;
+  color: var(--stat-plum);
+  background: #ffffff;
+}
+
+.row-actions {
+  min-width: 220px;
+}
+
+.row-actions button {
+  padding: 6px 9px;
+  font-size: 0.8rem;
+}
+
+.row-actions .button-danger {
+  border-color: #e7a7b6;
+  color: #a61b43;
+  background: #fff4f6;
+}
+
+.row-actions .button-restore {
+  border-color: #91cfb7;
+  color: #176b4d;
+  background: #edfff7;
+}
+
+.status-select {
+  min-width: 116px;
+  padding: 7px 9px;
+  border: 1px solid #ccd9db;
+  border-radius: 8px;
+  color: #354d51;
+  background: #ffffff;
+  font-weight: 600;
+}
+
+.equipment-form,
+.history-panel {
+  margin-bottom: 18px;
+  padding: 22px;
+  border: 1px solid #ead9df;
+  border-radius: 14px;
+  background: #fffbfd;
+}
+
+/* ===== Form เพิ่ม/แก้ไขครุภัณฑ์ ===== */
+.form-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.form-heading h3 {
+  margin: 3px 0 0;
+  font-size: 1.35rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.form-grid label {
+  display: grid;
+  gap: 7px;
+  color: #454545;
+  font-weight: 600;
+}
+
+.form-grid input,
+.form-grid select,
+.form-grid textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #d7cbcf;
+  border-radius: 9px;
+  color: #333333;
+  background: #ffffff;
+}
+
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus {
+  border-color: var(--stat-pink-soft);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(245, 71, 150, 0.12);
+}
+
+.form-grid input[readonly] {
+  color: #637f84;
+  background: #eef3f4;
+}
+
+.field-wide {
+  grid-column: 1 / -1;
+}
+
+.form-actions {
+  margin-top: 18px;
+}
+
+.history-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-left: 22px;
+}
+
+/* ===== หน้าประวัติการเปลี่ยนแปลง ===== */
+.history-list > li {
+  padding: 14px;
+  border: 1px solid #e5d8dd;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.history-summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.history-summary div {
+  display: grid;
+  gap: 3px;
+}
+
+.history-summary span,
+.history-summary time {
+  color: var(--stat-slate-dark);
+  font-size: 0.82rem;
+}
+
+.history-list details {
+  margin-top: 10px;
+}
+
+.history-list summary {
+  color: var(--stat-plum);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.history-snapshots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.history-snapshots h4 {
+  margin: 0 0 6px;
+}
+
+.history-snapshots pre {
+  max-height: 260px;
+  overflow: auto;
+  margin: 0;
+  padding: 12px;
+  border-radius: 8px;
+  color: #e8f1f2;
+  background: #30474b;
+  font-size: 0.75rem;
+  white-space: pre-wrap;
+}
+
+.user-note {
+  margin-top: 22px;
+  padding: 12px 14px;
+  border-left: 4px solid var(--stat-gold);
+  background: #fffaf0;
+}
 
 .user-table select {
   padding: 7px 10px;
@@ -205,11 +538,73 @@ button:disabled {
   cursor: pointer;
 }
 
-.logout-button:hover { background: var(--stat-plum); }
+.logout-button:hover {
+  background: var(--stat-plum);
+}
 
 @media (max-width: 640px) {
-  .app-shell { padding: 14px; }
-  .welcome-card { padding: 28px 20px; }
+  /* บนมือถือ Form เหลือหนึ่งคอลัมน์ ส่วนตารางเลื่อนซ้าย-ขวาได้ */
+  .app-shell {
+    padding: 14px;
+  }
+
+  .welcome-card {
+    padding: 28px 20px;
+  }
+
   .user-table th,
-  .user-table td { padding: 10px; }
+  .user-table td,
+  .equipment-table th,
+  .equipment-table td {
+    padding: 10px;
+  }
+
+  .section-heading {
+    align-items: flex-start;
+  }
+
+  .equipment-toolbar,
+  .form-heading,
+  .history-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .toolbar-actions {
+    align-items: stretch;
+  }
+
+  .form-grid,
+  .history-snapshots {
+    grid-template-columns: 1fr;
+  }
+
+  .field-wide {
+    grid-column: auto;
+  }
+}
+
+.auth-switch {
+  width: 100%;
+  margin-top: 18px;
+  padding: 8px;
+  border: 0;
+  color: var(--stat-plum);
+  background: transparent;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-switch:hover {
+  color: var(--stat-pink);
+  text-decoration: underline;
+}
+
+.success-message {
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid #9ed8c1;
+  border-radius: 8px;
+  color: #176b4d;
+  background: #edfff7;
 }

@@ -1,10 +1,12 @@
+-- ไฟล์นี้ใช้สร้างฐานข้อมูลใหม่ตั้งแต่ต้น ทุก CREATE ใช้ IF NOT EXISTS จึงรันซ้ำได้
 CREATE DATABASE IF NOT EXISTS asset_management
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;
 
 USE asset_management;
 
-CREATE TABLE users (
+-- บัญชีสำหรับ Login: password_hash เก็บค่าจาก bcrypt ไม่ใช่รหัสผ่านจริง
+CREATE TABLE IF NOT EXISTS users (
   user_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
@@ -13,20 +15,22 @@ CREATE TABLE users (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE categories (
+-- หมวดหมู่และสถานที่เป็นข้อมูลกลางสำหรับ dropdown ในฟอร์มครุภัณฑ์/วัสดุ
+CREATE TABLE IF NOT EXISTS categories (
   category_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   category_name VARCHAR(100) NOT NULL UNIQUE,
   description TEXT NULL
 );
 
-CREATE TABLE locations (
+CREATE TABLE IF NOT EXISTS locations (
   location_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   location_name VARCHAR(100) NOT NULL,
   building VARCHAR(100) NULL,
   room VARCHAR(30) NULL
 );
 
-CREATE TABLE equipment (
+-- equipment เก็บข้อมูลร่วมของครุภัณฑ์ เช่น ชื่อ หมวดหมู่ และสถานที่
+CREATE TABLE IF NOT EXISTS equipment (
   equipment_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   equipment_name VARCHAR(150) NOT NULL,
   category_id INT UNSIGNED NOT NULL,
@@ -39,7 +43,8 @@ CREATE TABLE equipment (
   CONSTRAINT fk_equipment_location FOREIGN KEY (location_id) REFERENCES locations(location_id)
 );
 
-CREATE TABLE equipment_items (
+-- equipment_items เก็บครุภัณฑ์แต่ละชิ้นที่มีรหัสไม่ซ้ำและจะนำไปสร้าง QR
+CREATE TABLE IF NOT EXISTS equipment_items (
   item_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   equipment_id INT UNSIGNED NOT NULL,
   equipment_name VARCHAR(150) NOT NULL,
@@ -47,10 +52,29 @@ CREATE TABLE equipment_items (
   status ENUM('available', 'borrowed', 'pending_repair', 'repairing') NOT NULL DEFAULT 'available',
   price DECIMAL(10,2) NULL,
   warranty_expire DATE NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  deleted_at DATETIME NULL, -- NULL = ใช้งานอยู่, มีวันที่ = ถูก Soft Delete
   CONSTRAINT fk_item_equipment FOREIGN KEY (equipment_id) REFERENCES equipment(equipment_id)
 );
 
-CREATE TABLE materials (
+-- Audit Log เก็บ snapshot JSON ก่อน/หลัง พร้อม Admin ที่เป็นผู้เปลี่ยน
+CREATE TABLE IF NOT EXISTS equipment_history (
+  history_id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  item_id INT UNSIGNED NOT NULL,
+  action ENUM('created', 'updated', 'status_changed', 'deleted', 'restored') NOT NULL,
+  old_data JSON NULL,
+  new_data JSON NULL,
+  changed_by INT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_equipment_history_item (item_id),
+  INDEX idx_equipment_history_changed_by (changed_by),
+  CONSTRAINT fk_history_item FOREIGN KEY (item_id) REFERENCES equipment_items(item_id),
+  CONSTRAINT fk_history_user FOREIGN KEY (changed_by) REFERENCES users(user_id)
+);
+
+-- ตารางวัสดุสิ้นเปลือง เตรียมไว้สำหรับระบบสต็อกในขั้นถัดไป
+CREATE TABLE IF NOT EXISTS materials (
   material_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   material_code VARCHAR(50) NOT NULL UNIQUE,
   material_name VARCHAR(150) NOT NULL,
