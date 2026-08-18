@@ -12,6 +12,7 @@ export default function AuthForm({
   onPasswordChange,
   onSubmit,
   onSwitchMode,
+  destinationMessage = '',
 }) {
   // ใช้ตัวแปรเดียวควบคุมว่าต้องแสดงช่องชื่อและข้อความแบบ Login หรือ Register
   const isLogin = authMode === 'login';
@@ -26,6 +27,9 @@ export default function AuthForm({
             ? 'กรอกอีเมลและรหัสผ่านเพื่อเข้าใช้งาน'
             : 'สร้างบัญชีผู้ใช้งานใหม่'}
         </p>
+        {destinationMessage && (
+          <p className="destination-message">{destinationMessage}</p>
+        )}
 
         <form className="login-form" onSubmit={onSubmit}>
           {!isLogin && (

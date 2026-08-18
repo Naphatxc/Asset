@@ -33,6 +33,8 @@ export default function EquipmentTable({
   mode = 'active',
   busyItemId,
   confirmingDeleteId,
+  onViewDetails,
+  onShowQr,
   onEdit,
   onStatusChange,
   onHistory,
@@ -64,6 +66,7 @@ export default function EquipmentTable({
             <th>สถานที่</th>
             <th>ราคา</th>
             <th>สถานะ</th>
+            {mode === 'active' && <th>ข้อมูลและ QR</th>}
             {admin && <th>จัดการ</th>}
           </tr>
         </thead>
@@ -111,6 +114,29 @@ export default function EquipmentTable({
                     </span>
                   )}
                 </td>
+
+                {mode === 'active' && (
+                  <td>
+                    <div className="row-actions qr-row-actions">
+                      <button
+                        type="button"
+                        onClick={() => onViewDetails(item)}
+                        disabled={busy}
+                      >
+                        รายละเอียด
+                      </button>
+                      {admin && (
+                        <button
+                          type="button"
+                          onClick={() => onShowQr(item)}
+                          disabled={busy}
+                        >
+                          QR Code
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                )}
 
                 {admin && (
                   <td>

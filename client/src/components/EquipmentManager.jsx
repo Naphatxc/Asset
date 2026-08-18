@@ -1,5 +1,6 @@
 // Component หลักของโมดูลครุภัณฑ์: ถือ state และประสาน Form/Table/History กับ API
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 import {
   ApiError,
@@ -17,8 +18,10 @@ import {
 import EquipmentForm from './EquipmentForm.jsx';
 import EquipmentHistory from './EquipmentHistory.jsx';
 import EquipmentTable from './EquipmentTable.jsx';
+import QrCodeDialog from './QrCodeDialog.jsx';
 
 export default function EquipmentManager({ user, onUnauthorized }) {
+  const navigate = useNavigate();
   // ข้อมูลจากฐานข้อมูล
   const [equipment, setEquipment] = useState([]);
   const [deletedEquipment, setDeletedEquipment] = useState([]);
@@ -37,6 +40,7 @@ export default function EquipmentManager({ user, onUnauthorized }) {
   const [historyEquipment, setHistoryEquipment] = useState(null);
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [qrEquipment, setQrEquipment] = useState(null);
 
   const admin = user.role === 'admin';
 
@@ -312,6 +316,13 @@ export default function EquipmentManager({ user, onUnauthorized }) {
         />
       )}
 
+      {qrEquipment && (
+        <QrCodeDialog
+          equipment={qrEquipment}
+          onClose={() => setQrEquipment(null)}
+        />
+      )}
+
       {loading ? (
         <p className="loading-message">กำลังโหลดครุภัณฑ์...</p>
       ) : (
@@ -323,6 +334,12 @@ export default function EquipmentManager({ user, onUnauthorized }) {
           mode={view}
           busyItemId={busyItemId}
           confirmingDeleteId={confirmingDeleteId}
+          onViewDetails={(item) =>
+            navigate(
+              `/equipment/${encodeURIComponent(item.equipment_code)}`,
+            )
+          }
+          onShowQr={setQrEquipment}
           onEdit={openEditForm}
           onStatusChange={changeStatus}
           onHistory={openHistory}

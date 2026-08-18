@@ -2,7 +2,7 @@
 import cors from 'cors';
 import express from 'express';
 
-import { clientOrigin, port } from './config.js';
+import { clientOrigins, port } from './config.js';
 import { pool } from './db.js';
 import adminUserRoutes from './routes/admin-users.routes.js';
 import authRoutes from './routes/auth.routes.js';
@@ -14,7 +14,7 @@ import optionRoutes from './routes/options.routes.js';
 const app = express();
 
 // อนุญาตเฉพาะ Frontend URL ที่กำหนด และแปลง JSON body ให้ request.body
-app.use(cors({ origin: clientOrigin }));
+app.use(cors({ origin: clientOrigins }));
 app.use(express.json());
 
 app.get('/api/health', (_request, response) => {

@@ -1,11 +1,15 @@
 // App ดูแลเรื่องบัญชีผู้ใช้และ Session ส่วนงานครุภัณฑ์แยกไปอยู่ใน EquipmentManager
 import { useEffect, useState } from 'react';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import AuthForm from './components/AuthForm.jsx';
 import Dashboard from './components/Dashboard.jsx';
+import EquipmentDetailPage from './components/EquipmentDetailPage.jsx';
+import NotFoundPage from './components/NotFoundPage.jsx';
 
 const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 export default function App() {
+  const location = useLocation();
   // State ของฟอร์ม Login/Register
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -197,15 +201,33 @@ export default function App() {
   // มี user = ผ่านการ Login แล้ว จึงแสดง Dashboard
   if (user) {
     return (
-      <Dashboard
-        user={user}
-        users={users}
-        adminError={adminError}
-        updatingUserId={updatingUserId}
-        onUpdateUserRole={updateUserRole}
-        onSessionExpired={clearSession}
-        onLogout={logout}
-      />
+      <Routes>
+        <Route
+          path="/"
+          element={
+            <Dashboard
+              user={user}
+              users={users}
+              adminError={adminError}
+              updatingUserId={updatingUserId}
+              onUpdateUserRole={updateUserRole}
+              onSessionExpired={clearSession}
+              onLogout={logout}
+            />
+          }
+        />
+        <Route
+          path="/equipment/:code"
+          element={
+            <EquipmentDetailPage
+              user={user}
+              onUnauthorized={clearSession}
+              onLogout={logout}
+            />
+          }
+        />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
     );
   }
 
@@ -223,6 +245,11 @@ export default function App() {
       onPasswordChange={setPassword}
       onSubmit={handleSubmit}
       onSwitchMode={switchAuthMode}
+      destinationMessage={
+        location.pathname.startsWith('/equipment/')
+          ? 'กรุณาเข้าสู่ระบบเพื่อดูข้อมูลครุภัณฑ์จาก QR Code หลังเข้าสู่ระบบจะกลับมาหน้านี้อัตโนมัติ'
+          : ''
+      }
     />
   );
 }

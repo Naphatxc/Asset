@@ -43,6 +43,12 @@ export function getEquipment() {
   return request('/api/equipment-items');
 }
 
+export function getEquipmentByCode(equipmentCode) {
+  return request(
+    `/api/equipment-items/${encodeURIComponent(equipmentCode)}`,
+  );
+}
+
 export function getDeletedEquipment() {
   return request('/api/admin/equipment-items/deleted');
 }

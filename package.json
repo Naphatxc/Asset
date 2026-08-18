@@ -4,6 +4,7 @@
   "workspaces": ["client", "server"],
   "scripts": {
     "dev:client": "npm --workspace client run dev",
+    "dev:client:lan": "npm --workspace client run dev:lan",
     "dev:server": "npm --workspace server run dev",
     "build": "npm --workspace client run build"
   }

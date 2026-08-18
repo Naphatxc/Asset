@@ -26,8 +26,10 @@ React
 5. `client/src/api/equipment.js` — ทุก HTTP request ของครุภัณฑ์
 6. `EquipmentForm.jsx` — แปลงข้อมูลระหว่าง input กับ API payload
 7. `EquipmentTable.jsx` — ตารางและปุ่มของแต่ละแถว
-8. `EquipmentHistory.jsx` — แสดง Audit Log
-9. `styles.css` — สีและ Layout
+8. `EquipmentDetailPage.jsx` — หน้าที่เปิดจาก URL ใน QR และสิทธิ์แก้ไขของ Admin
+9. `QrCodeDialog.jsx` — สร้าง ดาวน์โหลด และพิมพ์ QR
+10. `EquipmentHistory.jsx` — แสดง Audit Log
+11. `styles.css` — สีและ Layout
 
 แนวคิดสำคัญ: Component ที่แสดงผลไม่ควรเขียน SQL และ Backend ไม่ควรรู้เรื่อง HTML
 
@@ -71,6 +73,18 @@ EquipmentForm -> EquipmentManager.submitForm()
 ### Soft Delete
 
 การลบไม่ได้ใช้ `DELETE FROM equipment_items` แต่ใส่วันที่ลง `deleted_at` ข้อมูลจึงยังกู้คืนและตรวจสอบประวัติได้
+
+### เปิดครุภัณฑ์จาก QR
+
+```text
+QR -> /equipment/:code
+-> App ตรวจ Session
+-> EquipmentDetailPage
+-> GET /api/equipment-items/:code
+-> User ดูรายละเอียด / Admin แก้ไขหรือพิมพ์ QR
+```
+
+อ่านวิธีตั้งค่าโทรศัพท์ต่อได้ใน `docs/QR_GUIDE.md`
 
 ## คำศัพท์ในโค้ด
 
