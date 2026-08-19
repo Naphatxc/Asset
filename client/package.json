@@ -7,7 +7,8 @@
     "dev": "vite",
     "dev:lan": "vite --host 0.0.0.0",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "start": "serve --single --listen $PORT dist"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
@@ -15,6 +16,7 @@
     "react": "latest",
     "react-dom": "latest",
     "react-router-dom": "^7.18.2",
+    "serve": "^14.2.6",
     "vite": "latest"
   }
 }
