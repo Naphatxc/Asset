@@ -2,7 +2,7 @@
 import jwt from 'jsonwebtoken';
 
 import { jwtSecret } from '../config.js';
-import { pool } from '../db.js';
+import { prisma } from '../db.js';
 
 export function authenticate(request, response, next) {
   // รูปแบบ Header ที่รับคือ Authorization: Bearer <token>
@@ -35,15 +35,10 @@ export function authenticate(request, response, next) {
 export async function requireAdmin(request, response, next) {
   try {
     // อ่าน role ล่าสุดจาก DB ไม่เชื่อ role ใน Token อย่างเดียว เพราะ Admin อาจเพิ่งถูกลดสิทธิ์
-    const [users] = await pool.execute(
-      `SELECT role
-       FROM users
-       WHERE user_id = ?
-       LIMIT 1`,
-      [request.user.sub],
-    );
-
-    const user = users[0];
+    const user = await prisma.users.findUnique({
+      where: { user_id: Number(request.user.sub) },
+      select: { role: true },
+    });
 
     if (!user) {
       return response.status(401).json({

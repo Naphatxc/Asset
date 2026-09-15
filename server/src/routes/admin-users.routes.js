@@ -1,7 +1,7 @@
 // ทุก route ในไฟล์นี้สงวนให้ Admin สำหรับจัดการบัญชีผู้ใช้
 import express from 'express';
 
-import { pool } from '../db.js';
+import { prisma } from '../db.js';
 import {
   authenticate,
   requireAdmin,
@@ -15,16 +15,16 @@ router.use(authenticate, requireAdmin);
 // GET /api/admin/users
 router.get('/', async (_request, response) => {
   try {
-    const [users] = await pool.query(
-      `SELECT
-        user_id,
-        name,
-        email,
-        role,
-        created_at
-      FROM users
-      ORDER BY created_at DESC`,
-    );
+    const users = await prisma.users.findMany({
+      select: {
+        user_id: true,
+        name: true,
+        email: true,
+        role: true,
+        created_at: true,
+      },
+      orderBy: { created_at: 'desc' },
+    });
 
     response.json({ users });
   } catch (error) {
@@ -66,15 +66,15 @@ router.patch('/:id/role', async (request, response) => {
       });
     }
 
-    const [users] = await pool.execute(
-      `SELECT user_id, name, email, role
-       FROM users
-       WHERE user_id = ?
-       LIMIT 1`,
-      [userId],
-    );
-
-    const user = users[0];
+    const user = await prisma.users.findUnique({
+      where: { user_id: userId },
+      select: {
+        user_id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+    });
 
     if (!user) {
       return response.status(404).json({
@@ -82,19 +82,20 @@ router.patch('/:id/role', async (request, response) => {
       });
     }
 
-    await pool.execute(
-      `UPDATE users
-       SET role = ?
-       WHERE user_id = ?`,
-      [role, userId],
-    );
+    const updatedUser = await prisma.users.update({
+      where: { user_id: userId },
+      data: { role },
+      select: {
+        user_id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+    });
 
     response.json({
       message: 'อัปเดตสิทธิ์เรียบร้อยแล้ว',
-      user: {
-        ...user,
-        role,
-      },
+      user: updatedUser,
     });
   } catch (error) {
     console.error('Update role error:', error);

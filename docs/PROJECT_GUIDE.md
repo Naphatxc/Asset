@@ -10,7 +10,7 @@ Browser (React)
 Express Route
   -> authenticate
   -> requireAdmin (เฉพาะงาน Admin)
-  -> SQL ผ่าน MySQL Pool
+  -> Prisma Client
 MySQL
   -> ส่งผลกลับเป็น JSON
 React
@@ -31,17 +31,19 @@ React
 10. `EquipmentHistory.jsx` — แสดง Audit Log
 11. `styles.css` — สีและ Layout
 
-แนวคิดสำคัญ: Component ที่แสดงผลไม่ควรเขียน SQL และ Backend ไม่ควรรู้เรื่อง HTML
+แนวคิดสำคัญ: Component ที่แสดงผลไม่ควรเข้าถึงฐานข้อมูล และ Backend ไม่ควรรู้เรื่อง HTML
 
 ## ลำดับอ่าน Backend
 
 1. `server/src/index.js` — ประกอบ Express และ route prefixes
 2. `server/src/config.js` — อ่านค่าจาก `.env`
-3. `server/src/db.js` — MySQL Connection Pool
-4. `server/src/middleware/auth.js` — ตรวจ Token และ role
-5. `server/src/routes/auth.routes.js` — Register/Login/Me
-6. `server/src/routes/equipment.routes.js` — CRUD, Status, Soft Delete, Restore
-7. `server/src/services/equipment-history.js` — บันทึกข้อมูลก่อนและหลัง
+3. `server/prisma/schema.prisma` — Models, relations และ enums ของฐานข้อมูล
+4. `server/prisma.config.js` — ตั้งค่า connection สำหรับ Prisma CLI
+5. `server/src/db.js` — Prisma Client และ MariaDB driver adapter
+6. `server/src/middleware/auth.js` — ตรวจ Token และ role
+7. `server/src/routes/auth.routes.js` — Register/Login/Me
+8. `server/src/routes/equipment.routes.js` — CRUD, Status, Soft Delete, Restore
+9. `server/src/services/equipment-history.js` — บันทึกข้อมูลก่อนและหลัง
 
 ## Request ที่ควรไล่อ่านเป็นตัวอย่าง
 
@@ -63,10 +65,10 @@ EquipmentForm -> EquipmentManager.submitForm()
 -> api/equipment.js
 -> PATCH /api/admin/equipment-items/:id
 -> authenticate -> requireAdmin
--> beginTransaction()
--> UPDATE equipment + equipment_items
--> INSERT equipment_history
--> commit()
+-> prisma.$transaction()
+-> prisma.equipment.update() + prisma.equipment_items.update()
+-> prisma.equipment_history.create()
+-> transaction สำเร็จและ commit อัตโนมัติ
 -> reload ตาราง
 ```
 
@@ -91,7 +93,9 @@ QR -> /equipment/:code
 - `state` — ข้อมูลในหน่วยความจำของหน้า React เมื่อเปลี่ยนแล้วหน้าจะ render ใหม่
 - `props` — ข้อมูลหรือฟังก์ชันที่ Component แม่ส่งให้ Component ลูก
 - `middleware` — ฟังก์ชันที่ทำงานก่อน route เช่น ตรวจ Token
-- `transaction` — ชุดคำสั่ง SQL ที่ต้องสำเร็จทั้งหมด ไม่เช่นนั้น rollback
+- `Prisma Model` — ตัวแทนตารางและความสัมพันธ์ที่ประกาศใน `schema.prisma`
+- `Prisma Client` — API สำหรับอ่าน/เขียน MySQL โดยไม่ต้องต่อ string SQL เอง
+- `transaction` — ชุดคำสั่งฐานข้อมูลที่ต้องสำเร็จทั้งหมด ไม่เช่นนั้น Prisma rollback
 - `Soft Delete` — ซ่อนข้อมูลด้วย `deleted_at` แทนการลบแถวจริง
 - `Audit Log` — ประวัติว่าใครเปลี่ยนอะไร เมื่อใด และข้อมูลก่อน/หลังคืออะไร
 - `HTTP 401` — ยังไม่ได้ Login หรือ Token ใช้ไม่ได้
@@ -103,13 +107,13 @@ QR -> /equipment/:code
 Terminal 1:
 
 ```powershell
-npm.cmd run dev:server
+pnpm --filter asset-server dev
 ```
 
 Terminal 2:
 
 ```powershell
-npm.cmd run dev:client
+pnpm --filter asset-client dev
 ```
 
 Frontend: `http://localhost:5173`  

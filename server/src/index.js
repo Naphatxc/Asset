@@ -3,7 +3,7 @@ import cors from 'cors';
 import express from 'express';
 
 import { clientOrigins, port } from './config.js';
-import { pool } from './db.js';
+import { prisma } from './db.js';
 import adminUserRoutes from './routes/admin-users.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import equipmentRoutes, {
@@ -11,7 +11,7 @@ import equipmentRoutes, {
 } from './routes/equipment.routes.js';
 import optionRoutes from './routes/options.routes.js';
 
-const app = express();
+export const app = express();
 
 // อนุญาตเฉพาะ Frontend URL ที่กำหนด และแปลง JSON body ให้ request.body
 app.use(cors({ origin: clientOrigins }));
@@ -27,15 +27,15 @@ app.get('/api/health', (_request, response) => {
 // Endpoint นี้ใช้ตรวจว่า Server เชื่อมฐานข้อมูลตัวที่ตั้งค่าไว้ได้จริง
 app.get('/api/db-check', async (_request, response) => {
   try {
-    const [rows] = await pool.query(`
-      SELECT
-        DATABASE() AS database_name,
-        VERSION() AS version
-    `);
+    // Query ผ่าน Prisma เพื่อยืนยันว่า connection และ schema ใช้งานได้จริง
+    await prisma.users.count();
 
     response.json({
       status: 'ok',
-      database: rows[0],
+      database: {
+        database_name: process.env.DB_NAME ?? 'asset_management',
+        orm: 'Prisma',
+      },
     });
   } catch (error) {
     console.error('Database connection error:', error);
@@ -54,6 +54,20 @@ app.use('/api/equipment-items', equipmentRoutes);
 app.use('/api/admin/equipment-items', adminEquipmentRouter);
 app.use('/api', optionRoutes);
 
-app.listen(port, () => {
+export const server = app.listen(port, () => {
   console.log(`API is running at http://localhost:${port}`);
 });
+
+function shutdown() {
+  server.close(async (error) => {
+    await prisma.$disconnect();
+
+    if (error) {
+      console.error('Server shutdown error:', error);
+      process.exitCode = 1;
+    }
+  });
+}
+
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

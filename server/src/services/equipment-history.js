@@ -1,6 +1,6 @@
 // Helper กลางสำหรับบันทึก Audit Log ทุกการเปลี่ยนแปลงของครุภัณฑ์
 export async function recordEquipmentHistory(
-  connection,
+  database,
   {
     itemId,
     action,
@@ -9,22 +9,17 @@ export async function recordEquipmentHistory(
     changedBy = null,
   },
 ) {
-  await connection.execute(
-    `INSERT INTO equipment_history (
-      item_id,
+  // แปลง Date/Decimal ให้เป็น JSON ปกติก่อนเก็บ snapshot
+  const toJson = (value) =>
+    value === null ? null : JSON.parse(JSON.stringify(value));
+
+  await database.equipment_history.create({
+    data: {
+      item_id: itemId,
       action,
-      old_data,
-      new_data,
-      changed_by
-    )
-    VALUES (?, ?, ?, ?, ?)`,
-    [
-      itemId,
-      action,
-      // MySQL JSON รับ string JSON แล้วแปลงกลับเป็น object ตอน SELECT
-      oldData === null ? null : JSON.stringify(oldData),
-      newData === null ? null : JSON.stringify(newData),
-      changedBy,
-    ],
-  );
+      changed_by: changedBy,
+      ...(oldData === null ? {} : { old_data: toJson(oldData) }),
+      ...(newData === null ? {} : { new_data: toJson(newData) }),
+    },
+  });
 }

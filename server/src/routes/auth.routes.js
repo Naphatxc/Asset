@@ -4,7 +4,7 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 
 import { jwtSecret } from '../config.js';
-import { pool } from '../db.js';
+import { prisma } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -38,12 +38,12 @@ router.post('/register', async (request, response) => {
       });
     }
 
-    const [existingUsers] = await pool.execute(
-      'SELECT user_id FROM users WHERE email = ? LIMIT 1',
-      [email],
-    );
+    const existingUser = await prisma.users.findUnique({
+      where: { email },
+      select: { user_id: true },
+    });
 
-    if (existingUsers.length > 0) {
+    if (existingUser) {
       return response.status(409).json({
         message: 'อีเมลนี้ถูกใช้งานแล้ว',
       });
@@ -51,22 +51,26 @@ router.post('/register', async (request, response) => {
 
     // ฐานข้อมูลเก็บ hash เท่านั้น ไม่เก็บรหัสผ่านจริง
     const passwordHash = await bcrypt.hash(password, 12);
-    const [result] = await pool.execute(
-      'INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)',
-      [name, email, passwordHash],
-    );
+    const user = await prisma.users.create({
+      data: {
+        name,
+        email,
+        password_hash: passwordHash,
+      },
+      select: {
+        user_id: true,
+        name: true,
+        email: true,
+        role: true,
+      },
+    });
 
     response.status(201).json({
       message: 'ลงทะเบียนสำเร็จ',
-      user: {
-        user_id: result.insertId,
-        name,
-        email,
-        role: 'user',
-      },
+      user,
     });
   } catch (error) {
-    if (error.code === 'ER_DUP_ENTRY') {
+    if (error.code === 'P2002') {
       return response.status(409).json({
         message: 'อีเมลนี้ถูกใช้งานแล้ว',
       });
@@ -94,20 +98,16 @@ router.post('/login', async (request, response) => {
       });
     }
 
-    const [users] = await pool.execute(
-      `SELECT
-        user_id,
-        name,
-        email,
-        password_hash,
-        role
-      FROM users
-      WHERE email = ?
-      LIMIT 1`,
-      [email],
-    );
-
-    const user = users[0];
+    const user = await prisma.users.findUnique({
+      where: { email },
+      select: {
+        user_id: true,
+        name: true,
+        email: true,
+        password_hash: true,
+        role: true,
+      },
+    });
 
     if (!user) {
       return response.status(401).json({
@@ -160,20 +160,16 @@ router.post('/login', async (request, response) => {
 // GET /api/auth/me ใช้ตรวจ Session ตอน Refresh หน้าเว็บ
 router.get('/me', authenticate, async (request, response) => {
   try {
-    const [users] = await pool.execute(
-      `SELECT
-        user_id,
-        name,
-        email,
-        role,
-        created_at
-      FROM users
-      WHERE user_id = ?
-      LIMIT 1`,
-      [request.user.sub],
-    );
-
-    const user = users[0];
+    const user = await prisma.users.findUnique({
+      where: { user_id: Number(request.user.sub) },
+      select: {
+        user_id: true,
+        name: true,
+        email: true,
+        role: true,
+        created_at: true,
+      },
+    });
 
     if (!user) {
       return response.status(401).json({

@@ -1,7 +1,7 @@
 // ข้อมูลตัวเลือกสำหรับ Form ครุภัณฑ์ ผู้ใช้ที่ Login แล้วอ่านได้ทุก role
 import express from 'express';
 
-import { pool } from '../db.js';
+import { prisma } from '../db.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = express.Router();
@@ -11,14 +11,14 @@ router.use(authenticate);
 // GET /api/categories
 router.get('/categories', async (_request, response) => {
   try {
-    const [categories] = await pool.query(
-      `SELECT
-        category_id,
-        category_name,
-        description
-      FROM categories
-      ORDER BY category_name`,
-    );
+    const categories = await prisma.categories.findMany({
+      select: {
+        category_id: true,
+        category_name: true,
+        description: true,
+      },
+      orderBy: { category_name: 'asc' },
+    });
 
     response.json({ categories });
   } catch (error) {
@@ -33,15 +33,15 @@ router.get('/categories', async (_request, response) => {
 // GET /api/locations
 router.get('/locations', async (_request, response) => {
   try {
-    const [locations] = await pool.query(
-      `SELECT
-        location_id,
-        location_name,
-        building,
-        room
-      FROM locations
-      ORDER BY location_name`,
-    );
+    const locations = await prisma.locations.findMany({
+      select: {
+        location_id: true,
+        location_name: true,
+        building: true,
+        room: true,
+      },
+      orderBy: { location_name: 'asc' },
+    });
 
     response.json({ locations });
   } catch (error) {
