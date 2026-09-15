@@ -1,0 +1,27 @@
+// ประกอบ Express app: middleware กลาง + mount routes ทั้งหมดใต้ /api + error handler
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
+import express from 'express';
+
+import { clientOrigins } from './config/env.js';
+import { errorHandler } from './middlewares/error.middleware.js';
+import routes from './routes/index.js';
+import { AppError } from './utils/AppError.js';
+
+export const app = express();
+
+// credentials: true จำเป็นเพื่อให้ browser แนบ/รับ cookie ข้าม origin (client :5173, server :3000)
+// cors ที่ credentials:true ใช้ origin แบบ wildcard '*' ไม่ได้ จึงต้องระบุ origin ที่อนุญาตจริงเสมอ
+app.use(cors({ origin: clientOrigins, credentials: true }));
+app.use(express.json());
+app.use(cookieParser());
+
+app.use('/api', routes);
+
+// path ที่ไม่ตรง route ไหนเลย ให้ตอบ JSON แบบเดียวกับ error อื่นในระบบ แทน HTML default ของ Express
+app.use((request, _response, next) => {
+  next(new AppError(404, 'ไม่พบเส้นทางที่ร้องขอ'));
+});
+
+// ต้องอยู่หลัง route ทั้งหมดเสมอ เพื่อรับ error ที่ถูกส่งผ่าน next(error)
+app.use(errorHandler);

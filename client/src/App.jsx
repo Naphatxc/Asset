@@ -1,121 +1,78 @@
 // App ดูแลเรื่องบัญชีผู้ใช้และ Session ส่วนงานครุภัณฑ์แยกไปอยู่ใน EquipmentManager
-import { useEffect, useState } from 'react';
+// Session มาจาก query ['auth','me'] — กลายเป็น null อัตโนมัติเมื่อเจอ 401 (ดู main.jsx: handleAuthError)
+// จึงไม่ต้องส่ง onUnauthorized/onSessionExpired ไล่ผ่าน prop หลายชั้นเหมือนเดิมอีกต่อไป
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
+import {
+  getUsers,
+  updateUserRole as updateUserRoleRequest,
+} from './api/admin-users.js';
+import {
+  getCurrentUser,
+  login,
+  logout as logoutRequest,
+  register,
+} from './api/auth.js';
 import AuthForm from './components/AuthForm.jsx';
 import Dashboard from './components/Dashboard.jsx';
 import EquipmentDetailPage from './components/EquipmentDetailPage.jsx';
 import NotFoundPage from './components/NotFoundPage.jsx';
 
-const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-
 export default function App() {
   const location = useLocation();
-  // State ของฟอร์ม Login/Register
+  const queryClient = useQueryClient();
+  // State ของฟอร์ม Login/Register (UI-only — ข้อมูลจริงมาจาก query/mutation ด้านล่าง)
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [user, setUser] = useState(null);
-  const [users, setUsers] = useState([]);
-  // State สำหรับข้อความและสถานะการโหลดของหน้า Authentication/Admin
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [adminError, setAdminError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [authMode, setAuthMode] = useState('login');
   const [name, setName] = useState('');
 
-  // เมื่อเปิดหรือ Refresh เว็บ ให้ใช้ Token เดิมถาม /me ว่ายัง Login อยู่หรือไม่
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
-
-    if (!token) {
-      setCheckingSession(false);
-      return;
-    }
-
-    async function loadCurrentUser() {
-      try {
-        const response = await fetch(`${apiUrl}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await response.json();
-
-        if (!response.ok) throw new Error(data.message);
-        setUser(data.user);
-      } catch {
-        localStorage.removeItem('access_token');
-        setUser(null);
-      } finally {
-        setCheckingSession(false);
-      }
-    }
-
-    loadCurrentUser();
-  }, []);
+  // เช็ค session ตอนโหลด/Refresh หน้าเว็บ cookie จะแนบไปเองถ้ามี (retry:false ตั้งไว้ที่ QueryClient กลาง)
+  const { data: meData, isLoading: checkingSession } = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: getCurrentUser,
+  });
+  const user = meData?.user ?? null;
 
   // รายชื่อผู้ใช้เป็นข้อมูลเฉพาะ Admin จึงโหลดหลังทราบ role แล้วเท่านั้น
-  useEffect(() => {
-    if (user?.role !== 'admin') {
-      setUsers([]);
-      return;
-    }
+  const { data: usersData } = useQuery({
+    queryKey: ['admin-users'],
+    queryFn: getUsers,
+    enabled: user?.role === 'admin',
+  });
+  const users = usersData?.users ?? [];
 
-    async function loadUsers() {
-      try {
-        setAdminError('');
-        const token = localStorage.getItem('access_token');
-        const response = await fetch(`${apiUrl}/api/admin/users`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await response.json();
+  const loginMutation = useMutation({
+    mutationFn: login,
+    onSuccess: (data) => {
+      // ตั้งค่า cache ตรงๆ แทนการยิง /me ซ้ำ เพราะ response ของ login ก็มี user อยู่แล้ว
+      queryClient.setQueryData(['auth', 'me'], { user: data.user });
+    },
+  });
 
-        if (response.status === 401) {
-          clearSession();
-          return;
-        }
-        if (!response.ok) throw new Error(data.message);
-        setUsers(data.users);
-      } catch (loadError) {
-        setAdminError(loadError.message);
-      }
-    }
+  const registerMutation = useMutation({ mutationFn: register });
 
-    loadUsers();
-  }, [user]);
+  const updateRoleMutation = useMutation({
+    mutationFn: ({ userId, role }) => updateUserRoleRequest(userId, role),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    },
+  });
 
-  // ล้างทั้ง Token และข้อมูลในหน่วยความจำ ใช้ร่วมกันตอน Logout/Token หมดอายุ
-  function clearSession() {
-    localStorage.removeItem('access_token');
-    setUser(null);
-    setUsers([]);
-  }
-
-  // Login และ Register ใช้ฟอร์มเดียวกัน แต่เลือก endpoint จาก authMode
+  // Login และ Register ใช้ฟอร์มเดียวกัน แต่เลือก mutation จาก authMode
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
     setSuccessMessage('');
-    setLoading(true);
 
     try {
-      const endpoint =
-        authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
-      const requestBody =
-        authMode === 'login'
-          ? { email, password }
-          : { name, email, password };
-      const response = await fetch(`${apiUrl}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message ?? 'ไม่สามารถดำเนินการได้');
-      }
       if (authMode === 'register') {
+        await registerMutation.mutateAsync({ name, email, password });
         setAuthMode('login');
         setName('');
         setPassword('');
@@ -123,47 +80,19 @@ export default function App() {
         return;
       }
 
-      localStorage.setItem('access_token', data.token);
-      setUser(data.user);
+      // สำเร็จแล้ว server จะ set-cookie access_token/csrf_token มาให้เอง ไม่มี token ใน response แล้ว
+      await loginMutation.mutateAsync({ email, password });
     } catch (submitError) {
       setError(submitError.message);
-    } finally {
-      setLoading(false);
     }
   }
 
-  // เปลี่ยน role แล้วอัปเดตเฉพาะแถวที่เปลี่ยน ไม่จำเป็นต้องโหลดทั้งตารางใหม่
+  // เปลี่ยน role แล้วให้ query ['admin-users'] invalidate ไปโหลดตารางใหม่เอง
   async function updateUserRole(userId, role) {
     try {
       setAdminError('');
       setUpdatingUserId(userId);
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(
-        `${apiUrl}/api/admin/users/${userId}/role`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ role }),
-        },
-      );
-      const data = await response.json();
-
-      if (response.status === 401) {
-        clearSession();
-        return;
-      }
-      if (!response.ok) throw new Error(data.message);
-
-      setUsers((currentUsers) =>
-        currentUsers.map((item) =>
-          item.user_id === userId
-            ? { ...item, role: data.user.role }
-            : item,
-        ),
-      );
+      await updateRoleMutation.mutateAsync({ userId, role });
     } catch (updateError) {
       setAdminError(updateError.message);
     } finally {
@@ -183,13 +112,22 @@ export default function App() {
     );
   }
 
-  function logout() {
-    clearSession();
+  // เรียก /api/auth/logout ให้ server ล้าง cookie ก่อน แล้วค่อยล้าง cache ฝั่งนี้ — ทำ best-effort
+  // คือถึง request ล้มเหลว (เช่น server ล่ม) ก็ยังล้าง session ให้ UI กลับไปหน้า Login ได้ตามปกติ
+  async function logout() {
+    try {
+      await logoutRequest();
+    } catch {
+      // เพิกเฉย: cookie อาจหมดอายุอยู่แล้วหรือ network มีปัญหา ไม่ควรบล็อกไม่ให้ผู้ใช้ออกจากระบบ
+    }
+
+    queryClient.setQueryData(['auth', 'me'], null);
+    queryClient.removeQueries({ queryKey: ['admin-users'] });
     setEmail('');
     setPassword('');
   }
 
-  // ระหว่างตรวจ Token ยังไม่ควรแสดงหน้า Login เพราะหน้าจะกระพริบ
+  // ระหว่างตรวจ Session ยังไม่ควรแสดงหน้า Login เพราะหน้าจะกระพริบ
   if (checkingSession) {
     return (
       <main className="app-shell">
@@ -211,20 +149,13 @@ export default function App() {
               adminError={adminError}
               updatingUserId={updatingUserId}
               onUpdateUserRole={updateUserRole}
-              onSessionExpired={clearSession}
               onLogout={logout}
             />
           }
         />
         <Route
           path="/equipment/:code"
-          element={
-            <EquipmentDetailPage
-              user={user}
-              onUnauthorized={clearSession}
-              onLogout={logout}
-            />
-          }
+          element={<EquipmentDetailPage user={user} onLogout={logout} />}
         />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
@@ -239,7 +170,7 @@ export default function App() {
       password={password}
       error={error}
       successMessage={successMessage}
-      loading={loading}
+      loading={loginMutation.isPending || registerMutation.isPending}
       onNameChange={setName}
       onEmailChange={setEmail}
       onPasswordChange={setPassword}

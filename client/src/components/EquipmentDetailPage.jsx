@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
 import {
-  ApiError,
   getCategories,
   getEquipmentByCode,
   getLocations,
@@ -45,92 +45,56 @@ function formatLocation(equipment) {
   return parts.length > 0 ? parts.join(' · ') : 'ยังไม่ระบุสถานที่';
 }
 
-export default function EquipmentDetailPage({
-  user,
-  onUnauthorized,
-  onLogout,
-}) {
+export default function EquipmentDetailPage({ user, onLogout }) {
   const { code = '' } = useParams();
-  const [equipment, setEquipment] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [errorStatus, setErrorStatus] = useState(null);
+  const queryClient = useQueryClient();
   const [showQr, setShowQr] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [locations, setLocations] = useState([]);
-  const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState('');
   const admin = user.role === 'admin';
 
-  async function loadEquipment() {
-    const data = await getEquipmentByCode(code);
-    setEquipment(data.equipment);
-  }
+  const equipmentQuery = useQuery({
+    queryKey: ['equipment', code],
+    queryFn: () => getEquipmentByCode(code),
+  });
+  // ตัวเลือกของฟอร์มแก้ไขมีแต่ Admin เห็น จึงโหลดเมื่อกดแก้ไขเท่านั้น
+  const categoriesQuery = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+    enabled: editing,
+  });
+  const locationsQuery = useQuery({
+    queryKey: ['locations'],
+    queryFn: getLocations,
+    enabled: editing,
+  });
 
-  function handleApiError(apiError) {
-    if (apiError instanceof ApiError && apiError.status === 401) {
-      onUnauthorized();
-      return;
-    }
+  const equipment = equipmentQuery.data?.equipment ?? null;
+  const categories = categoriesQuery.data?.categories ?? [];
+  const locations = locationsQuery.data?.locations ?? [];
+  const optionsError = categoriesQuery.error?.message || locationsQuery.error?.message;
 
-    setErrorStatus(apiError.status ?? 500);
-    setError(apiError.message);
-  }
-
-  useEffect(() => {
-    async function initialize() {
-      setLoading(true);
-      setError('');
-      setErrorStatus(null);
-
-      try {
-        await loadEquipment();
-      } catch (loadError) {
-        handleApiError(loadError);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    initialize();
-  }, [code]);
-
-  async function openEditForm() {
-    setError('');
-    setNotice('');
-
-    try {
-      const [categoryData, locationData] = await Promise.all([
-        getCategories(),
-        getLocations(),
-      ]);
-      setCategories(categoryData.categories);
-      setLocations(locationData.locations);
-      setEditing(true);
-    } catch (loadError) {
-      handleApiError(loadError);
-    }
-  }
-
-  async function submitEdit(payload) {
-    setSubmitting(true);
-    setError('');
-    setNotice('');
-
-    try {
-      await updateEquipment(equipment.item_id, payload);
-      await loadEquipment();
+  const updateMutation = useMutation({
+    mutationFn: (payload) => updateEquipment(equipment.item_id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipment', code] });
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
       setEditing(false);
       setNotice('แก้ไขข้อมูลครุภัณฑ์สำเร็จ');
-    } catch (updateError) {
-      handleApiError(updateError);
-    } finally {
-      setSubmitting(false);
-    }
+    },
+  });
+
+  function openEditForm() {
+    setNotice('');
+    setEditing(true);
   }
 
-  if (loading) {
+  function submitEdit(payload) {
+    setNotice('');
+    updateMutation.mutate(payload);
+  }
+
+  if (equipmentQuery.isLoading) {
     return (
       <main className="app-shell">
         <p className="loading-message">กำลังโหลดข้อมูลครุภัณฑ์...</p>
@@ -139,12 +103,14 @@ export default function EquipmentDetailPage({
   }
 
   if (!equipment) {
+    const errorStatus = equipmentQuery.error?.status;
+
     return (
       <main className="app-shell">
         <section className="welcome-card centered-state">
           <p className="eyebrow">{errorStatus === 404 ? '404' : 'Error'}</p>
           <h1>{errorStatus === 404 ? 'ไม่พบครุภัณฑ์' : 'โหลดข้อมูลไม่สำเร็จ'}</h1>
-          <p>{error || 'กรุณาลองใหม่อีกครั้ง'}</p>
+          <p>{equipmentQuery.error?.message || 'กรุณาลองใหม่อีกครั้ง'}</p>
           <Link className="button-link button-primary" to="/">
             กลับหน้าหลัก
           </Link>
@@ -172,18 +138,23 @@ export default function EquipmentDetailPage({
           </div>
         </header>
 
-        {error && <p className="error-message">{error}</p>}
+        {updateMutation.error && (
+          <p className="error-message">{updateMutation.error.message}</p>
+        )}
         {notice && <p className="success-message">{notice}</p>}
 
         {editing ? (
-          <EquipmentForm
-            equipment={equipment}
-            categories={categories}
-            locations={locations}
-            submitting={submitting}
-            onSubmit={submitEdit}
-            onCancel={() => setEditing(false)}
-          />
+          <>
+            {optionsError && <p className="error-message">{optionsError}</p>}
+            <EquipmentForm
+              equipment={equipment}
+              categories={categories}
+              locations={locations}
+              submitting={updateMutation.isPending}
+              onSubmit={submitEdit}
+              onCancel={() => setEditing(false)}
+            />
+          </>
         ) : (
           <dl className="detail-grid">
             <div>

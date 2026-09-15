@@ -1,9 +1,10 @@
-// Component หลักของโมดูลครุภัณฑ์: ถือ state และประสาน Form/Table/History กับ API
-import { useEffect, useState } from 'react';
+// Component หลักของโมดูลครุภัณฑ์: TanStack Query ดูแล data fetching/cache/loading/error ทั้งหมด
+// เหลือแค่ state ที่เป็น UI ล้วนๆ (view, formMode, ข้อความยืนยัน ฯลฯ) — 401 จัดการที่ main.jsx จุดเดียว
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
-  ApiError,
   createEquipment,
   deleteEquipment,
   getCategories,
@@ -20,109 +21,134 @@ import EquipmentHistory from './EquipmentHistory.jsx';
 import EquipmentTable from './EquipmentTable.jsx';
 import QrCodeDialog from './QrCodeDialog.jsx';
 
-export default function EquipmentManager({ user, onUnauthorized }) {
+export default function EquipmentManager({ user }) {
   const navigate = useNavigate();
-  // ข้อมูลจากฐานข้อมูล
-  const [equipment, setEquipment] = useState([]);
-  const [deletedEquipment, setDeletedEquipment] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [locations, setLocations] = useState([]);
-  // State ควบคุมหน้าจอและข้อความตอบกลับ
+  const queryClient = useQueryClient();
+  const admin = user.role === 'admin';
+
+  // State ควบคุมหน้าจอเท่านั้น (ไม่ใช่ข้อมูลจาก server)
   const [view, setView] = useState('active');
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [formMode, setFormMode] = useState(null);
   const [editingEquipment, setEditingEquipment] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [busyItemId, setBusyItemId] = useState(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
   const [historyEquipment, setHistoryEquipment] = useState(null);
-  const [history, setHistory] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
   const [qrEquipment, setQrEquipment] = useState(null);
 
-  const admin = user.role === 'admin';
+  const equipmentQuery = useQuery({
+    queryKey: ['equipment'],
+    queryFn: getEquipment,
+  });
+  // เฉพาะ Admin เท่านั้นที่มีปุ่มดูรายการที่ถูกลบ จึงโหลดเมื่อจำเป็นจริงๆ
+  const deletedEquipmentQuery = useQuery({
+    queryKey: ['equipment', 'deleted'],
+    queryFn: getDeletedEquipment,
+    enabled: admin && view === 'deleted',
+  });
+  // ใช้เป็นตัวเลือกใน Form เพิ่ม/แก้ไข ซึ่งมีแต่ Admin เห็น
+  const categoriesQuery = useQuery({
+    queryKey: ['categories'],
+    queryFn: getCategories,
+    enabled: admin,
+  });
+  const locationsQuery = useQuery({
+    queryKey: ['locations'],
+    queryFn: getLocations,
+    enabled: admin,
+  });
+  const historyQuery = useQuery({
+    queryKey: ['equipment', historyEquipment?.item_id, 'history'],
+    queryFn: () => getEquipmentHistory(historyEquipment.item_id),
+    enabled: historyEquipment != null,
+  });
 
-  // ตอนเปิด Dashboard: ทุกคนโหลดรายการ ส่วน Admin โหลดตัวเลือกสำหรับฟอร์มเพิ่มด้วย
-  useEffect(() => {
-    async function initialize() {
-      setLoading(true);
-      setError('');
+  const equipment = equipmentQuery.data?.equipment ?? [];
+  const deletedEquipment = deletedEquipmentQuery.data?.equipment ?? [];
+  const categories = categoriesQuery.data?.categories ?? [];
+  const locations = locationsQuery.data?.locations ?? [];
+  const history = historyQuery.data?.history ?? [];
 
-      try {
-        const equipmentRequest = getEquipment();
-
-        if (admin) {
-          const [equipmentData, categoryData, locationData] =
-            await Promise.all([
-              equipmentRequest,
-              getCategories(),
-              getLocations(),
-            ]);
-
-          setEquipment(equipmentData.equipment);
-          setCategories(categoryData.categories);
-          setLocations(locationData.locations);
-        } else {
-          const equipmentData = await equipmentRequest;
-          setEquipment(equipmentData.equipment);
-        }
-      } catch (loadError) {
-        handleError(loadError);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    initialize();
-  }, [admin]);
-
-  // Error 401 หมายถึง Token ใช้ไม่ได้แล้ว จึงส่งกลับไปให้ App ล้าง Session
-  function handleError(actionError) {
-    if (actionError instanceof ApiError && actionError.status === 401) {
-      onUnauthorized();
-      return;
-    }
-
-    setError(actionError.message);
+  function invalidateEquipmentLists() {
+    queryClient.invalidateQueries({ queryKey: ['equipment'] });
   }
+
+  // Form เดียวกันเลือก Create หรือ Edit จาก formMode
+  const saveEquipmentMutation = useMutation({
+    mutationFn: (payload) =>
+      formMode === 'edit'
+        ? updateEquipment(editingEquipment.item_id, payload)
+        : createEquipment(payload),
+    onSuccess: () => {
+      invalidateEquipmentLists();
+      setNotice(
+        formMode === 'edit'
+          ? 'แก้ไขข้อมูลครุภัณฑ์สำเร็จ'
+          : 'เพิ่มครุภัณฑ์สำเร็จ',
+      );
+      closeForm();
+    },
+    onError: (mutationError) => setError(mutationError.message),
+  });
+
+  // การเปลี่ยนสถานะแยก endpoint จากการแก้ข้อมูลทั่วไป เพื่อให้ History ชัดเจน
+  const statusMutation = useMutation({
+    mutationFn: ({ item, status }) =>
+      updateEquipmentStatus(item.item_id, status),
+    onSuccess: (_data, { item }) => {
+      invalidateEquipmentLists();
+      setNotice(`เปลี่ยนสถานะ ${item.equipment_code} สำเร็จ`);
+    },
+    onError: (mutationError) => setError(mutationError.message),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (item) => deleteEquipment(item.item_id),
+    onSuccess: (_data, item) => {
+      invalidateEquipmentLists();
+      queryClient.invalidateQueries({ queryKey: ['equipment', 'deleted'] });
+      setNotice(`ลบ ${item.equipment_code} แล้ว สามารถกู้คืนได้`);
+      setConfirmingDeleteId(null);
+    },
+    onError: (mutationError) => setError(mutationError.message),
+  });
+
+  // Restore ทำให้ deleted_at กลับเป็น null แล้วให้ทั้งสอง query invalidate ไปโหลดใหม่เอง
+  const restoreMutation = useMutation({
+    mutationFn: (item) => restoreEquipment(item.item_id),
+    onSuccess: (_data, item) => {
+      invalidateEquipmentLists();
+      queryClient.invalidateQueries({ queryKey: ['equipment', 'deleted'] });
+      setNotice(`กู้คืน ${item.equipment_code} สำเร็จ`);
+    },
+    onError: (mutationError) => setError(mutationError.message),
+  });
+
+  // ปุ่มของแถวไหนกำลังถูก mutate อยู่ ใช้ disable เฉพาะแถวนั้นระหว่างรอผล (item_id ไม่มีทางเป็น 0)
+  const busyItemId =
+    (statusMutation.isPending && statusMutation.variables?.item?.item_id) ||
+    (deleteMutation.isPending && deleteMutation.variables?.item_id) ||
+    (restoreMutation.isPending && restoreMutation.variables?.item_id) ||
+    null;
+
+  const activeListQuery = view === 'active' ? equipmentQuery : deletedEquipmentQuery;
+  const loading = activeListQuery.isLoading;
+  // ให้ความสำคัญกับ error ตอนโหลดรายการก่อน ถ้าโหลดได้ปกติค่อยแสดง error ของ action ล่าสุด (ถ้ามี)
+  const displayError = activeListQuery.error?.message || error;
+  const optionsError = categoriesQuery.error?.message || locationsQuery.error?.message;
 
   function clearMessages() {
     setError('');
     setNotice('');
   }
 
-  // แยกฟังก์ชัน reload เพื่อเรียกซ้ำหลัง Create/Update/Delete/Restore
-  async function reloadActiveEquipment() {
-    const data = await getEquipment();
-    setEquipment(data.equipment);
-  }
-
-  async function reloadDeletedEquipment() {
-    const data = await getDeletedEquipment();
-    setDeletedEquipment(data.equipment);
-  }
-
   // สลับระหว่างข้อมูลที่ใช้งานอยู่กับข้อมูลที่ถูก Soft Delete
-  async function switchView(nextView) {
+  function switchView(nextView) {
     clearMessages();
     setView(nextView);
     setFormMode(null);
     setHistoryEquipment(null);
     setConfirmingDeleteId(null);
-
-    if (nextView === 'deleted') {
-      setLoading(true);
-
-      try {
-        await reloadDeletedEquipment();
-      } catch (loadError) {
-        handleError(loadError);
-      } finally {
-        setLoading(false);
-      }
-    }
   }
 
   function openCreateForm() {
@@ -144,47 +170,18 @@ export default function EquipmentManager({ user, onUnauthorized }) {
     setEditingEquipment(null);
   }
 
-  // Form เดียวกันเลือก Create หรือ Edit จาก formMode
-  async function submitForm(payload) {
+  function submitForm(payload) {
     clearMessages();
-    setSubmitting(true);
-
-    try {
-      if (formMode === 'edit') {
-        await updateEquipment(editingEquipment.item_id, payload);
-        setNotice('แก้ไขข้อมูลครุภัณฑ์สำเร็จ');
-      } else {
-        await createEquipment(payload);
-        setNotice('เพิ่มครุภัณฑ์สำเร็จ');
-      }
-
-      await reloadActiveEquipment();
-      closeForm();
-    } catch (submitError) {
-      handleError(submitError);
-    } finally {
-      setSubmitting(false);
-    }
+    saveEquipmentMutation.mutate(payload);
   }
 
-  // การเปลี่ยนสถานะแยก endpoint จากการแก้ข้อมูลทั่วไป เพื่อให้ History ชัดเจน
-  async function changeStatus(item, status) {
+  function changeStatus(item, status) {
     clearMessages();
-    setBusyItemId(item.item_id);
-
-    try {
-      await updateEquipmentStatus(item.item_id, status);
-      await reloadActiveEquipment();
-      setNotice(`เปลี่ยนสถานะ ${item.equipment_code} สำเร็จ`);
-    } catch (statusError) {
-      handleError(statusError);
-    } finally {
-      setBusyItemId(null);
-    }
+    statusMutation.mutate({ item, status });
   }
 
   // ครั้งแรกเป็นเพียงเปิดโหมดยืนยัน ครั้งที่สองจึงยิง DELETE API
-  async function removeItem(item) {
+  function removeItem(item) {
     if (confirmingDeleteId !== item.item_id) {
       setConfirmingDeleteId(item.item_id);
       setNotice('กด “ยืนยันลบ” อีกครั้งเพื่อลบแบบ Soft Delete');
@@ -192,55 +189,19 @@ export default function EquipmentManager({ user, onUnauthorized }) {
     }
 
     clearMessages();
-    setBusyItemId(item.item_id);
-
-    try {
-      await deleteEquipment(item.item_id);
-      await reloadActiveEquipment();
-      setNotice(`ลบ ${item.equipment_code} แล้ว สามารถกู้คืนได้`);
-    } catch (deleteError) {
-      handleError(deleteError);
-    } finally {
-      setBusyItemId(null);
-      setConfirmingDeleteId(null);
-    }
+    deleteMutation.mutate(item);
   }
 
-  // Restore ทำให้ deleted_at กลับเป็น null แล้วโหลดทั้งสองรายการใหม่
-  async function restoreItem(item) {
+  function restoreItem(item) {
     clearMessages();
-    setBusyItemId(item.item_id);
-
-    try {
-      await restoreEquipment(item.item_id);
-      await Promise.all([
-        reloadActiveEquipment(),
-        reloadDeletedEquipment(),
-      ]);
-      setNotice(`กู้คืน ${item.equipment_code} สำเร็จ`);
-    } catch (restoreError) {
-      handleError(restoreError);
-    } finally {
-      setBusyItemId(null);
-    }
+    restoreMutation.mutate(item);
   }
 
-  // History โหลดเมื่อผู้ใช้ขอดูเท่านั้น เพื่อลด request ตอนเปิดหน้า
-  async function openHistory(item) {
+  // History โหลดเมื่อผู้ใช้ขอดูเท่านั้น (enabled: historyEquipment != null) เพื่อลด request ตอนเปิดหน้า
+  function openHistory(item) {
     clearMessages();
     setFormMode(null);
     setHistoryEquipment(item);
-    setHistory([]);
-    setHistoryLoading(true);
-
-    try {
-      const data = await getEquipmentHistory(item.item_id);
-      setHistory(data.history);
-    } catch (historyError) {
-      handleError(historyError);
-    } finally {
-      setHistoryLoading(false);
-    }
   }
 
   return (
@@ -293,25 +254,28 @@ export default function EquipmentManager({ user, onUnauthorized }) {
         </div>
       </div>
 
-      {error && <p className="error-message">{error}</p>}
+      {displayError && <p className="error-message">{displayError}</p>}
       {notice && <p className="success-message">{notice}</p>}
 
       {formMode && (
-        <EquipmentForm
-          equipment={editingEquipment}
-          categories={categories}
-          locations={locations}
-          submitting={submitting}
-          onSubmit={submitForm}
-          onCancel={closeForm}
-        />
+        <>
+          {optionsError && <p className="error-message">{optionsError}</p>}
+          <EquipmentForm
+            equipment={editingEquipment}
+            categories={categories}
+            locations={locations}
+            submitting={saveEquipmentMutation.isPending}
+            onSubmit={submitForm}
+            onCancel={closeForm}
+          />
+        </>
       )}
 
       {historyEquipment && (
         <EquipmentHistory
           equipment={historyEquipment}
           history={history}
-          loading={historyLoading}
+          loading={historyQuery.isLoading}
           onClose={() => setHistoryEquipment(null)}
         />
       )}
