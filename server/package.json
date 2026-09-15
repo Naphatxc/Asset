@@ -4,8 +4,8 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "node --watch-path=src src/index.js",
-    "start": "node src/index.js",
+    "dev": "node --watch-path=src src/server.js",
+    "start": "node src/server.js",
     "postinstall": "prisma generate --config prisma.config.js",
     "prisma:generate": "prisma generate --config prisma.config.js",
     "prisma:pull": "prisma db pull --config prisma.config.js",
