@@ -6,11 +6,10 @@ import * as userRepository from '../modules/users/user.repository.js';
 import { AppError } from '../utils/AppError.js';
 
 export function authenticate(request, _response, next) {
-  // รูปแบบ Header ที่รับคือ Authorization: Bearer <token>
-  const authorization = String(request.headers.authorization ?? '');
-  const [scheme, token] = authorization.split(' ');
+  // Token อยู่ใน httpOnly cookie (set ตอน login) ไม่ใช่ Authorization header อีกต่อไป
+  const token = request.cookies?.access_token;
 
-  if (scheme !== 'Bearer' || !token) {
+  if (!token) {
     return next(new AppError(401, 'กรุณาเข้าสู่ระบบ'));
   }
 

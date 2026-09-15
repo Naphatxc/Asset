@@ -24,6 +24,8 @@ function formatSnapshot(snapshot) {
   return JSON.stringify(snapshot, null, 2);
 }
 
+
+
 export default function EquipmentHistory({
   equipment,
   history,

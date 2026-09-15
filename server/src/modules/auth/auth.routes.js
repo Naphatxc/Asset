@@ -16,4 +16,7 @@ router.post('/login', validateLogin, authController.login);
 // GET /api/auth/me ใช้ตรวจ Session ตอน Refresh หน้าเว็บ
 router.get('/me', authenticate, authController.getCurrentUser);
 
+// POST /api/auth/logout
+router.post('/logout', authController.logout);
+
 export default router;

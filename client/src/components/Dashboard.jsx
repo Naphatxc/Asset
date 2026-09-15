@@ -8,7 +8,6 @@ export default function Dashboard({
   adminError,
   updatingUserId,
   onUpdateUserRole,
-  onSessionExpired,
   onLogout,
 }) {
   return (
@@ -23,10 +22,7 @@ export default function Dashboard({
           </span>
         </div>
 
-        <EquipmentManager
-          user={user}
-          onUnauthorized={onSessionExpired}
-        />
+        <EquipmentManager user={user} />
 
         {/* ตารางจัดการผู้ใช้ต้องไม่ถูกสร้างใน DOM หากคนที่ Login ไม่ใช่ Admin */}
         {user.role === 'admin' ? (

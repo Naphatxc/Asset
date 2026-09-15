@@ -1,4 +1,5 @@
 // ประกอบ Express app: middleware กลาง + mount routes ทั้งหมดใต้ /api + error handler
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
 
@@ -9,9 +10,11 @@ import { AppError } from './utils/AppError.js';
 
 export const app = express();
 
-// อนุญาตเฉพาะ Frontend URL ที่กำหนด และแปลง JSON body ให้ request.body
-app.use(cors({ origin: clientOrigins }));
+// credentials: true จำเป็นเพื่อให้ browser แนบ/รับ cookie ข้าม origin (client :5173, server :3000)
+// cors ที่ credentials:true ใช้ origin แบบ wildcard '*' ไม่ได้ จึงต้องระบุ origin ที่อนุญาตจริงเสมอ
+app.use(cors({ origin: clientOrigins, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 
 app.use('/api', routes);
 

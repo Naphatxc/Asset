@@ -12,12 +12,14 @@ import {
   authenticate,
   requireAdmin,
 } from '../../middlewares/auth.middleware.js';
+import { verifyCsrfToken } from '../../middlewares/csrf.middleware.js';
 
 const equipmentRouter = express.Router();
 const adminEquipmentRouter = express.Router();
 
 equipmentRouter.use(authenticate);
-adminEquipmentRouter.use(authenticate, requireAdmin);
+// verifyCsrfToken ก่อน requireAdmin: เป็น check ที่ถูกกว่า (ไม่ query DB) จึงคัดออกก่อน
+adminEquipmentRouter.use(authenticate, verifyCsrfToken, requireAdmin);
 
 // GET /api/equipment-items - รายการที่ยังไม่ถูกลบ ทุก role อ่านได้
 equipmentRouter.get('/', equipmentController.getEquipmentList);
