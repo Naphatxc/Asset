@@ -1,5 +1,5 @@
 // Dashboard เป็นโครงหน้าหลัง Login ดูแล state/logic การจัดการผู้ใช้ (เฉพาะ Admin) ของตัวเองทั้งหมด
-// นำระบบย่อยต่าง ๆ (ครุภัณฑ์, จัดการผู้ใช้) มาวางรวมกัน
+// จัดวางเป็น sidebar + เนื้อหา สลับหัวข้อด้วย tab แทนการเรียงทุก section ต่อกันยาว
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
@@ -10,8 +10,23 @@ import EquipmentManager from './components/EquipmentManager.jsx';
 import MyBorrows from './components/MyBorrows.jsx';
 import UserTable from './components/UserTable.jsx';
 
+const adminTabs = [
+  { key: 'overview', label: 'ภาพรวม' },
+  { key: 'equipment', label: 'ครุภัณฑ์' },
+  { key: 'borrow', label: 'ยืม-คืน' },
+  { key: 'users', label: 'ผู้ใช้งาน' },
+];
+
+const userTabs = [
+  { key: 'equipment', label: 'ครุภัณฑ์' },
+  { key: 'borrow', label: 'ยืมของฉัน' },
+];
+
 export default function Dashboard({ user, onLogout }) {
   const queryClient = useQueryClient();
+  const admin = user.role === 'admin';
+  const tabs = admin ? adminTabs : userTabs;
+  const [activeTab, setActiveTab] = useState(admin ? 'overview' : 'equipment');
   const [adminError, setAdminError] = useState('');
   const [updatingUserId, setUpdatingUserId] = useState(null);
 
@@ -19,7 +34,7 @@ export default function Dashboard({ user, onLogout }) {
   const { data: usersData } = useQuery({
     queryKey: ['admin-users'],
     queryFn: getUsers,
-    enabled: user.role === 'admin',
+    enabled: admin,
   });
   const users = usersData?.users ?? [];
 
@@ -44,52 +59,62 @@ export default function Dashboard({ user, onLogout }) {
   }
 
   return (
-    <main className="app-shell">
-      <section className="welcome-card dashboard-card">
-        <img className="brand-logo" src="/logo.jpg" alt="Mathematics" />
-        <p className="eyebrow">Material & Asset Management</p>
-        <h1>สวัสดี {user.name}</h1>
-        <div className="account-summary">
-          <span>{user.email}</span>
-          <span className="role-badge">
-            {user.role === 'admin' ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน'}
-          </span>
+    <div className="dashboard-shell">
+      <aside className="dashboard-sidebar">
+        <div className="dashboard-account">
+          <img className="brand-logo" src="/logo.jpg" alt="Mathematics" />
+          <p className="eyebrow">Material & Asset Management</p>
+          <h1>{user.name}</h1>
+          <div className="account-summary">
+            <span>{user.email}</span>
+            <span className="role-badge">
+              {admin ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน'}
+            </span>
+          </div>
         </div>
 
-        {/* ภาพรวม/จัดการผู้ใช้/ยืม-คืนต้องไม่ถูกสร้างใน DOM หากคนที่ Login ไม่ใช่ Admin */}
-        {user.role === 'admin' && <DashboardOverview />}
+        <nav className="dashboard-nav">
+          {tabs.map((tab) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={
+                tab.key === activeTab
+                  ? 'dashboard-nav-item active'
+                  : 'dashboard-nav-item'
+              }
+              onClick={() => setActiveTab(tab.key)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-        <EquipmentManager user={user} />
-
-        {user.role === 'admin' ? (
-          <>
-            <BorrowManager />
-
-            <section className="admin-section">
-              <h2>จัดการผู้ใช้งาน</h2>
-              {adminError && (
-                <p className="error-message">{adminError}</p>
-              )}
-              <UserTable
-                users={users}
-                currentUserId={user.user_id}
-                updatingUserId={updatingUserId}
-                onUpdateRole={updateUserRole}
-              />
-            </section>
-          </>
-        ) : (
-          <MyBorrows />
-        )}
-
-        <button
-          className="logout-button"
-          type="button"
-          onClick={onLogout}
-        >
+        <button className="logout-button" type="button" onClick={onLogout}>
           ออกจากระบบ
         </button>
-      </section>
-    </main>
+      </aside>
+
+      <main className="dashboard-content">
+        {activeTab === 'overview' && admin && <DashboardOverview />}
+
+        {activeTab === 'equipment' && <EquipmentManager user={user} />}
+
+        {activeTab === 'borrow' && (admin ? <BorrowManager /> : <MyBorrows />)}
+
+        {activeTab === 'users' && admin && (
+          <section className="admin-section">
+            <h2>จัดการผู้ใช้งาน</h2>
+            {adminError && <p className="error-message">{adminError}</p>}
+            <UserTable
+              users={users}
+              currentUserId={user.user_id}
+              updatingUserId={updatingUserId}
+              onUpdateRole={updateUserRole}
+            />
+          </section>
+        )}
+      </main>
+    </div>
   );
 }

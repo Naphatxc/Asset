@@ -163,8 +163,73 @@ button:disabled {
   transform: none;
 }
 
-.dashboard-card {
-  width: min(100%, 1180px);
+/* ===== โครงหน้า Dashboard: sidebar เลือก tab ซ้าย + เนื้อหาขวา ===== */
+.dashboard-shell {
+  min-height: 100dvh;
+  display: flex;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 191, 2, 0.14), transparent 28%),
+    radial-gradient(circle at 90% 85%, rgba(237, 0, 130, 0.12), transparent 32%),
+    linear-gradient(145deg, #ffffff 0%, #fffbfd 48%, #f4f7f7 100%);
+}
+
+.dashboard-sidebar {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 260px;
+  padding: 28px 20px;
+  border-right: 1px solid rgba(180, 59, 107, 0.16);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dashboard-account {
+  margin-bottom: 24px;
+}
+
+.dashboard-account h1 {
+  margin: 8px 0 10px;
+  font-size: 1.4rem;
+  word-break: break-word;
+}
+
+.dashboard-account .account-summary {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.dashboard-nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-nav-item {
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #454545;
+  background: transparent;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-nav-item:hover {
+  background: var(--stat-pink-paper);
+}
+
+.dashboard-nav-item.active {
+  color: #ffffff;
+  background: linear-gradient(90deg, var(--stat-gold), var(--stat-pink));
+}
+
+.dashboard-content {
+  flex: 1;
+  min-width: 0;
+  padding: 28px clamp(20px, 4vw, 40px);
 }
 
 /* ===== ตารางผู้ใช้และครุภัณฑ์ ===== */
@@ -792,6 +857,36 @@ button:disabled {
 
   .field-wide {
     grid-column: auto;
+  }
+
+  /* Sidebar กลายเป็นแถบ tab แนวนอนด้านบน เลื่อนซ้าย-ขวาได้แทนคอลัมน์ซ้ายตายตัว */
+  .dashboard-shell {
+    flex-direction: column;
+  }
+
+  .dashboard-sidebar {
+    width: auto;
+    padding: 18px 16px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(180, 59, 107, 0.16);
+  }
+
+  .dashboard-account {
+    margin-bottom: 14px;
+  }
+
+  .dashboard-nav {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .dashboard-nav-item {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .dashboard-content {
+    padding: 20px 16px;
   }
 }
 
