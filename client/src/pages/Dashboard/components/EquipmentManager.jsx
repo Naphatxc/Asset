@@ -1,7 +1,13 @@
 // Component หลักของโมดูลครุภัณฑ์: TanStack Query ดูแล data fetching/cache/loading/error ทั้งหมด
 // เหลือแค่ state ที่เป็น UI ล้วนๆ (view, formMode, ข้อความยืนยัน ฯลฯ) — 401 จัดการที่ main.jsx จุดเดียว
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+// รายการแบ่งหน้า (page/limit) + ค้นหา + กรองสถานะ ที่ backend เพื่อรองรับครุภัณฑ์หลักพันชิ้นโดยไม่โหลดมาทั้งหมด
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
@@ -15,11 +21,20 @@ import {
   restoreEquipment,
   updateEquipment,
   updateEquipmentStatus,
-} from '../api/equipment.js';
-import EquipmentForm from './EquipmentForm.jsx';
+} from '../../../api/equipment.js';
+import EquipmentForm from '../../../components/EquipmentForm.jsx';
 import EquipmentHistory from './EquipmentHistory.jsx';
 import EquipmentTable from './EquipmentTable.jsx';
-import QrCodeDialog from './QrCodeDialog.jsx';
+import QrCodeDialog from '../../../components/QrCodeDialog.jsx';
+
+const PAGE_SIZE = 20;
+const statusFilterOptions = [
+  { value: '', label: 'ทุกสถานะ' },
+  { value: 'available', label: 'พร้อมใช้งาน' },
+  { value: 'borrowed', label: 'ถูกยืม' },
+  { value: 'pending_repair', label: 'รอซ่อม' },
+  { value: 'repairing', label: 'กำลังซ่อม' },
+];
 
 export default function EquipmentManager({ user }) {
   const navigate = useNavigate();
@@ -35,16 +50,35 @@ export default function EquipmentManager({ user }) {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
   const [historyEquipment, setHistoryEquipment] = useState(null);
   const [qrEquipment, setQrEquipment] = useState(null);
+  const [searchInput, setSearchInput] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(1);
+
+  // ดีเลย์ยิง API 400ms หลังพิมพ์หยุด กันยิงถี่เกินตอนค้นหาในฐานข้อมูลหลักพันแถว
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput.trim());
+      setPage(1);
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const listParams = { page, limit: PAGE_SIZE, search, status: statusFilter };
 
   const equipmentQuery = useQuery({
-    queryKey: ['equipment'],
-    queryFn: getEquipment,
+    queryKey: ['equipment', 'active', listParams],
+    queryFn: () => getEquipment(listParams),
+    enabled: view === 'active',
+    placeholderData: keepPreviousData,
   });
   // เฉพาะ Admin เท่านั้นที่มีปุ่มดูรายการที่ถูกลบ จึงโหลดเมื่อจำเป็นจริงๆ
   const deletedEquipmentQuery = useQuery({
-    queryKey: ['equipment', 'deleted'],
-    queryFn: getDeletedEquipment,
+    queryKey: ['equipment', 'deleted', listParams],
+    queryFn: () => getDeletedEquipment(listParams),
     enabled: admin && view === 'deleted',
+    placeholderData: keepPreviousData,
   });
   // ใช้เป็นตัวเลือกใน Form เพิ่ม/แก้ไข ซึ่งมีแต่ Admin เห็น
   const categoriesQuery = useQuery({
@@ -63,8 +97,9 @@ export default function EquipmentManager({ user }) {
     enabled: historyEquipment != null,
   });
 
-  const equipment = equipmentQuery.data?.equipment ?? [];
-  const deletedEquipment = deletedEquipmentQuery.data?.equipment ?? [];
+  const activeListQuery = view === 'active' ? equipmentQuery : deletedEquipmentQuery;
+  const equipment = activeListQuery.data?.equipment ?? [];
+  const pagination = activeListQuery.data?.pagination;
   const categories = categoriesQuery.data?.categories ?? [];
   const locations = locationsQuery.data?.locations ?? [];
   const history = historyQuery.data?.history ?? [];
@@ -106,7 +141,6 @@ export default function EquipmentManager({ user }) {
     mutationFn: (item) => deleteEquipment(item.item_id),
     onSuccess: (_data, item) => {
       invalidateEquipmentLists();
-      queryClient.invalidateQueries({ queryKey: ['equipment', 'deleted'] });
       setNotice(`ลบ ${item.equipment_code} แล้ว สามารถกู้คืนได้`);
       setConfirmingDeleteId(null);
     },
@@ -118,7 +152,6 @@ export default function EquipmentManager({ user }) {
     mutationFn: (item) => restoreEquipment(item.item_id),
     onSuccess: (_data, item) => {
       invalidateEquipmentLists();
-      queryClient.invalidateQueries({ queryKey: ['equipment', 'deleted'] });
       setNotice(`กู้คืน ${item.equipment_code} สำเร็จ`);
     },
     onError: (mutationError) => setError(mutationError.message),
@@ -131,7 +164,6 @@ export default function EquipmentManager({ user }) {
     (restoreMutation.isPending && restoreMutation.variables?.item_id) ||
     null;
 
-  const activeListQuery = view === 'active' ? equipmentQuery : deletedEquipmentQuery;
   const loading = activeListQuery.isLoading;
   // ให้ความสำคัญกับ error ตอนโหลดรายการก่อน ถ้าโหลดได้ปกติค่อยแสดง error ของ action ล่าสุด (ถ้ามี)
   const displayError = activeListQuery.error?.message || error;
@@ -146,9 +178,15 @@ export default function EquipmentManager({ user }) {
   function switchView(nextView) {
     clearMessages();
     setView(nextView);
+    setPage(1);
     setFormMode(null);
     setHistoryEquipment(null);
     setConfirmingDeleteId(null);
+  }
+
+  function changeStatusFilter(nextStatus) {
+    setStatusFilter(nextStatus);
+    setPage(1);
   }
 
   function openCreateForm() {
@@ -204,6 +242,9 @@ export default function EquipmentManager({ user }) {
     setHistoryEquipment(item);
   }
 
+  const rangeStart = pagination && pagination.total > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0;
+  const rangeEnd = pagination ? Math.min(pagination.page * pagination.limit, pagination.total) : 0;
+
   return (
     <section className="equipment-section">
       <div className="section-heading equipment-toolbar">
@@ -218,10 +259,7 @@ export default function EquipmentManager({ user }) {
 
         <div className="toolbar-actions">
           <span className="item-count">
-            {view === 'active'
-              ? equipment.length
-              : deletedEquipment.length}{' '}
-            รายการ
+            {pagination?.total ?? equipment.length} รายการ
           </span>
 
           {admin && (
@@ -252,6 +290,25 @@ export default function EquipmentManager({ user }) {
             </>
           )}
         </div>
+      </div>
+
+      <div className="equipment-filters">
+        <input
+          type="search"
+          value={searchInput}
+          onChange={(event) => setSearchInput(event.target.value)}
+          placeholder="ค้นหารหัสหรือชื่อครุภัณฑ์"
+        />
+        <select
+          value={statusFilter}
+          onChange={(event) => changeStatusFilter(event.target.value)}
+        >
+          {statusFilterOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {displayError && <p className="error-message">{displayError}</p>}
@@ -289,31 +346,68 @@ export default function EquipmentManager({ user }) {
 
       {loading ? (
         <p className="loading-message">กำลังโหลดครุภัณฑ์...</p>
+      ) : equipment.length === 0 ? (
+        <div className="empty-state">
+          <p>
+            {search || statusFilter
+              ? 'ไม่พบครุภัณฑ์ที่ตรงกับเงื่อนไข'
+              : 'ยังไม่มีรายการครุภัณฑ์'}
+          </p>
+        </div>
       ) : (
-        <EquipmentTable
-          equipment={
-            view === 'active' ? equipment : deletedEquipment
-          }
-          admin={admin}
-          mode={view}
-          busyItemId={busyItemId}
-          confirmingDeleteId={confirmingDeleteId}
-          onViewDetails={(item) =>
-            navigate(
-              `/equipment/${encodeURIComponent(item.equipment_code)}`,
-            )
-          }
-          onShowQr={setQrEquipment}
-          onEdit={openEditForm}
-          onStatusChange={changeStatus}
-          onHistory={openHistory}
-          onDelete={removeItem}
-          onCancelDelete={() => {
-            setConfirmingDeleteId(null);
-            setNotice('');
-          }}
-          onRestore={restoreItem}
-        />
+        <>
+          <EquipmentTable
+            equipment={equipment}
+            admin={admin}
+            mode={view}
+            busyItemId={busyItemId}
+            confirmingDeleteId={confirmingDeleteId}
+            onViewDetails={(item) =>
+              navigate(
+                `/equipment/${encodeURIComponent(item.equipment_code)}`,
+              )
+            }
+            onShowQr={setQrEquipment}
+            onEdit={openEditForm}
+            onStatusChange={changeStatus}
+            onHistory={openHistory}
+            onDelete={removeItem}
+            onCancelDelete={() => {
+              setConfirmingDeleteId(null);
+              setNotice('');
+            }}
+            onRestore={restoreItem}
+          />
+
+          {pagination && pagination.totalPages > 1 && (
+            <div className="pagination-bar">
+              <span className="pagination-summary">
+                แสดง {rangeStart}-{rangeEnd} จาก {pagination.total} รายการ
+              </span>
+              <div className="pagination-controls">
+                <button
+                  className="button-secondary"
+                  type="button"
+                  disabled={page <= 1}
+                  onClick={() => setPage((current) => current - 1)}
+                >
+                  ก่อนหน้า
+                </button>
+                <span>
+                  หน้า {pagination.page} / {pagination.totalPages}
+                </span>
+                <button
+                  className="button-secondary"
+                  type="button"
+                  disabled={page >= pagination.totalPages}
+                  onClick={() => setPage((current) => current + 1)}
+                >
+                  ถัดไป
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </section>
   );

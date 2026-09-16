@@ -67,10 +67,23 @@ async function runSerializableTransaction(callback) {
   );
 }
 
-export async function getEquipmentList() {
+function serializePagination({ page, limit, total }) {
+  return { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) };
+}
+
+export async function getEquipmentList({ page = 1, limit = 20, search, status } = {}) {
   try {
-    const items = await equipmentRepository.findManyActive();
-    return items.map(serializeEquipment);
+    const { items, total } = await equipmentRepository.findManyActive({
+      page,
+      limit,
+      search,
+      status,
+    });
+
+    return {
+      equipment: items.map(serializeEquipment),
+      pagination: serializePagination({ page, limit, total }),
+    };
   } catch (error) {
     throw new AppError(500, 'ไม่สามารถโหลดรายการครุภัณฑ์ได้', {
       cause: error,
@@ -78,10 +91,24 @@ export async function getEquipmentList() {
   }
 }
 
-export async function getDeletedEquipmentList() {
+export async function getDeletedEquipmentList({
+  page = 1,
+  limit = 20,
+  search,
+  status,
+} = {}) {
   try {
-    const items = await equipmentRepository.findManyDeleted();
-    return items.map(serializeEquipment);
+    const { items, total } = await equipmentRepository.findManyDeleted({
+      page,
+      limit,
+      search,
+      status,
+    });
+
+    return {
+      equipment: items.map(serializeEquipment),
+      pagination: serializePagination({ page, limit, total }),
+    };
   } catch (error) {
     throw new AppError(500, 'ไม่สามารถโหลดรายการครุภัณฑ์ที่ถูกลบได้', {
       cause: error,

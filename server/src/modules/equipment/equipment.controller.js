@@ -1,10 +1,25 @@
 import * as equipmentService from './equipment.service.js';
+import { allowedStatuses } from './equipment.validator.js';
 
-export async function getEquipmentList(_request, response, next) {
+// page/limit กันค่าแปลกจาก query string (NaN, ติดลบ, limit ใหญ่เกินไป) และ status ต้องอยู่ใน allowedStatuses เท่านั้น
+// ไม่งั้น Prisma throw เพราะ status เป็น enum ฝั่ง DB
+function parseListQuery(query) {
+  const page = Math.max(1, Math.trunc(Number(query.page)) || 1);
+  const limit = Math.min(100, Math.max(1, Math.trunc(Number(query.limit)) || 20));
+  const search = String(query.search ?? '').trim() || undefined;
+  const statusInput = String(query.status ?? '').trim();
+  const status = allowedStatuses.includes(statusInput) ? statusInput : undefined;
+
+  return { page, limit, search, status };
+}
+
+export async function getEquipmentList(request, response, next) {
   try {
-    const equipment = await equipmentService.getEquipmentList();
+    const result = await equipmentService.getEquipmentList(
+      parseListQuery(request.query),
+    );
 
-    response.status(200).json({ equipment });
+    response.status(200).json(result);
   } catch (error) {
     next(error);
   }
@@ -24,11 +39,13 @@ export async function getEquipmentByCode(request, response, next) {
   }
 }
 
-export async function getDeletedEquipmentList(_request, response, next) {
+export async function getDeletedEquipmentList(request, response, next) {
   try {
-    const equipment = await equipmentService.getDeletedEquipmentList();
+    const result = await equipmentService.getDeletedEquipmentList(
+      parseListQuery(request.query),
+    );
 
-    response.status(200).json({ equipment });
+    response.status(200).json(result);
   } catch (error) {
     next(error);
   }

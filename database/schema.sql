@@ -73,6 +73,32 @@ CREATE TABLE IF NOT EXISTS equipment_history (
   CONSTRAINT fk_history_user FOREIGN KEY (changed_by) REFERENCES users(user_id)
 );
 
+-- borrows เก็บใบยืม 1 ใบต่อการยืม 1 ครั้ง อาจมีครุภัณฑ์หลายชิ้นอยู่ใน borrow_details
+-- status: pending = user ส่งคำขอ รออนุมัติ (ครุภัณฑ์ยังไม่ถูกล็อกเป็น borrowed), approved = Admin อนุมัติแล้ว (หรือ Admin สร้างใบยืมเองซึ่งถือว่าอนุมัติทันที),
+-- rejected = Admin ปฏิเสธคำขอ
+CREATE TABLE IF NOT EXISTS borrows (
+  borrow_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  borrow_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  CONSTRAINT fk_borrow_user FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+-- borrow_details เก็บแต่ละชิ้นที่ยืมในใบยืมนั้น สถานะ (ยืมอยู่/เลยกำหนด/รอยืนยันคืน/คืนแล้ว) derive จาก
+-- return_date/return_requested_at/returned_at ไม่เก็บเป็น column แยกเพื่อไม่ให้ข้อมูลไม่ตรงกัน
+CREATE TABLE IF NOT EXISTS borrow_details (
+  borrow_detail_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  borrow_id INT UNSIGNED NOT NULL,
+  item_id INT UNSIGNED NOT NULL,
+  return_date DATETIME NOT NULL, -- วันครบกำหนดคืน ตั้งตอนยืม
+  return_requested_at DATETIME NULL, -- ผู้ยืมกดคืนเมื่อไหร่ (รอ Admin ยืนยัน), NULL = ยังไม่ได้ขอคืน
+  returned_at DATETIME NULL, -- Admin ยืนยันคืนจริงเมื่อไหร่, NULL = ยังไม่คืน
+  INDEX idx_borrow_details_borrow (borrow_id),
+  INDEX idx_borrow_details_item (item_id),
+  CONSTRAINT fk_borrow_detail_borrow FOREIGN KEY (borrow_id) REFERENCES borrows(borrow_id),
+  CONSTRAINT fk_borrow_detail_item FOREIGN KEY (item_id) REFERENCES equipment_items(item_id)
+);
+
 -- ตารางวัสดุสิ้นเปลือง เตรียมไว้สำหรับระบบสต็อกในขั้นถัดไป
 CREATE TABLE IF NOT EXISTS materials (
   material_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

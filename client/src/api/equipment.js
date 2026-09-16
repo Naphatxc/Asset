@@ -1,9 +1,22 @@
 // รวมคำสั่งติดต่อ Equipment API ไว้ที่เดียว เพื่อไม่ให้แต่ละ Component เขียน fetch ซ้ำ
 import { request } from './http.js';
 
+// รองรับ 3000+ รายการ: page/limit/search/status ส่งเป็น query string ไม่ส่ง key ที่ไม่มีค่าเพื่อให้ backend ใช้ default เอง
+function toListQueryString({ page, limit, search, status } = {}) {
+  const query = new URLSearchParams();
+
+  if (page) query.set('page', page);
+  if (limit) query.set('limit', limit);
+  if (search) query.set('search', search);
+  if (status) query.set('status', status);
+
+  const qs = query.toString();
+  return qs ? `?${qs}` : '';
+}
+
 // กลุ่มอ่านข้อมูล (GET)
-export function getEquipment() {
-  return request('/api/equipment-items');
+export function getEquipment(params) {
+  return request(`/api/equipment-items${toListQueryString(params)}`);
 }
 
 export function getEquipmentByCode(equipmentCode) {
@@ -12,8 +25,8 @@ export function getEquipmentByCode(equipmentCode) {
   );
 }
 
-export function getDeletedEquipment() {
-  return request('/api/admin/equipment-items/deleted');
+export function getDeletedEquipment(params) {
+  return request(`/api/admin/equipment-items/deleted${toListQueryString(params)}`);
 }
 
 export function getCategories() {

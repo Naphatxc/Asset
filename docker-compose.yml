@@ -1,35 +1,14 @@
 services:
-  mysql:
-    image: mysql:8.0
-    container_name: asset-mysql
-    restart: unless-stopped
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: asset_management
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
+  # ไม่มี service mysql ในนี้ เพราะเครื่อง dev มี MySQL80 รันเป็น Windows Service อยู่แล้วบนพอร์ต 3306
+  # (asset_management ตัวจริงอยู่ที่นั่น) phpMyAdmin จึงชี้ไปที่ host โดยตรงแทนที่จะสร้าง MySQL ซ้ำใน Docker
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: asset-phpmyadmin
     restart: unless-stopped
     environment:
-      PMA_HOST: mysql
-      PMA_USER: root
-      PMA_PASSWORD: root
+      PMA_HOST: host.docker.internal
+      PMA_PORT: 3306
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8080:80"
-    depends_on:
-      mysql:
-        condition: service_healthy
-
-volumes:
-  mysql_data:

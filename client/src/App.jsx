@@ -1,36 +1,17 @@
-// App ดูแลเรื่องบัญชีผู้ใช้และ Session ส่วนงานครุภัณฑ์แยกไปอยู่ใน EquipmentManager
+// App ดูแลเรื่อง Session และ Routing เท่านั้น ไม่มี logic เฉพาะหน้าใดหน้าหนึ่งอยู่ที่นี่
+// Login/Register อยู่ใน LoginPage, จัดการผู้ใช้ (Admin) อยู่ใน Dashboard ทั้งหมด
 // Session มาจาก query ['auth','me'] — กลายเป็น null อัตโนมัติเมื่อเจอ 401 (ดู main.jsx: handleAuthError)
 // จึงไม่ต้องส่ง onUnauthorized/onSessionExpired ไล่ผ่าน prop หลายชั้นเหมือนเดิมอีกต่อไป
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
-import {
-  getUsers,
-  updateUserRole as updateUserRoleRequest,
-} from './api/admin-users.js';
-import {
-  getCurrentUser,
-  login,
-  logout as logoutRequest,
-  register,
-} from './api/auth.js';
-import AuthForm from './components/AuthForm.jsx';
-import Dashboard from './components/Dashboard.jsx';
-import EquipmentDetailPage from './components/EquipmentDetailPage.jsx';
-import NotFoundPage from './components/NotFoundPage.jsx';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Route, Routes } from 'react-router-dom';
+import { getCurrentUser, logout as logoutRequest } from './api/auth.js';
+import Dashboard from './pages/Dashboard/Dashboard.jsx';
+import EquipmentDetailPage from './pages/EquipmentDetailPage/EquipmentDetailPage.jsx';
+import LoginPage from './pages/LoginPage/LoginPage.jsx';
+import NotFoundPage from './pages/NotFoundPage/NotFoundPage.jsx';
 
 export default function App() {
-  const location = useLocation();
   const queryClient = useQueryClient();
-  // State ของฟอร์ม Login/Register (UI-only — ข้อมูลจริงมาจาก query/mutation ด้านล่าง)
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [adminError, setAdminError] = useState('');
-  const [updatingUserId, setUpdatingUserId] = useState(null);
-  const [authMode, setAuthMode] = useState('login');
-  const [name, setName] = useState('');
 
   // เช็ค session ตอนโหลด/Refresh หน้าเว็บ cookie จะแนบไปเองถ้ามี (retry:false ตั้งไว้ที่ QueryClient กลาง)
   const { data: meData, isLoading: checkingSession } = useQuery({
@@ -39,81 +20,9 @@ export default function App() {
   });
   const user = meData?.user ?? null;
 
-  // รายชื่อผู้ใช้เป็นข้อมูลเฉพาะ Admin จึงโหลดหลังทราบ role แล้วเท่านั้น
-  const { data: usersData } = useQuery({
-    queryKey: ['admin-users'],
-    queryFn: getUsers,
-    enabled: user?.role === 'admin',
-  });
-  const users = usersData?.users ?? [];
-
-  const loginMutation = useMutation({
-    mutationFn: login,
-    onSuccess: (data) => {
-      // ตั้งค่า cache ตรงๆ แทนการยิง /me ซ้ำ เพราะ response ของ login ก็มี user อยู่แล้ว
-      queryClient.setQueryData(['auth', 'me'], { user: data.user });
-    },
-  });
-
-  const registerMutation = useMutation({ mutationFn: register });
-
-  const updateRoleMutation = useMutation({
-    mutationFn: ({ userId, role }) => updateUserRoleRequest(userId, role),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-    },
-  });
-
-  // Login และ Register ใช้ฟอร์มเดียวกัน แต่เลือก mutation จาก authMode
-  async function handleSubmit(event) {
-    event.preventDefault();
-    setError('');
-    setSuccessMessage('');
-
-    try {
-      if (authMode === 'register') {
-        await registerMutation.mutateAsync({ name, email, password });
-        setAuthMode('login');
-        setName('');
-        setPassword('');
-        setSuccessMessage('สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ');
-        return;
-      }
-
-      // สำเร็จแล้ว server จะ set-cookie access_token/csrf_token มาให้เอง ไม่มี token ใน response แล้ว
-      await loginMutation.mutateAsync({ email, password });
-    } catch (submitError) {
-      setError(submitError.message);
-    }
-  }
-
-  // เปลี่ยน role แล้วให้ query ['admin-users'] invalidate ไปโหลดตารางใหม่เอง
-  async function updateUserRole(userId, role) {
-    try {
-      setAdminError('');
-      setUpdatingUserId(userId);
-      await updateRoleMutation.mutateAsync({ userId, role });
-    } catch (updateError) {
-      setAdminError(updateError.message);
-    } finally {
-      setUpdatingUserId(null);
-    }
-  }
-
-  // ทุกครั้งที่สลับ Login/Register ต้องล้างข้อมูลและข้อความจากหน้าก่อน
-  function switchAuthMode() {
-    setError('');
-    setSuccessMessage('');
-    setName('');
-    setEmail('');
-    setPassword('');
-    setAuthMode((currentMode) =>
-      currentMode === 'login' ? 'register' : 'login',
-    );
-  }
-
   // เรียก /api/auth/logout ให้ server ล้าง cookie ก่อน แล้วค่อยล้าง cache ฝั่งนี้ — ทำ best-effort
   // คือถึง request ล้มเหลว (เช่น server ล่ม) ก็ยังล้าง session ให้ UI กลับไปหน้า Login ได้ตามปกติ
+  // อยู่ที่ App เพราะเป็น session-level action ที่ใช้ร่วมกันทั้ง Dashboard และ EquipmentDetailPage
   async function logout() {
     try {
       await logoutRequest();
@@ -123,8 +32,6 @@ export default function App() {
 
     queryClient.setQueryData(['auth', 'me'], null);
     queryClient.removeQueries({ queryKey: ['admin-users'] });
-    setEmail('');
-    setPassword('');
   }
 
   // ระหว่างตรวจ Session ยังไม่ควรแสดงหน้า Login เพราะหน้าจะกระพริบ
@@ -140,19 +47,7 @@ export default function App() {
   if (user) {
     return (
       <Routes>
-        <Route
-          path="/"
-          element={
-            <Dashboard
-              user={user}
-              users={users}
-              adminError={adminError}
-              updatingUserId={updatingUserId}
-              onUpdateUserRole={updateUserRole}
-              onLogout={logout}
-            />
-          }
-        />
+        <Route path="/" element={<Dashboard user={user} onLogout={logout} />} />
         <Route
           path="/equipment/:code"
           element={<EquipmentDetailPage user={user} onLogout={logout} />}
@@ -162,25 +57,5 @@ export default function App() {
     );
   }
 
-  return (
-    <AuthForm
-      authMode={authMode}
-      name={name}
-      email={email}
-      password={password}
-      error={error}
-      successMessage={successMessage}
-      loading={loginMutation.isPending || registerMutation.isPending}
-      onNameChange={setName}
-      onEmailChange={setEmail}
-      onPasswordChange={setPassword}
-      onSubmit={handleSubmit}
-      onSwitchMode={switchAuthMode}
-      destinationMessage={
-        location.pathname.startsWith('/equipment/')
-          ? 'กรุณาเข้าสู่ระบบเพื่อดูข้อมูลครุภัณฑ์จาก QR Code หลังเข้าสู่ระบบจะกลับมาหน้านี้อัตโนมัติ'
-          : ''
-      }
-    />
-  );
+  return <LoginPage />;
 }

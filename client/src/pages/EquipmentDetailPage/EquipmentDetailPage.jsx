@@ -7,9 +7,9 @@ import {
   getEquipmentByCode,
   getLocations,
   updateEquipment,
-} from '../api/equipment.js';
-import EquipmentForm from './EquipmentForm.jsx';
-import QrCodeDialog from './QrCodeDialog.jsx';
+} from '../../api/equipment.js';
+import EquipmentForm from '../../components/EquipmentForm.jsx';
+import QrCodeDialog from '../../components/QrCodeDialog.jsx';
 
 const statusLabels = {
   available: 'พร้อมใช้งาน',

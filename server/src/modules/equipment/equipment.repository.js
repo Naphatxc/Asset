@@ -10,20 +10,58 @@ export const equipmentInclude = {
   },
 };
 
-export async function findManyActive(client = prisma) {
-  return client.equipment_items.findMany({
-    where: { deleted_at: null },
-    include: equipmentInclude,
-    orderBy: { item_id: 'desc' },
-  });
+//แบ่งหน้า (page/limit) + ค้นหารหัส/ชื่อ + กรองสถานะ แทนที่จะดึงมาทั้งหมดทีเดียว
+function buildListWhere({ deleted, search, status }) {
+  return {
+    deleted_at: deleted ? { not: null } : null,
+    ...(status ? { status } : {}),
+    ...(search
+      ? {
+          OR: [
+            { equipment_code: { contains: search } },
+            { equipment_name: { contains: search } },
+          ],
+        }
+      : {}),
+  };
 }
 
-export async function findManyDeleted(client = prisma) {
-  return client.equipment_items.findMany({
-    where: { deleted_at: { not: null } },
-    include: equipmentInclude,
-    orderBy: { deleted_at: 'desc' },
-  });
+export async function findManyActive(
+  { page = 1, limit = 20, search, status } = {},
+  client = prisma,
+) {
+  const where = buildListWhere({ deleted: false, search, status });
+  const [items, total] = await Promise.all([
+    client.equipment_items.findMany({
+      where,
+      include: equipmentInclude,
+      orderBy: { item_id: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    client.equipment_items.count({ where }),
+  ]);
+
+  return { items, total };
+}
+
+export async function findManyDeleted(
+  { page = 1, limit = 20, search, status } = {},
+  client = prisma,
+) {
+  const where = buildListWhere({ deleted: true, search, status });
+  const [items, total] = await Promise.all([
+    client.equipment_items.findMany({
+      where,
+      include: equipmentInclude,
+      orderBy: { deleted_at: 'desc' },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    client.equipment_items.count({ where }),
+  ]);
+
+  return { items, total };
 }
 
 export async function findByCode(equipmentCode, client = prisma) {

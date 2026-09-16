@@ -63,6 +63,14 @@ textarea {
   background: linear-gradient(90deg, var(--stat-gold), var(--stat-pink));
 }
 
+.brand-logo {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 10px;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
 .eyebrow {
   margin: 0;
   color: var(--stat-plum);
@@ -290,6 +298,59 @@ button:disabled {
   background: #eaf4ff;
 }
 
+.status-overdue {
+  color: #a61b43;
+  background: #fff0f4;
+}
+
+.status-returned {
+  color: #176b4d;
+  background: #e8fff5;
+}
+
+.status-pending {
+  color: #315b84;
+  background: #eaf4ff;
+}
+
+.status-rejected {
+  color: #6b6b6b;
+  background: #f1f1f1;
+}
+
+.status-pending_return {
+  color: #805600;
+  background: #fff4cc;
+}
+
+/* ===== ตารางยืม-คืนครุภัณฑ์ ===== */
+.borrow-table {
+  min-width: 900px;
+}
+
+.checkbox-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  padding: 12px;
+  overflow-y: auto;
+  border: 1px solid #d7cbcf;
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.checkbox-list-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400 !important;
+}
+
+.checkbox-list-item input {
+  width: auto !important;
+}
+
 .empty-state,
 .loading-message {
   padding: 22px;
@@ -307,6 +368,62 @@ button:disabled {
 
 .equipment-toolbar {
   align-items: center;
+}
+
+/* ===== ค้นหา/กรองสถานะ + แบ่งหน้า สำหรับรายการครุภัณฑ์ที่มีจำนวนมาก ===== */
+.equipment-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.equipment-filters input,
+.equipment-filters select {
+  padding: 9px 12px;
+  border: 1px solid #d7cbcf;
+  border-radius: 9px;
+  color: #333333;
+  background: #ffffff;
+}
+
+.equipment-filters input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.equipment-filters select {
+  min-width: 140px;
+}
+
+.pagination-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pagination-summary {
+  color: var(--stat-slate-dark);
+  font-size: 0.85rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.pagination-controls button {
+  padding: 6px 12px;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ===== ปุ่มและ Action สำหรับ Admin ===== */
@@ -511,6 +628,100 @@ button:disabled {
   padding: 12px 14px;
   border-left: 4px solid var(--stat-gold);
   background: #fffaf0;
+}
+
+/* ===== ภาพรวม Dashboard: stat card + กราฟ ===== */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  color: #ffffff;
+}
+
+.stat-card-value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.stat-card-label {
+  font-size: 0.85rem;
+  opacity: 0.92;
+}
+
+.stat-card-total {
+  background: linear-gradient(135deg, var(--stat-slate-dark), var(--stat-slate));
+}
+
+.stat-card-available {
+  background: linear-gradient(135deg, #176b4d, #22a06b);
+}
+
+.stat-card-borrowed {
+  background: linear-gradient(135deg, #b98600, var(--stat-gold));
+}
+
+.stat-card-users {
+  background: linear-gradient(135deg, var(--stat-plum), var(--stat-pink));
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.overview-panel {
+  padding: 18px 20px;
+  border: 1px solid #ead9df;
+  border-radius: 14px;
+  background: #fffbfd;
+  margin-bottom: 16px;
+}
+
+.overview-panel h3 {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  color: var(--stat-plum);
+}
+
+.pie-chart-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+
+.pie-legend {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.88rem;
+  color: #454545;
+}
+
+.pie-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pie-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
 }
 
 .user-table select {
