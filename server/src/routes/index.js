@@ -12,6 +12,7 @@ import equipmentRoutes, {
 } from '../modules/equipment/equipment.routes.js';
 import healthRoutes from '../modules/health/health.routes.js';
 import optionRoutes from '../modules/options/options.routes.js';
+import adminRepairRouter from '../modules/repair/repair.routes.js';
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ router.use('/admin/equipment-items', adminEquipmentRouter);
 router.use('/borrows', borrowRoutes);
 router.use('/admin/borrows', adminBorrowRouter);
 router.use('/admin/dashboard', dashboardRoutes);
+router.use('/admin/repairs', adminRepairRouter);
 router.use('/', optionRoutes);
 
 export default router;

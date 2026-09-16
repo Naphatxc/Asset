@@ -19,7 +19,8 @@
     "cors": "latest",
     "dotenv": "latest",
     "express": "latest",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "multer": "^2.4.0"
   },
   "devDependencies": {
     "prisma": "7.10.0"

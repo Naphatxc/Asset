@@ -2,7 +2,7 @@
 // แนบ CSRF header ให้ request ที่เปลี่ยนแปลงข้อมูล และโยน ApiError รูปแบบเดียวกันทุกที่
 import axios from 'axios';
 
-const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+export const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 const mutatingMethods = new Set(['post', 'put', 'patch', 'delete']);
 

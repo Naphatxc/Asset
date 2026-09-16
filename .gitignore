@@ -4,3 +4,5 @@ dist/
 .env.local
 *.log
 docx-review/
+server/uploads/repairs/*
+!server/uploads/repairs/.gitkeep

@@ -60,6 +60,7 @@ model equipment_items {
   borrow_details    borrow_details[]
   equipment_history equipment_history[]
   equipment         equipment              @relation(fields: [equipment_id], references: [equipment_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_item_equipment")
+  repairs           repairs[]
 
   @@index([equipment_id], map: "fk_item_equipment")
 }
@@ -98,6 +99,7 @@ model users {
   created_at        DateTime            @default(now()) @db.DateTime(0)
   borrows           borrows[]
   equipment_history equipment_history[]
+  repairs           repairs[]
 }
 
 model borrow_details {
@@ -125,6 +127,34 @@ model borrows {
   @@index([user_id], map: "fk_borrow_user")
 }
 
+model repair_files {
+  file_id   Int     @id @default(autoincrement()) @db.UnsignedInt
+  repair_id Int     @db.UnsignedInt
+  file_name String  @db.VarChar(255)
+  file_path String  @db.VarChar(500)
+  file_type String? @db.VarChar(100)
+  repairs   repairs @relation(fields: [repair_id], references: [repair_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_repair_file_repair")
+
+  @@index([repair_id], map: "idx_repair_files_repair")
+}
+
+model repairs {
+  repair_id       Int             @id @default(autoincrement()) @db.UnsignedInt
+  item_id         Int             @db.UnsignedInt
+  reported_by     Int             @db.UnsignedInt
+  issue           String          @db.Text
+  repair_detail   String?         @db.Text
+  repair_cost     Decimal?        @db.Decimal(10, 2)
+  repair_date     DateTime        @default(now()) @db.DateTime(0)
+  status          repairs_status  @default(pending_repair)
+  repair_files    repair_files[]
+  equipment_items equipment_items @relation(fields: [item_id], references: [item_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_repair_item")
+  users           users           @relation(fields: [reported_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_repair_user")
+
+  @@index([reported_by], map: "fk_repair_user")
+  @@index([item_id], map: "idx_repairs_item")
+}
+
 enum equipment_history_action {
   created
   updated
@@ -149,4 +179,11 @@ enum borrows_status {
   pending
   approved
   rejected
+}
+
+enum repairs_status {
+  pending_repair
+  repairing
+  completed
+  cancelled
 }

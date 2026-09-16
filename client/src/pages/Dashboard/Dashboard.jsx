@@ -8,12 +8,14 @@ import BorrowManager from './components/BorrowManager.jsx';
 import DashboardOverview from './components/DashboardOverview.jsx';
 import EquipmentManager from './components/EquipmentManager.jsx';
 import MyBorrows from './components/MyBorrows.jsx';
+import RepairManager from './components/RepairManager.jsx';
 import UserTable from './components/UserTable.jsx';
 
 const adminTabs = [
   { key: 'overview', label: 'ภาพรวม' },
   { key: 'equipment', label: 'ครุภัณฑ์' },
   { key: 'borrow', label: 'ยืม-คืน' },
+  { key: 'repair', label: 'แจ้งซ่อม' },
   { key: 'users', label: 'ผู้ใช้งาน' },
 ];
 
@@ -101,6 +103,8 @@ export default function Dashboard({ user, onLogout }) {
         {activeTab === 'equipment' && <EquipmentManager user={user} />}
 
         {activeTab === 'borrow' && (admin ? <BorrowManager /> : <MyBorrows />)}
+
+        {activeTab === 'repair' && admin && <RepairManager />}
 
         {activeTab === 'users' && admin && (
           <section className="admin-section">
