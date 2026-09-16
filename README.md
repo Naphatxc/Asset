@@ -12,11 +12,11 @@
 
 1. คัดลอก `server/.env.example` เป็น `server/.env` และกำหนดค่า MySQL
 2. สร้างฐานข้อมูลด้วย `database/schema.sql`
-3. ติดตั้ง dependencies ด้วย `pnpm install`
-4. ดึง schema จากฐานข้อมูลเดิมด้วย `pnpm --filter asset-server prisma:pull`
-5. Generate Prisma Client ด้วย `pnpm --filter asset-server prisma:generate`
-6. เปิด API: `pnpm --filter asset-server dev`
-7. เปิดเว็บ: `pnpm --filter asset-client dev`
+3. ติดตั้ง dependencies ด้วย `npm install`
+4. ดึง schema จากฐานข้อมูลเดิมด้วย `npm --workspace server run prisma:pull`
+5. Generate Prisma Client ด้วย `npm --workspace server run prisma:generate`
+6. เปิด API: `npm run dev:server`
+7. เปิดเว็บ: `npm run dev:client`
 
 Backend ใช้ Prisma Client สำหรับอ่านและเขียนข้อมูลทั้งหมด โดย schema อยู่ที่
 `server/prisma/schema.prisma` และ config อยู่ที่ `server/prisma.config.js`

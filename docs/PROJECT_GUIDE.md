@@ -107,13 +107,13 @@ QR -> /equipment/:code
 Terminal 1:
 
 ```powershell
-pnpm --filter asset-server dev
+npm run dev:server
 ```
 
 Terminal 2:
 
 ```powershell
-pnpm --filter asset-client dev
+npm run dev:client
 ```
 
 Frontend: `http://localhost:5173`  

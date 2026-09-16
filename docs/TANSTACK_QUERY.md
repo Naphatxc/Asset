@@ -38,7 +38,7 @@ TanStack Query ครอบ loading/error state, cache, และ "reload หล
 ## ติดตั้ง
 
 ```powershell
-corepack pnpm --filter asset-client add @tanstack/react-query
+npm --workspace client install @tanstack/react-query
 ```
 
 ## 1) ครอบ App ด้วย QueryClientProvider
