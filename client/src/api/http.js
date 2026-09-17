@@ -15,14 +15,13 @@ export class ApiError extends Error {
   }
 }
 
-// csrf_token cookie ตั้งเป็น httpOnly: false ตอน login ไว้แล้ว (ดู server/src/config/env.js)
-// จึงอ่านผ่าน document.cookie ได้ตรงๆ ไม่ต้องยิง request แยก
-function readCookie(name) {
-  const match = document.cookie.match(
-    new RegExp(`(?:^|; )${name}=([^;]*)`),
-  );
+// เก็บ csrf token ไว้ในหน่วยความจำแทนการอ่านจาก document.cookie เพราะ production client/server
+// คนละ host กัน (Railway) หน้า client อ่าน cookie ของ server ข้าม origin ไม่ได้ ต้องให้ server ส่งค่านี้
+// กลับมาทาง response body แทน (ดู auth.js: login/getCurrentUser) แล้วเก็บไว้ที่นี่ให้ interceptor ใช้
+let csrfToken = null;
 
-  return match ? decodeURIComponent(match[1]) : null;
+export function setCsrfToken(token) {
+  csrfToken = token ?? null;
 }
 
 const client = axios.create({
@@ -33,12 +32,8 @@ const client = axios.create({
 
 // แนบ CSRF header อัตโนมัติเฉพาะ method ที่เปลี่ยนแปลงข้อมูล (double-submit cookie pattern)
 client.interceptors.request.use((config) => {
-  if (mutatingMethods.has((config.method ?? 'get').toLowerCase())) {
-    const csrfToken = readCookie('csrf_token');
-
-    if (csrfToken) {
-      config.headers['X-CSRF-Token'] = csrfToken;
-    }
+  if (mutatingMethods.has((config.method ?? 'get').toLowerCase()) && csrfToken) {
+    config.headers['X-CSRF-Token'] = csrfToken;
   }
 
   return config;
