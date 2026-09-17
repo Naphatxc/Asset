@@ -5,6 +5,24 @@ import * as equipmentRepository from './equipment.repository.js';
 import { prisma } from '../../config/prisma.js';
 import { AppError } from '../../utils/AppError.js';
 import { hasOwn, toDate } from '../../utils/parsing.js';
+import * as borrowRepository from '../borrow/borrow.repository.js';
+import * as repairRepository from '../repair/repair.repository.js';
+
+// ใช้ก่อนเปลี่ยนสถานะ/ลบครุภัณฑ์ตรงๆ กันไม่ให้ทับสถานะที่ borrow/repair flow ควบคุมอยู่ (เช่น ตั้งกลับเป็น
+// available ทั้งที่มีคนยืมค้างอยู่จริง) คืน error message ถ้าเจอ ไม่งั้นคืน null ให้ caller ทำงานต่อได้
+async function checkNoActiveBorrowOrRepair(itemId, actionLabel, tx) {
+  const openBorrow = await borrowRepository.findOpenDetailByItemId(itemId, tx);
+  if (openBorrow) {
+    return `ครุภัณฑ์นี้มีการยืมค้างอยู่ ไม่สามารถ${actionLabel}ได้`;
+  }
+
+  const activeRepair = await repairRepository.findActiveByItemId(itemId, tx);
+  if (activeRepair) {
+    return `ครุภัณฑ์นี้กำลังอยู่ระหว่างการซ่อม ไม่สามารถ${actionLabel}ได้`;
+  }
+
+  return null;
+}
 
 // Prisma คืน relation เป็น object ซ้อน แต่ API เดิมส่งข้อมูลแบบแบน
 function serializeEquipment(item) {
@@ -228,6 +246,13 @@ export async function updateEquipmentStatus(itemId, status, actorId) {
         return { type: 'unchanged', equipment: current };
       }
 
+      const conflict = await checkNoActiveBorrowOrRepair(
+        itemId,
+        'เปลี่ยนสถานะ',
+        tx,
+      );
+      if (conflict) return { type: 'conflict', error: conflict };
+
       await equipmentRepository.updateEquipmentItem(itemId, { status }, tx);
       const updated = await getSerializedByItemId(itemId, { client: tx });
 
@@ -247,6 +272,9 @@ export async function updateEquipmentStatus(itemId, status, actorId) {
 
     if (result.type === 'not_found') {
       throw new AppError(404, 'ไม่พบครุภัณฑ์');
+    }
+    if (result.type === 'conflict') {
+      throw new AppError(409, result.error);
     }
 
     return {
@@ -312,7 +340,10 @@ export async function deleteEquipment(itemId, actorId) {
   try {
     const result = await runSerializableTransaction(async (tx) => {
       const current = await getSerializedByItemId(itemId, { client: tx });
-      if (!current) return null;
+      if (!current) return { type: 'not_found' };
+
+      const conflict = await checkNoActiveBorrowOrRepair(itemId, 'ลบ', tx);
+      if (conflict) return { type: 'conflict', error: conflict };
 
       await equipmentRepository.softDelete(itemId, tx);
       const deleted = await getSerializedByItemId(itemId, {
@@ -331,14 +362,17 @@ export async function deleteEquipment(itemId, actorId) {
         tx,
       );
 
-      return deleted;
+      return { type: 'deleted', equipment: deleted };
     });
 
-    if (!result) {
+    if (result.type === 'not_found') {
       throw new AppError(404, 'ไม่พบครุภัณฑ์');
     }
+    if (result.type === 'conflict') {
+      throw new AppError(409, result.error);
+    }
 
-    return result;
+    return result.equipment;
   } catch (error) {
     if (error instanceof AppError) throw error;
 

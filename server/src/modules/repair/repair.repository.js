@@ -29,6 +29,13 @@ export async function create(data, client = prisma) {
   return client.repairs.create({ data });
 }
 
+// ใช้เช็คก่อนแก้ไข/ลบครุภัณฑ์โดยตรง (equipment.service.js) ว่ามีใบซ่อมที่ยังไม่ปิดงานค้างอยู่ไหม
+export async function findActiveByItemId(itemId, client = prisma) {
+  return client.repairs.findFirst({
+    where: { item_id: itemId, status: { in: ['pending_repair', 'repairing'] } },
+  });
+}
+
 export async function update(repairId, data, client = prisma) {
   return client.repairs.update({
     where: { repair_id: repairId },

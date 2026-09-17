@@ -54,6 +54,14 @@ export async function requestReturn(borrowDetailId, client = prisma) {
   });
 }
 
+// ใช้เช็คก่อนแก้ไข/ลบครุภัณฑ์โดยตรง (equipment.service.js) ว่ามีใบยืมที่ยังไม่คืนค้างอยู่ไหม
+// นับเฉพาะใบยืมที่ approved แล้วเท่านั้น เพราะ pending/rejected ไม่เคยล็อกสถานะครุภัณฑ์ไว้
+export async function findOpenDetailByItemId(itemId, client = prisma) {
+  return client.borrow_details.findFirst({
+    where: { item_id: itemId, returned_at: null, borrows: { status: 'approved' } },
+  });
+}
+
 export async function markReturned(borrowDetailId, client = prisma) {
   return client.borrow_details.update({
     where: { borrow_detail_id: borrowDetailId },

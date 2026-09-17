@@ -30,6 +30,19 @@ async function runSerializableTransaction(callback) {
   );
 }
 
+// return_date เก็บเป็น 00:00:00 UTC ของ "วันที่ครบกำหนด" (ดู utils/parsing.js: toDate ตัด T00:00:00.000Z ต่อท้าย)
+// แต่ผู้ใช้ทุกคนอยู่ที่ไทย (UTC+7) วันครบกำหนดจริงๆ จึงสิ้นสุดตอนเที่ยงคืนเวลาไทย = 17:00 UTC ของวันเดียวกัน
+// ถ้าเทียบกับ UTC midnight ตรงๆ จะกลายเป็นเกินกำหนดตั้งแต่ 07:00 เวลาไทยของวันครบกำหนดเอง (เร็วไป 17 ชม.)
+const THAILAND_UTC_OFFSET_HOURS = 7;
+
+function isPastDueDate(returnDate) {
+  const endOfDueDateUtc = new Date(
+    returnDate.getTime() + (24 - THAILAND_UTC_OFFSET_HOURS) * 60 * 60 * 1000,
+  );
+
+  return new Date() > endOfDueDateUtc;
+}
+
 // สถานะต่อชิ้นขึ้นกับสถานะใบยืมก่อน (pending/rejected ยังไม่มีอะไรให้ derive จาก return_date/returned_at)
 // approved แล้วค่อย derive จาก return_date/return_requested_at/returned_at ไม่เก็บเป็น column แยกกันข้อมูลไม่ตรงกัน
 function deriveDetailStatus(borrow, detail) {
@@ -37,7 +50,7 @@ function deriveDetailStatus(borrow, detail) {
   if (borrow.status === 'rejected') return 'rejected';
   if (detail.returned_at) return 'returned';
   if (detail.return_requested_at) return 'pending_return';
-  return new Date() > detail.return_date ? 'overdue' : 'borrowed';
+  return isPastDueDate(detail.return_date) ? 'overdue' : 'borrowed';
 }
 
 function serializeDetail(borrow, detail) {
