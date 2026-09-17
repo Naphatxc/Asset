@@ -22,10 +22,16 @@ export const isProduction = process.env.NODE_ENV === 'production';
 export const authCookieMaxAgeMs = 60 * 60 * 1000;
 
 // httpOnly ป้องกัน JS อ่าน token; secure บังคับ HTTPS เฉพาะ production เพราะ dev เป็น http://localhost
+//
+// sameSite: production (เช่น Railway) client/server อยู่คนละ subdomain (*.up.railway.app ถือเป็นคนละ
+// site กันโดยตั้งใจ กัน cookie รั่วข้ามโปรเจกต์อื่นบน Railway) จึงเป็น cross-site request เสมอ ต้องใช้
+// 'none' (บังคับคู่กับ secure: true) cookie ถึงจะแนบไปกับ fetch/XHR ข้าม origin ได้ ส่วน dev เป็น
+// same-site (localhost คนละ port ยังนับ lax ได้) ใช้ 'lax' พอ และ browser ปฏิเสธ sameSite: 'none'
+// ที่ไม่ใช่ https อยู่แล้ว จึงใช้ none ตอน dev (http) ไม่ได้
 export const accessTokenCookieOptions = {
   httpOnly: true,
   secure: isProduction,
-  sameSite: 'lax',
+  sameSite: isProduction ? 'none' : 'lax',
   maxAge: authCookieMaxAgeMs,
   path: '/',
 };
@@ -34,7 +40,7 @@ export const accessTokenCookieOptions = {
 export const csrfCookieOptions = {
   httpOnly: false,
   secure: isProduction,
-  sameSite: 'lax',
+  sameSite: isProduction ? 'none' : 'lax',
   maxAge: authCookieMaxAgeMs,
   path: '/',
 };
