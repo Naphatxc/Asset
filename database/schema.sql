@@ -114,3 +114,30 @@ CREATE TABLE IF NOT EXISTS materials (
   CONSTRAINT fk_material_category FOREIGN KEY (category_id) REFERENCES categories(category_id),
   CONSTRAINT chk_material_quantity CHECK (quantity >= 0)
 );
+
+-- repairs เก็บ 1 รายการแจ้งซ่อมต่อครุภัณฑ์ 1 ชิ้น status: pending_repair = แจ้งแล้วรอเริ่มซ่อม,
+-- repairing = กำลังซ่อม, completed = ซ่อมเสร็จ (equipment_items กลับเป็น available), cancelled = ยกเลิกแจ้งซ่อม
+CREATE TABLE IF NOT EXISTS repairs (
+  repair_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  item_id INT UNSIGNED NOT NULL,
+  reported_by INT UNSIGNED NOT NULL,
+  issue TEXT NOT NULL,
+  repair_detail TEXT NULL,
+  repair_cost DECIMAL(10,2) NULL,
+  repair_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  status ENUM('pending_repair', 'repairing', 'completed', 'cancelled') NOT NULL DEFAULT 'pending_repair',
+  INDEX idx_repairs_item (item_id),
+  CONSTRAINT fk_repair_item FOREIGN KEY (item_id) REFERENCES equipment_items(item_id),
+  CONSTRAINT fk_repair_user FOREIGN KEY (reported_by) REFERENCES users(user_id)
+);
+
+-- repair_files เก็บไฟล์แนบ (รูป/PDF) ของแต่ละรายการแจ้งซ่อม ไฟล์จริงเก็บที่ server/uploads/repairs
+CREATE TABLE IF NOT EXISTS repair_files (
+  file_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  repair_id INT UNSIGNED NOT NULL,
+  file_name VARCHAR(255) NOT NULL,
+  file_path VARCHAR(500) NOT NULL,
+  file_type VARCHAR(100) NULL,
+  INDEX idx_repair_files_repair (repair_id),
+  CONSTRAINT fk_repair_file_repair FOREIGN KEY (repair_id) REFERENCES repairs(repair_id)
+);
