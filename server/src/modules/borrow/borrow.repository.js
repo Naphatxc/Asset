@@ -38,6 +38,13 @@ export async function createDetail(data, client = prisma) {
   return client.borrow_details.create({ data });
 }
 
+// สร้างหลายแถวรวดเดียว (ใบยืมที่มีครุภัณฑ์หลายชิ้น) แทนวน create ทีละชิ้น
+export async function createManyDetails(details, client = prisma) {
+  if (details.length === 0) return;
+
+  return client.borrow_details.createMany({ data: details });
+}
+
 // include borrows ไว้เพื่อให้ service เช็ค user_id เจ้าของใบยืมได้ตอนคืนเอง (ไม่ใช่ Admin)
 export async function findDetailById(borrowDetailId, client = prisma) {
   return client.borrow_details.findUnique({

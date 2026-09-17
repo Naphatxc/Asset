@@ -1,6 +1,8 @@
 import * as authService from './auth.service.js';
 import {
+  accessTokenCookieName,
   accessTokenCookieOptions,
+  csrfTokenCookieName,
   csrfCookieOptions,
 } from '../../config/env.js';
 import { generateCsrfToken } from '../../utils/csrf.js';
@@ -26,8 +28,8 @@ export async function login(request, response, next) {
     const csrfToken = generateCsrfToken();
 
     response
-      .cookie('access_token', token, accessTokenCookieOptions)
-      .cookie('csrf_token', csrfToken, csrfCookieOptions)
+      .cookie(accessTokenCookieName, token, accessTokenCookieOptions)
+      .cookie(csrfTokenCookieName, csrfToken, csrfCookieOptions)
       .status(200)
       .json({
         message: 'เข้าสู่ระบบสำเร็จ',
@@ -46,12 +48,12 @@ export async function login(request, response, next) {
 // ไม่งั้นตอน production (cross-site) browser จะเมิน Set-Cookie ที่ขาด SameSite=None; Secure แล้ว cookie เดิมไม่ถูกล้างจริง
 export function logout(_request, response) {
   response
-    .clearCookie('access_token', {
+    .clearCookie(accessTokenCookieName, {
       path: accessTokenCookieOptions.path,
       secure: accessTokenCookieOptions.secure,
       sameSite: accessTokenCookieOptions.sameSite,
     })
-    .clearCookie('csrf_token', {
+    .clearCookie(csrfTokenCookieName, {
       path: csrfCookieOptions.path,
       secure: csrfCookieOptions.secure,
       sameSite: csrfCookieOptions.sameSite,
@@ -68,7 +70,7 @@ export async function getCurrentUser(request, response, next) {
     // sync ค่าที่เก็บไว้ในหน่วยความจำใหม่ได้ โดยไม่ต้องอ่าน cookie นี้ผ่าน document.cookie เอง
     response
       .status(200)
-      .json({ user, csrfToken: request.cookies?.csrf_token ?? null });
+      .json({ user, csrfToken: request.cookies?.[csrfTokenCookieName] ?? null });
   } catch (error) {
     next(error);
   }

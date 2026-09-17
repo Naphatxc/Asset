@@ -5,30 +5,11 @@
 // Admin อนุมัติ (approveBorrow) -> ครุภัณฑ์เปลี่ยนเป็น borrowed หรือ ปฏิเสธ (rejectBorrow) -> จบ ไม่แตะครุภัณฑ์
 // ส่วน Admin สร้างใบยืมเอง (createBorrow) ถือว่าอนุมัติทันที ข้าม pending ไปเลย
 import * as borrowRepository from './borrow.repository.js';
-import { prisma } from '../../config/prisma.js';
 import { AppError } from '../../utils/AppError.js';
+import { runSerializableTransaction } from '../../utils/transaction.js';
 import * as equipmentHistoryRepository from '../equipment/equipment-history.repository.js';
 import * as equipmentRepository from '../equipment/equipment.repository.js';
 import * as userRepository from '../users/user.repository.js';
-
-// Serializable ทดแทน SELECT ... FOR UPDATE เดิม และ retry เมื่อชนกัน (เหมือน equipment.service.js)
-async function runSerializableTransaction(callback) {
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      return await prisma.$transaction(callback, {
-        isolationLevel: 'Serializable',
-        maxWait: 5_000,
-        timeout: 10_000,
-      });
-    } catch (error) {
-      if (error.code !== 'P2034' || attempt === 3) throw error;
-    }
-  }
-
-  throw new Error(
-    'Transaction failed after 3 attempts due to serialization conflicts (P2034)',
-  );
-}
 
 // return_date เก็บเป็น 00:00:00 UTC ของ "วันที่ครบกำหนด" (ดู utils/parsing.js: toDate ตัด T00:00:00.000Z ต่อท้าย)
 // แต่ผู้ใช้ทุกคนอยู่ที่ไทย (UTC+7) วันครบกำหนดจริงๆ จึงสิ้นสุดตอนเที่ยงคืนเวลาไทย = 17:00 UTC ของวันเดียวกัน
@@ -101,11 +82,13 @@ export async function getMyBorrowList(userId) {
 }
 
 // เช็คว่าทุกชิ้นว่างอยู่ก่อนสร้างอะไรเลย คืน error object ถ้าเจอชิ้นไหนไม่ว่าง (ไม่ throw เพื่อให้ caller ตัดสินใจ rollback เอง)
+// query รวดเดียวแทนวนทีละชิ้น เพราะอยู่ใน Serializable transaction ยิ่งถือ lock นานยิ่งเสี่ยงชนกัน/timeout
 async function checkItemsAvailable(itemIds, tx) {
+  const items = await equipmentRepository.findManyByItemIds(itemIds, tx);
+  const itemById = new Map(items.map((item) => [item.item_id, item]));
+
   for (const itemId of itemIds) {
-    const item = await equipmentRepository.findByItemId(itemId, {
-      client: tx,
-    });
+    const item = itemById.get(itemId);
 
     if (!item) {
       return { error: `ไม่พบครุภัณฑ์รหัส ${itemId}`, status: 404 };
@@ -122,24 +105,18 @@ async function checkItemsAvailable(itemIds, tx) {
 }
 
 async function lockItemsAsBorrowed(itemIds, borrowId, actorId, tx) {
-  for (const itemId of itemIds) {
-    await equipmentRepository.updateEquipmentItem(
-      itemId,
-      { status: 'borrowed' },
-      tx,
-    );
+  await equipmentRepository.updateManyStatus(itemIds, 'borrowed', tx);
 
-    await equipmentHistoryRepository.create(
-      {
-        itemId,
-        action: 'status_changed',
-        oldData: { status: 'available' },
-        newData: { status: 'borrowed', borrow_id: borrowId },
-        changedBy: actorId,
-      },
-      tx,
-    );
-  }
+  await equipmentHistoryRepository.createMany(
+    itemIds.map((itemId) => ({
+      itemId,
+      action: 'status_changed',
+      oldData: { status: 'available' },
+      newData: { status: 'borrowed', borrow_id: borrowId },
+      changedBy: actorId,
+    })),
+    tx,
+  );
 }
 
 // Admin สร้างใบยืมแทนผู้ใช้ ถือว่าอนุมัติทันที (ข้าม pending) ครุภัณฑ์ถูกล็อกเป็น borrowed ทันที
@@ -154,12 +131,14 @@ export async function createBorrow(userId, returnDate, itemIds, actorId) {
         tx,
       );
 
-      for (const itemId of itemIds) {
-        await borrowRepository.createDetail(
-          { borrow_id: borrow.borrow_id, item_id: itemId, return_date: returnDate },
-          tx,
-        );
-      }
+      await borrowRepository.createManyDetails(
+        itemIds.map((itemId) => ({
+          borrow_id: borrow.borrow_id,
+          item_id: itemId,
+          return_date: returnDate,
+        })),
+        tx,
+      );
 
       await lockItemsAsBorrowed(itemIds, borrow.borrow_id, actorId, tx);
 
@@ -194,12 +173,14 @@ export async function requestBorrow(userId, returnDate, itemIds) {
         tx,
       );
 
-      for (const itemId of itemIds) {
-        await borrowRepository.createDetail(
-          { borrow_id: borrow.borrow_id, item_id: itemId, return_date: returnDate },
-          tx,
-        );
-      }
+      await borrowRepository.createManyDetails(
+        itemIds.map((itemId) => ({
+          borrow_id: borrow.borrow_id,
+          item_id: itemId,
+          return_date: returnDate,
+        })),
+        tx,
+      );
 
       return { borrow: await borrowRepository.findById(borrow.borrow_id, tx) };
     });

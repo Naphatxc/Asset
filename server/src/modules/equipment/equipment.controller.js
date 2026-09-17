@@ -3,9 +3,11 @@ import { allowedStatuses } from './equipment.validator.js';
 
 // page/limit กันค่าแปลกจาก query string (NaN, ติดลบ, limit ใหญ่เกินไป) และ status ต้องอยู่ใน allowedStatuses เท่านั้น
 // ไม่งั้น Prisma throw เพราะ status เป็น enum ฝั่ง DB
+// เพดานตั้งไว้ 500 ให้พอกับตอน client ขอทั้งหมดมาทำ picklist เลือกยืม/แจ้งซ่อม (ดู BorrowManager/RepairManager/
+// MyBorrows.jsx ที่ยิง limit:500) ไม่งั้นจะโดนตัดเงียบๆ เหลือ 100 ชิ้นแรกโดยไม่มีอะไรแจ้งว่าข้อมูลไม่ครบ
 function parseListQuery(query) {
   const page = Math.max(1, Math.trunc(Number(query.page)) || 1);
-  const limit = Math.min(100, Math.max(1, Math.trunc(Number(query.limit)) || 20));
+  const limit = Math.min(500, Math.max(1, Math.trunc(Number(query.limit)) || 20));
   const search = String(query.search ?? '').trim() || undefined;
   const statusInput = String(query.status ?? '').trim();
   const status = allowedStatuses.includes(statusInput) ? statusInput : undefined;

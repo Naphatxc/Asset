@@ -21,6 +21,23 @@ export async function create(
   });
 }
 
+// บันทึกหลายแถวรวดเดียว (เช่น ล็อกครุภัณฑ์หลายชิ้นตอนอนุมัติยืมใบเดียว) แทนวน create ทีละแถว
+export async function createMany(records, client = prisma) {
+  if (records.length === 0) return;
+
+  return client.equipment_history.createMany({
+    data: records.map(
+      ({ itemId, action, oldData = null, newData = null, changedBy = null }) => ({
+        item_id: itemId,
+        action,
+        changed_by: changedBy,
+        ...(oldData === null ? {} : { old_data: toJson(oldData) }),
+        ...(newData === null ? {} : { new_data: toJson(newData) }),
+      }),
+    ),
+  });
+}
+
 export async function findByItemId(itemId, client = prisma) {
   return client.equipment_history.findMany({
     where: { item_id: itemId },

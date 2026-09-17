@@ -87,6 +87,21 @@ export async function findByItemId(
   });
 }
 
+// ใช้ตอนเช็คความพร้อม/ล็อกครุภัณฑ์หลายชิ้นพร้อมกัน (borrow.service.js) เอาแบบ query เดียวแทนวนลูปทีละชิ้น
+export async function findManyByItemIds(itemIds, client = prisma) {
+  return client.equipment_items.findMany({
+    where: { item_id: { in: itemIds } },
+    select: { item_id: true, status: true, equipment_name: true },
+  });
+}
+
+export async function updateManyStatus(itemIds, status, client = prisma) {
+  return client.equipment_items.updateMany({
+    where: { item_id: { in: itemIds } },
+    data: { status },
+  });
+}
+
 export async function existsById(itemId, client = prisma) {
   return client.equipment_items.findUnique({
     where: { item_id: itemId },

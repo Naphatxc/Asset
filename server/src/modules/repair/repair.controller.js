@@ -64,8 +64,16 @@ export async function downloadFile(request, response, next) {
   try {
     const { fileId } = request.validated;
     const file = await repairService.getFile(fileId);
+    // client render เป็นลิงก์ target="_blank" ตั้งใจให้เปิดดูรูป/PDF ในแท็บใหม่ ไม่ใช่ดาวน์โหลด
+    // ต้องใช้ inline แทน default ของ response.download() (attachment) ไม่งั้น browser เด้ง save ทุกครั้ง
+    const safeFileName = String(file.file_name).replace(/["\r\n]/g, '');
 
-    response.download(file.absolutePath, file.file_name);
+    response.sendFile(file.absolutePath, {
+      headers: {
+        'Content-Disposition': `inline; filename="${safeFileName}"; filename*=UTF-8''${encodeURIComponent(file.file_name)}`,
+        ...(file.file_type ? { 'Content-Type': file.file_type } : {}),
+      },
+    });
   } catch (error) {
     next(error);
   }

@@ -2,9 +2,9 @@
 // และแปลงข้อมูลจาก Prisma (nested include) ให้เป็นรูปแบบแบนตาม API เดิมก่อนส่งกลับ Controller
 import * as equipmentHistoryRepository from './equipment-history.repository.js';
 import * as equipmentRepository from './equipment.repository.js';
-import { prisma } from '../../config/prisma.js';
 import { AppError } from '../../utils/AppError.js';
 import { hasOwn, toDate } from '../../utils/parsing.js';
+import { runSerializableTransaction } from '../../utils/transaction.js';
 import * as borrowRepository from '../borrow/borrow.repository.js';
 import * as repairRepository from '../repair/repair.repository.js';
 
@@ -64,25 +64,6 @@ async function getSerializedByItemId(
   });
 
   return item ? serializeEquipment(item) : null;
-}
-
-// Serializable ทดแทน SELECT ... FOR UPDATE เดิม และ retry เมื่อชนกัน (ใช้ร่วมกันทุก operation ที่เขียนข้อมูล)
-async function runSerializableTransaction(callback) {
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      return await prisma.$transaction(callback, {
-        isolationLevel: 'Serializable',
-        maxWait: 5_000,
-        timeout: 10_000,
-      });
-    } catch (error) {
-      if (error.code !== 'P2034' || attempt === 3) throw error;
-    }
-  }
-
-  throw new Error(
-    'Transaction failed after 3 attempts due to serialization conflicts (P2034)',
-  );
 }
 
 function serializePagination({ page, limit, total }) {

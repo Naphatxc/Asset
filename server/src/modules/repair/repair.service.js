@@ -7,30 +7,11 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import * as repairRepository from './repair.repository.js';
-import { prisma } from '../../config/prisma.js';
 import { AppError } from '../../utils/AppError.js';
+import { runSerializableTransaction } from '../../utils/transaction.js';
 import * as equipmentHistoryRepository from '../equipment/equipment-history.repository.js';
 import * as equipmentRepository from '../equipment/equipment.repository.js';
 import { repairUploadDir } from '../../middlewares/upload.middleware.js';
-
-// Serializable ทดแทน SELECT ... FOR UPDATE เดิม และ retry เมื่อชนกัน (เหมือน borrow.service.js/equipment.service.js)
-async function runSerializableTransaction(callback) {
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      return await prisma.$transaction(callback, {
-        isolationLevel: 'Serializable',
-        maxWait: 5_000,
-        timeout: 10_000,
-      });
-    } catch (error) {
-      if (error.code !== 'P2034' || attempt === 3) throw error;
-    }
-  }
-
-  throw new Error(
-    'Transaction failed after 3 attempts due to serialization conflicts (P2034)',
-  );
-}
 
 function serializeFile(file) {
   return {
@@ -150,6 +131,9 @@ export async function addRepairFiles(repairId, actorId, files) {
   try {
     const repair = await repairRepository.findById(repairId);
     if (!repair) throw new AppError(404, 'ไม่พบรายการแจ้งซ่อม');
+    if (repair.status === 'completed' || repair.status === 'cancelled') {
+      throw new AppError(400, 'รายการนี้ปิดงานไปแล้ว ไม่สามารถแนบไฟล์เพิ่มได้');
+    }
     if (files.length === 0) {
       throw new AppError(400, 'กรุณาเลือกไฟล์ที่จะแนบ');
     }

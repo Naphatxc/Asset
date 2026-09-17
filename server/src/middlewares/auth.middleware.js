@@ -1,13 +1,13 @@
 // Middleware ทำงานก่อน Controller เพื่อป้องกัน route ที่ต้อง Login/Admin
 import jwt from 'jsonwebtoken';
 
-import { jwtSecret } from '../config/env.js';
+import { accessTokenCookieName, jwtSecret } from '../config/env.js';
 import * as userRepository from '../modules/users/user.repository.js';
 import { AppError } from '../utils/AppError.js';
 
 export function authenticate(request, _response, next) {
   // Token อยู่ใน httpOnly cookie (set ตอน login) ไม่ใช่ Authorization header อีกต่อไป
-  const token = request.cookies?.access_token;
+  const token = request.cookies?.[accessTokenCookieName];
 
   if (!token) {
     return next(new AppError(401, 'กรุณาเข้าสู่ระบบ'));

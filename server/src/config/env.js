@@ -21,6 +21,11 @@ export const isProduction = process.env.NODE_ENV === 'production';
 // อายุ cookie ต้องตรงกับอายุ JWT (1h) ไม่งั้น cookie จะอยู่นานกว่า token ข้างใน
 export const authCookieMaxAgeMs = 60 * 60 * 1000;
 
+// ชื่อ cookie รวมไว้จุดเดียว ให้ทุกที่ที่ set/read/clear cookie (auth.middleware.js, csrf.middleware.js,
+// auth.controller.js) อ้างอิงค่าเดียวกันเสมอ กันเหตุการณ์แบบ logout ไม่เคลียร์ cookie เพราะพิมพ์ชื่อไม่ตรงกัน
+export const accessTokenCookieName = 'access_token';
+export const csrfTokenCookieName = 'csrf_token';
+
 // httpOnly ป้องกัน JS อ่าน token; secure บังคับ HTTPS เฉพาะ production เพราะ dev เป็น http://localhost
 //
 // sameSite: production (เช่น Railway) client/server อยู่คนละ subdomain (*.up.railway.app ถือเป็นคนละ
