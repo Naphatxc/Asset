@@ -1,5 +1,16 @@
 // Form เดียวใช้ได้ทั้งเพิ่มและแก้ไข โดยดูจากว่ามี equipment ส่งเข้ามาหรือไม่
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import SearchableSelect from './SearchableSelect.jsx';
+
+// ช่องที่ required แสดงดอกจันทร์สีแดงกำกับให้เห็นชัดว่าต้องกรอก (ดู .required-mark ใน styles.css)
+function RequiredMark() {
+  return (
+    <span className="required-mark" aria-hidden="true">
+      {' '}
+      *
+    </span>
+  );
+}
 
 // ค่าเริ่มต้นของฟอร์มสร้างครุภัณฑ์ใหม่
 const emptyForm = {
@@ -57,6 +68,24 @@ export default function EquipmentForm({
   useEffect(() => {
     setForm(createInitialForm(equipment));
   }, [equipment]);
+
+  // แปลงเป็น { value, label } ให้ SearchableSelect ใช้ตรงกัน ไม่ต้องรู้ shape ของ categories/locations เอง
+  const categoryOptions = useMemo(
+    () =>
+      categories.map((category) => ({
+        value: String(category.category_id),
+        label: category.category_name,
+      })),
+    [categories],
+  );
+  const locationOptions = useMemo(
+    () =>
+      locations.map((location) => ({
+        value: String(location.location_id),
+        label: `${location.location_name}${location.room ? ` · ห้อง ${location.room}` : ''}`,
+      })),
+    [locations],
+  );
 
   function updateField(event) {
     const { name, value } = event.target;
@@ -116,7 +145,10 @@ export default function EquipmentForm({
 
       <div className="form-grid">
         <label className="field-wide">
-          ชื่อครุภัณฑ์
+          <span>
+            ชื่อครุภัณฑ์
+            <RequiredMark />
+          </span>
           <input
             name="equipment_name"
             value={form.equipment_name}
@@ -126,7 +158,10 @@ export default function EquipmentForm({
         </label>
 
         <label>
-          รหัสครุภัณฑ์
+          <span>
+            รหัสครุภัณฑ์
+            <RequiredMark />
+          </span>
           <input
             name="equipment_code"
             value={form.equipment_code}
@@ -138,43 +173,31 @@ export default function EquipmentForm({
         </label>
 
         <label>
-          หมวดหมู่
-          <select
+          <span>
+            หมวดหมู่
+            <RequiredMark />
+          </span>
+          <SearchableSelect
             name="category_id"
             value={form.category_id}
             onChange={updateField}
             required
-          >
-            <option value="">เลือกหมวดหมู่</option>
-            {categories.map((category) => (
-              <option
-                key={category.category_id}
-                value={category.category_id}
-              >
-                {category.category_name}
-              </option>
-            ))}
-          </select>
+            placeholder="พิมพ์ชื่อหมวดหมู่..."
+            emptyLabel="เลือกหมวดหมู่"
+            options={categoryOptions}
+          />
         </label>
 
         <label>
           สถานที่
-          <select
+          <SearchableSelect
             name="location_id"
             value={form.location_id}
             onChange={updateField}
-          >
-            <option value="">ยังไม่ระบุ</option>
-            {locations.map((location) => (
-              <option
-                key={location.location_id}
-                value={location.location_id}
-              >
-                {location.location_name}
-                {location.room ? ` · ห้อง ${location.room}` : ''}
-              </option>
-            ))}
-          </select>
+            placeholder="พิมพ์ชื่อสถานที่..."
+            emptyLabel="ยังไม่ระบุ"
+            options={locationOptions}
+          />
         </label>
 
         {!editing && (

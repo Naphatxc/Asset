@@ -628,6 +628,22 @@ button:disabled {
   grid-column: 1 / -1;
 }
 
+.required-mark {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* input กรองข้อความซ้อนอยู่บน select ปกติ เพื่อคงพฤติกรรม native (required/คีย์บอร์ด/screen reader) ไว้ */
+.searchable-select {
+  display: grid;
+  gap: 6px;
+}
+
+.searchable-select-filter {
+  font-weight: 400;
+  font-size: 0.9rem;
+}
+
 .form-actions {
   margin-top: 18px;
 }
