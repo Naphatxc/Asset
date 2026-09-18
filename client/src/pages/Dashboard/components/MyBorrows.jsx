@@ -8,8 +8,11 @@ import {
   returnBorrowDetail,
 } from '../../../api/borrow.js';
 import { getEquipment } from '../../../api/equipment.js';
+import CharCount from '../../../components/CharCount.jsx';
 import EquipmentPicker from '../../../components/EquipmentPicker.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
+
+const MAX_REMARK_LENGTH = 2000; // ต้องตรงกับ server (borrow.validator.js)
 
 const statusLabels = {
   pending: 'รออนุมัติ',
@@ -48,6 +51,7 @@ export default function MyBorrows() {
   const [formOpen, setFormOpen] = useState(false);
   const [returnDate, setReturnDate] = useState(tomorrowDateInput);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
+  const [remark, setRemark] = useState('');
 
   const borrowsQuery = useQuery({
     queryKey: ['borrows', 'mine'],
@@ -69,6 +73,7 @@ export default function MyBorrows() {
   function openForm() {
     setReturnDate(tomorrowDateInput());
     setSelectedItemIds([]);
+    setRemark('');
     setFormOpen(true);
   }
 
@@ -106,7 +111,7 @@ export default function MyBorrows() {
 
   function submitForm(event) {
     event.preventDefault();
-    requestMutation.mutate({ returnDate, itemIds: selectedItemIds });
+    requestMutation.mutate({ returnDate, itemIds: selectedItemIds, remark });
   }
 
   const busyBorrowDetailId = returnMutation.isPending
@@ -168,6 +173,18 @@ export default function MyBorrows() {
                 />
               )}
             </label>
+
+            <label className="field-wide">
+              หมายเหตุ (ไม่บังคับ)
+              <textarea
+                rows="3"
+                value={remark}
+                onChange={(event) => setRemark(event.target.value)}
+                maxLength={MAX_REMARK_LENGTH}
+                placeholder="เหตุผลหรือหมายเหตุการยืม เช่น ใช้ในงานสัมมนาวันที่..."
+              />
+              <CharCount length={remark.length} max={MAX_REMARK_LENGTH} />
+            </label>
           </div>
 
           <div className="form-actions">
@@ -201,6 +218,7 @@ export default function MyBorrows() {
                 <th>ครุภัณฑ์</th>
                 <th>วันที่ยืม</th>
                 <th>กำหนดคืน</th>
+                <th>หมายเหตุ</th>
                 <th>สถานะ</th>
                 <th>การกระทำ</th>
               </tr>
@@ -217,6 +235,7 @@ export default function MyBorrows() {
                   </td>
                   <td>{formatDateTime(borrow.borrow_date)}</td>
                   <td>{formatDateTime(detail.return_date)}</td>
+                  <td>{borrow.remark || '-'}</td>
                   <td>
                     <span className={`status-badge status-${detail.status}`}>
                       {statusLabels[detail.status] ?? detail.status}

@@ -13,9 +13,12 @@ import {
   returnBorrowDetail,
 } from '../../../api/borrow.js';
 import { getEquipment } from '../../../api/equipment.js';
+import CharCount from '../../../components/CharCount.jsx';
 import EquipmentPicker from '../../../components/EquipmentPicker.jsx';
 import SearchableSelect from '../../../components/SearchableSelect.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
+
+const MAX_REMARK_LENGTH = 2000; // ต้องตรงกับ server (borrow.validator.js)
 
 const statusLabels = {
   pending: 'รออนุมัติ',
@@ -55,6 +58,7 @@ export default function BorrowManager() {
   const [userId, setUserId] = useState('');
   const [returnDate, setReturnDate] = useState(tomorrowDateInput);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
+  const [remark, setRemark] = useState('');
   const [pendingOnly, setPendingOnly] = useState(false);
 
   const borrowsQuery = useQuery({ queryKey: ['borrows'], queryFn: getBorrows });
@@ -93,6 +97,7 @@ export default function BorrowManager() {
     setUserId('');
     setReturnDate(tomorrowDateInput());
     setSelectedItemIds([]);
+    setRemark('');
     setFormOpen(true);
   }
 
@@ -154,6 +159,7 @@ export default function BorrowManager() {
       userId: Number(userId),
       returnDate,
       itemIds: selectedItemIds,
+      remark,
     });
   }
 
@@ -252,6 +258,18 @@ export default function BorrowManager() {
                 />
               )}
             </label>
+
+            <label className="field-wide">
+              หมายเหตุ (ไม่บังคับ)
+              <textarea
+                rows="3"
+                value={remark}
+                onChange={(event) => setRemark(event.target.value)}
+                maxLength={MAX_REMARK_LENGTH}
+                placeholder="เหตุผลหรือหมายเหตุการยืม เช่น ใช้ในงานสัมมนาวันที่..."
+              />
+              <CharCount length={remark.length} max={MAX_REMARK_LENGTH} />
+            </label>
           </div>
 
           <div className="form-actions">
@@ -286,6 +304,7 @@ export default function BorrowManager() {
                 <th>ครุภัณฑ์</th>
                 <th>วันที่ยืม</th>
                 <th>กำหนดคืน</th>
+                <th>หมายเหตุ</th>
                 <th>สถานะ</th>
                 <th>การกระทำ</th>
               </tr>
@@ -307,6 +326,7 @@ export default function BorrowManager() {
                   </td>
                   <td>{formatDateTime(borrow.borrow_date)}</td>
                   <td>{formatDateTime(detail.return_date)}</td>
+                  <td>{borrow.remark || '-'}</td>
                   <td>
                     <span className={`status-badge status-${detail.status}`}>
                       {statusLabels[detail.status] ?? detail.status}

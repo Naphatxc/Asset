@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 
 import {
   getCategories,
@@ -46,8 +46,12 @@ function formatLocation(equipment) {
   return parts.length > 0 ? parts.join(' · ') : 'ยังไม่ระบุสถานที่';
 }
 
-export default function EquipmentDetailPage({ user, onLogout }) {
+export default function EquipmentDetailPage({ user }) {
   const { code = '' } = useParams();
+  // มาจาก navigate(..., { state }) ตอนกด "รายละเอียด" ใน EquipmentManager.jsx — พาไปหน้า/ตัวกรองเดิมที่
+  // เพิ่งดูอยู่แทนที่จะเด้งกลับหน้าแรกเสมอ ถ้าเข้าหน้านี้ตรงๆ (เช่น สแกน QR) จะไม่มี state นี้ จึง fallback
+  const location = useLocation();
+  const returnTo = location.state?.returnTo ?? '/?tab=equipment';
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
   const [showQr, setShowQr] = useState(false);
@@ -198,7 +202,7 @@ export default function EquipmentDetailPage({ user, onLogout }) {
         )}
 
         <div className="detail-actions">
-          <Link className="button-link button-secondary" to="/?tab=equipment">
+          <Link className="button-link button-secondary" to={returnTo}>
             กลับหน้ารายการ
           </Link>
           {admin && !editing && (
@@ -219,13 +223,6 @@ export default function EquipmentDetailPage({ user, onLogout }) {
               </button>
             </>
           )}
-          <button
-            className="logout-button detail-logout"
-            type="button"
-            onClick={onLogout}
-          >
-            ออกจากระบบ
-          </button>
         </div>
       </section>
 

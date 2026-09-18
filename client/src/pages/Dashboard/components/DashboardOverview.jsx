@@ -1,7 +1,9 @@
-// ภาพรวม Dashboard (เฉพาะ Admin) — stat card + กราฟแท่งรายเดือน + กราฟวงกลมสถานะ + ตารางครุภัณฑ์ยอดนิยม
+// ภาพรวม Dashboard (เฉพาะ Admin) — stat card + การ์ดสิ่งที่ต้องดำเนินการ + กราฟแท่งรายเดือน + กราฟวงกลมสถานะ
+// + รายการเลยกำหนดคืน + กิจกรรมล่าสุด
 // กราฟวาดเองด้วย SVG ธรรมดา ไม่ใช้ library เพิ่ม เพราะข้อมูลมีแค่ 12 เดือน/4 สถานะ ไม่คุ้มเพิ่ม dependency
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { getDashboardSummary } from '../../../api/dashboard.js';
 
@@ -9,6 +11,38 @@ const monthLabels = [
   'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
   'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.',
 ];
+
+function formatDateTime(value) {
+  if (!value) return '-';
+
+  return new Intl.DateTimeFormat('th-TH', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
+// ข้อความ/ไอคอนของกิจกรรมแต่ละประเภท แยกจาก field ดิบที่ backend ส่งมา (ดู dashboard.service.js
+// buildRecentActivity) เพื่อให้แก้ข้อความฝั่งนี้ได้โดยไม่ต้องแตะ backend
+const activityMeta = {
+  borrow: { icon: '📤', className: 'activity-icon-borrow' },
+  return: { icon: '📥', className: 'activity-icon-return' },
+  repair: { icon: '🔧', className: 'activity-icon-repair' },
+};
+
+function formatActivityText(activity) {
+  switch (activity.type) {
+    case 'borrow':
+      return `${activity.actor_name} ยืม ${activity.equipment_name}${
+        activity.item_count > 1 ? ` และอีก ${activity.item_count - 1} ชิ้น` : ''
+      }`;
+    case 'return':
+      return `${activity.actor_name} คืน ${activity.equipment_name}`;
+    case 'repair':
+      return `${activity.actor_name} แจ้งซ่อม ${activity.equipment_name}`;
+    default:
+      return '';
+  }
+}
 
 const statusMeta = [
   { key: 'available', label: 'พร้อมใช้งาน', color: '#22a06b' },
@@ -143,8 +177,10 @@ function StatusPieChart({ statusCounts }) {
   );
 }
 
+const ALL_YEARS_VALUE = 'all';
+
 export default function DashboardOverview() {
-  const [year, setYear] = useState(() => new Date().getFullYear());
+  const [year, setYear] = useState(null); // null = ทุกปี
 
   const summaryQuery = useQuery({
     queryKey: ['dashboard', 'summary', year],
@@ -163,7 +199,14 @@ export default function DashboardOverview() {
         </div>
 
         <div className="toolbar-actions">
-          <select value={year} onChange={(event) => setYear(Number(event.target.value))}>
+          <select
+            value={year ?? ALL_YEARS_VALUE}
+            onChange={(event) => {
+              const { value } = event.target;
+              setYear(value === ALL_YEARS_VALUE ? null : Number(value));
+            }}
+          >
+            <option value={ALL_YEARS_VALUE}>ทุกปี</option>
             {yearOptions.map((option) => (
               <option key={option} value={option}>
                 ปี {option + 543}
@@ -204,6 +247,82 @@ export default function DashboardOverview() {
             </div>
           </div>
 
+          <div className="attention-grid">
+            <Link
+              to="/?tab=borrow"
+              className={`attention-card${
+                summary.pendingBorrowCount > 0 ? ' attention-card-active' : ''
+              }`}
+            >
+              <span className="attention-card-value">
+                {summary.pendingBorrowCount}
+              </span>
+              <span className="attention-card-label">คำขอยืมรออนุมัติ</span>
+            </Link>
+            <Link
+              to="/?tab=repair"
+              className={`attention-card${
+                summary.pendingRepairCount > 0 ? ' attention-card-active' : ''
+              }`}
+            >
+              <span className="attention-card-value">
+                {summary.pendingRepairCount}
+              </span>
+              <span className="attention-card-label">ครุภัณฑ์รอซ่อม</span>
+            </Link>
+            <Link
+              to="/?tab=borrow"
+              className={`attention-card${
+                summary.overdueCount > 0 ? ' attention-card-overdue' : ''
+              }`}
+            >
+              <span className="attention-card-value">{summary.overdueCount}</span>
+              <span className="attention-card-label">เลยกำหนดคืน</span>
+            </Link>
+          </div>
+
+          <div className="overview-panel">
+            <h3>รายการเลยกำหนดคืน</h3>
+            {summary.overdueBorrows.length === 0 ? (
+              <div className="empty-state">
+                <p>ไม่มีรายการเลยกำหนดคืนตอนนี้</p>
+              </div>
+            ) : (
+              <div className="table-wrap">
+                <table className="user-table">
+                  <thead>
+                    <tr>
+                      <th>ครุภัณฑ์</th>
+                      <th>ผู้ยืม</th>
+                      <th>ครบกำหนดคืน</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary.overdueBorrows.map((item) => (
+                      <tr key={item.borrow_detail_id}>
+                        <td>
+                          <span className="equipment-code">
+                            {item.equipment_code}
+                          </span>{' '}
+                          {item.equipment_name}
+                        </td>
+                        <td>{item.borrower_name}</td>
+                        <td>{formatDateTime(item.return_date)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {summary.overdueCount > summary.overdueBorrows.length && (
+                  <p className="loading-message">
+                    และอีก {summary.overdueCount - summary.overdueBorrows.length}{' '}
+                    รายการ —{' '}
+                    <Link to="/?tab=borrow">ดูทั้งหมดที่หน้ายืม-คืน</Link>
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           <div className="overview-grid">
             <div className="overview-panel">
               <h3>จำนวนการยืมรายเดือน</h3>
@@ -217,34 +336,32 @@ export default function DashboardOverview() {
           </div>
 
           <div className="overview-panel">
-            <h3>ครุภัณฑ์ที่ถูกยืมบ่อยที่สุด</h3>
-            {summary.topBorrowedItems.length === 0 ? (
+            <h3>กิจกรรมล่าสุด</h3>
+            {summary.recentActivity.length === 0 ? (
               <div className="empty-state">
-                <p>ยังไม่มีประวัติการยืมที่อนุมัติแล้ว</p>
+                <p>ยังไม่มีกิจกรรม</p>
               </div>
             ) : (
-              <div className="table-wrap">
-                <table className="user-table">
-                  <thead>
-                    <tr>
-                      <th>อันดับ</th>
-                      <th>รหัสครุภัณฑ์</th>
-                      <th>ชื่อครุภัณฑ์</th>
-                      <th>จำนวนครั้งที่ถูกยืม</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.topBorrowedItems.map((item, index) => (
-                      <tr key={item.item_id}>
-                        <td>{index + 1}</td>
-                        <td className="equipment-code">{item.equipment_code}</td>
-                        <td>{item.equipment_name}</td>
-                        <td>{item.borrow_count}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <ul className="activity-list">
+                {summary.recentActivity.map((activity, index) => (
+                  <li key={index} className="activity-item">
+                    <span
+                      className={`activity-icon ${activityMeta[activity.type].className}`}
+                      aria-hidden="true"
+                    >
+                      {activityMeta[activity.type].icon}
+                    </span>
+                    <div className="activity-body">
+                      <p className="activity-text">
+                        {formatActivityText(activity)}
+                      </p>
+                      <span className="activity-time">
+                        {formatDateTime(activity.occurred_at)}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
         </>

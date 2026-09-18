@@ -78,19 +78,38 @@ model locations {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model materials {
-  material_id      Int        @id @default(autoincrement()) @db.UnsignedInt
-  material_code    String     @unique(map: "material_code") @db.VarChar(50)
-  material_name    String     @db.VarChar(150)
-  category_id      Int        @db.UnsignedInt
-  quantity         Int        @default(0)
-  minimum_quantity Int        @default(0)
-  expire_date      DateTime?  @db.Date
-  unit_name        String     @db.VarChar(50)
-  unit_price       Decimal?   @db.Decimal(10, 2)
-  remark           String?    @db.Text
-  categories       categories @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_material_category")
+  material_id          Int                    @id @default(autoincrement()) @db.UnsignedInt
+  material_code        String                 @unique(map: "material_code") @db.VarChar(50)
+  material_name        String                 @db.VarChar(150)
+  category_id          Int                    @db.UnsignedInt
+  quantity             Int                    @default(0)
+  minimum_quantity     Int                    @default(0)
+  expire_date          DateTime?              @db.Date
+  unit_name            String                 @db.VarChar(50)
+  unit_price           Decimal?               @db.Decimal(10, 2)
+  remark               String?                @db.Text
+  // Soft delete เหมือน equipment_items — กันลบแล้วประวัติการเบิกใน material_withdrawals อ้างอิงไม่ได้
+  deleted_at           DateTime?              @db.DateTime(0)
+  categories           categories             @relation(fields: [category_id], references: [category_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_material_category")
+  material_withdrawals material_withdrawals[]
 
   @@index([category_id], map: "fk_material_category")
+}
+
+// ประวัติการเบิกวัสดุ — ตัดยอด quantity ทันทีตอนเบิก ไม่มีขั้นตอนรออนุมัติแบบใบยืมครุภัณฑ์ เพราะวัสดุใช้แล้วหมดไป
+// ไม่มีการคืน (ต่างจาก borrows/borrow_details ที่ต้อง track คืนของ)
+model material_withdrawals {
+  withdrawal_id Int       @id @default(autoincrement()) @db.UnsignedInt
+  material_id   Int       @db.UnsignedInt
+  user_id       Int       @db.UnsignedInt
+  quantity      Int
+  remark        String?   @db.Text
+  withdrawn_at  DateTime  @default(now()) @db.DateTime(0)
+  materials     materials @relation(fields: [material_id], references: [material_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_withdrawal_material")
+  users         users     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_withdrawal_user")
+
+  @@index([material_id], map: "idx_withdrawals_material")
+  @@index([user_id], map: "idx_withdrawals_user")
 }
 
 model users {
@@ -100,9 +119,10 @@ model users {
   password_hash     String              @db.VarChar(255)
   role              users_role          @default(user)
   created_at        DateTime            @default(now()) @db.DateTime(0)
-  borrows           borrows[]
-  equipment_history equipment_history[]
-  repairs           repairs[]
+  borrows               borrows[]
+  equipment_history     equipment_history[]
+  repairs               repairs[]
+  material_withdrawals  material_withdrawals[]
 }
 
 model borrow_details {
@@ -124,6 +144,7 @@ model borrows {
   user_id        Int              @db.UnsignedInt
   borrow_date    DateTime         @default(now()) @db.DateTime(0)
   status         borrows_status   @default(pending)
+  remark         String?          @db.Text
   borrow_details borrow_details[]
   users          users            @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_borrow_user")
 

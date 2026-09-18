@@ -25,12 +25,13 @@ export async function getMyBorrowList(request, response, next) {
 // Admin สร้างใบยืมแทนผู้ใช้ ถือว่าอนุมัติทันที
 export async function createBorrow(request, response, next) {
   try {
-    const { userId, returnDate, itemIds } = request.validated;
+    const { userId, returnDate, itemIds, remark } = request.validated;
     const borrow = await borrowService.createBorrow(
       userId,
       returnDate,
       itemIds,
       Number(request.user.sub),
+      remark,
     );
 
     response.status(201).json({ message: 'บันทึกการยืมสำเร็จ', borrow });
@@ -42,12 +43,13 @@ export async function createBorrow(request, response, next) {
 // User ส่งคำขอยืมให้ตัวเอง -> รอ Admin อนุมัติ
 export async function requestBorrow(request, response, next) {
   try {
-    const { returnDate, itemIds } = request.validated;
+    const { returnDate, itemIds, remark } = request.validated;
     const userId = Number(request.user.sub);
     const borrow = await borrowService.requestBorrow(
       userId,
       returnDate,
       itemIds,
+      remark,
     );
 
     response

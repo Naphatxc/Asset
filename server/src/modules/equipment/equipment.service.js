@@ -75,13 +75,22 @@ function serializePagination({ page, limit, total }) {
   return { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) };
 }
 
-export async function getEquipmentList({ page = 1, limit = 20, search, status } = {}) {
+export async function getEquipmentList({
+  page = 1,
+  limit = 20,
+  search,
+  status,
+  categoryId,
+  locationId,
+} = {}) {
   try {
     const { items, total } = await equipmentRepository.findManyActive({
       page,
       limit,
       search,
       status,
+      categoryId,
+      locationId,
     });
 
     return {
@@ -100,6 +109,8 @@ export async function getDeletedEquipmentList({
   limit = 20,
   search,
   status,
+  categoryId,
+  locationId,
 } = {}) {
   try {
     const { items, total } = await equipmentRepository.findManyDeleted({
@@ -107,6 +118,8 @@ export async function getDeletedEquipmentList({
       limit,
       search,
       status,
+      categoryId,
+      locationId,
     });
 
     return {

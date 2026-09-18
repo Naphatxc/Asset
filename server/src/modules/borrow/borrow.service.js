@@ -55,6 +55,7 @@ function serializeBorrow(borrow) {
     user_email: borrow.users?.email ?? null,
     borrow_date: borrow.borrow_date,
     status: borrow.status,
+    remark: borrow.remark,
     details: borrow.borrow_details.map((detail) =>
       serializeDetail(borrow, detail),
     ),
@@ -120,14 +121,14 @@ async function lockItemsAsBorrowed(itemIds, borrowId, actorId, tx) {
 }
 
 // Admin สร้างใบยืมแทนผู้ใช้ ถือว่าอนุมัติทันที (ข้าม pending) ครุภัณฑ์ถูกล็อกเป็น borrowed ทันที
-export async function createBorrow(userId, returnDate, itemIds, actorId) {
+export async function createBorrow(userId, returnDate, itemIds, actorId, remark) {
   try {
     const result = await runSerializableTransaction(async (tx) => {
       const availabilityError = await checkItemsAvailable(itemIds, tx);
       if (availabilityError) return availabilityError;
 
       const borrow = await borrowRepository.create(
-        { user_id: userId, borrow_date: new Date(), status: 'approved' },
+        { user_id: userId, borrow_date: new Date(), status: 'approved', remark },
         tx,
       );
 
@@ -162,14 +163,14 @@ export async function createBorrow(userId, returnDate, itemIds, actorId) {
 }
 
 // User ส่งคำขอยืมเอง -> status 'pending' ไม่แตะสถานะครุภัณฑ์ รอ Admin อนุมัติก่อนถึงจะล็อกเป็น borrowed
-export async function requestBorrow(userId, returnDate, itemIds) {
+export async function requestBorrow(userId, returnDate, itemIds, remark) {
   try {
     const result = await runSerializableTransaction(async (tx) => {
       const availabilityError = await checkItemsAvailable(itemIds, tx);
       if (availabilityError) return availabilityError;
 
       const borrow = await borrowRepository.create(
-        { user_id: userId, borrow_date: new Date(), status: 'pending' },
+        { user_id: userId, borrow_date: new Date(), status: 'pending', remark },
         tx,
       );
 

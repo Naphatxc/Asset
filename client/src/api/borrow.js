@@ -11,10 +11,15 @@ export function getMyBorrows() {
 }
 
 // Admin สร้างใบยืมแทนผู้ใช้ ถือว่าอนุมัติทันที
-export function createBorrow({ userId, returnDate, itemIds }) {
+export function createBorrow({ userId, returnDate, itemIds, remark }) {
   return request('/api/admin/borrows', {
     method: 'POST',
-    body: { user_id: userId, return_date: returnDate, item_ids: itemIds },
+    body: {
+      user_id: userId,
+      return_date: returnDate,
+      item_ids: itemIds,
+      remark,
+    },
   });
 }
 
@@ -31,10 +36,10 @@ export function rejectBorrow(borrowId) {
 }
 
 // ส่งคำขอยืมให้ตัวเอง — ไม่ส่ง user_id เพราะ server ใช้ตัวตนจาก cookie เสมอ รอ Admin อนุมัติก่อนถึงจะยืมได้จริง
-export function requestBorrow({ returnDate, itemIds }) {
+export function requestBorrow({ returnDate, itemIds, remark }) {
   return request('/api/borrows', {
     method: 'POST',
-    body: { return_date: returnDate, item_ids: itemIds },
+    body: { return_date: returnDate, item_ids: itemIds, remark },
   });
 }
 

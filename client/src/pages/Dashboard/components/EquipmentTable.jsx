@@ -37,6 +37,8 @@ export default function EquipmentTable({
   onShowQr,
   onEdit,
   onStatusChange,
+  locationOptions = [],
+  onLocationChange,
   onHistory,
   onDelete,
   onCancelDelete,
@@ -85,7 +87,28 @@ export default function EquipmentTable({
                 </td>
                 <td>{item.equipment_name}</td>
                 <td>{item.category_name}</td>
-                <td>{formatLocation(item)}</td>
+                <td>
+                  {admin && mode === 'active' ? (
+                    // Admin เปลี่ยนสถานที่ได้ในตารางเลย ไม่ต้องเปิดฟอร์มแก้ไขทั้งหน้า
+                    <select
+                      className="status-select"
+                      value={item.location_id ? String(item.location_id) : ''}
+                      disabled={busy}
+                      onChange={(event) =>
+                        onLocationChange(item, event.target.value)
+                      }
+                    >
+                      <option value="">ยังไม่ระบุสถานที่</option>
+                      {locationOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    formatLocation(item)
+                  )}
+                </td>
                 <td>{formatPrice(item.price)}</td>
                 <td>
                   {admin && mode === 'active' ? (

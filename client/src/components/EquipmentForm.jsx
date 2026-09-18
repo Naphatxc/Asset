@@ -15,7 +15,8 @@ const MAX_ROOM_LENGTH = 30;
 
 // ให้ SelectWithCreate ของหมวดหมู่/สถานที่ ไม่ต้องรู้ shape ของ field ที่ใช้กรอกตอนเพิ่มใหม่เอง
 // code_prefix ไม่บังคับ — ถ้าใส่ไว้ ระบบจะเดารหัสครุภัณฑ์ตัวถัดไปให้อัตโนมัติทุกครั้งที่เลือกหมวดหมู่นี้
-const categoryCreateFields = [
+// export ไว้ให้ EquipmentManager.jsx ใช้ร่วมกันได้ (dropdown กรองรายการก็เพิ่มหมวดหมู่/สถานที่ใหม่ได้เหมือนกัน)
+export const categoryCreateFields = [
   { name: 'name', label: 'ชื่อหมวดหมู่ใหม่', required: true, maxLength: MAX_NAME_LENGTH },
   {
     name: 'code_prefix',
@@ -23,7 +24,7 @@ const categoryCreateFields = [
     maxLength: MAX_CODE_PREFIX_LENGTH,
   },
 ];
-const locationCreateFields = [
+export const locationCreateFields = [
   { name: 'name', label: 'ชื่อสถานที่ใหม่', required: true, maxLength: MAX_NAME_LENGTH },
   { name: 'building', label: 'อาคาร (ถ้ามี)', maxLength: MAX_NAME_LENGTH },
   { name: 'room', label: 'ห้อง (ถ้ามี)', maxLength: MAX_ROOM_LENGTH },

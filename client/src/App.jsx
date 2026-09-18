@@ -22,7 +22,6 @@ export default function App() {
 
   // เรียก /api/auth/logout ให้ server ล้าง cookie ก่อน แล้วค่อยล้าง cache ฝั่งนี้ — ทำ best-effort
   // คือถึง request ล้มเหลว (เช่น server ล่ม) ก็ยังล้าง session ให้ UI กลับไปหน้า Login ได้ตามปกติ
-  // อยู่ที่ App เพราะเป็น session-level action ที่ใช้ร่วมกันทั้ง Dashboard และ EquipmentDetailPage
   async function logout() {
     try {
       await logoutRequest();
@@ -50,7 +49,7 @@ export default function App() {
         <Route path="/" element={<Dashboard user={user} onLogout={logout} />} />
         <Route
           path="/equipment/:code"
-          element={<EquipmentDetailPage user={user} onLogout={logout} />}
+          element={<EquipmentDetailPage user={user} />}
         />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

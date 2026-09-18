@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { getEquipment } from '../../../api/equipment.js';
 import { getRepairs, reportRepair, startRepair } from '../../../api/repair.js';
+import FileDropInput from '../../../components/FileDropInput.jsx';
 import SearchableSelect from '../../../components/SearchableSelect.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import RepairDetailDialog from './RepairDetailDialog.jsx';
@@ -188,13 +189,10 @@ export default function RepairManager() {
 
             <label className="field-wide">
               ไฟล์แนบ (รูปภาพ/PDF ไม่เกิน 5 ไฟล์)
-              <input
-                type="file"
-                multiple
+              <FileDropInput
+                files={files}
+                onChange={setFiles}
                 accept="image/jpeg,image/png,image/webp,application/pdf"
-                onChange={(event) =>
-                  setFiles(Array.from(event.target.files ?? []))
-                }
               />
             </label>
           </div>

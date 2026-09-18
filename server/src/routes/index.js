@@ -11,6 +11,9 @@ import equipmentRoutes, {
   adminEquipmentRouter,
 } from '../modules/equipment/equipment.routes.js';
 import healthRoutes from '../modules/health/health.routes.js';
+import materialRoutes, {
+  adminMaterialRouter,
+} from '../modules/materials/material.routes.js';
 import optionRoutes, {
   adminOptionsRouter,
 } from '../modules/options/options.routes.js';
@@ -27,6 +30,8 @@ router.use('/borrows', borrowRoutes);
 router.use('/admin/borrows', adminBorrowRouter);
 router.use('/admin/dashboard', dashboardRoutes);
 router.use('/admin/repairs', adminRepairRouter);
+router.use('/materials', materialRoutes);
+router.use('/admin/materials', adminMaterialRouter);
 router.use('/', optionRoutes);
 router.use('/admin', adminOptionsRouter);
 

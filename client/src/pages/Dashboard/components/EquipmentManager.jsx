@@ -7,8 +7,8 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
   createCategory,
@@ -25,7 +25,11 @@ import {
   updateEquipment,
   updateEquipmentStatus,
 } from '../../../api/equipment.js';
-import EquipmentForm from '../../../components/EquipmentForm.jsx';
+import EquipmentForm, {
+  categoryCreateFields,
+  locationCreateFields,
+} from '../../../components/EquipmentForm.jsx';
+import SelectWithCreate from '../../../components/SelectWithCreate.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import EquipmentHistory from './EquipmentHistory.jsx';
 import EquipmentTable from './EquipmentTable.jsx';
@@ -46,6 +50,10 @@ export default function EquipmentManager({ user }) {
   const { showSuccess, showError } = useToast();
   const admin = user.role === 'admin';
 
+  // อ่านครั้งเดียวตอน mount เพื่อกู้หน้า/ตัวกรองกลับมาตอนกด "กลับหน้ารายการ" จากหน้ารายละเอียด (ดู onViewDetails
+  // ด้านล่าง กับ EquipmentDetailPage.jsx) ไม่ได้ sync ต่อเนื่องสองทาง เพราะ Dashboard.jsx เป็นเจ้าของ ?tab= เอง
+  const [initialParams] = useSearchParams();
+
   // State ควบคุมหน้าจอเท่านั้น (ไม่ใช่ข้อมูลจาก server) — ผลลัพธ์ของ action (สำเร็จ/ผิดพลาด) ไปออกเป็น
   // toast แทน (ดู ToastProvider.jsx) จึงไม่มี error/notice state ค้างอยู่ในหน้าจออีกต่อไป
   const [view, setView] = useState('active');
@@ -54,14 +62,28 @@ export default function EquipmentManager({ user }) {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
   const [historyEquipment, setHistoryEquipment] = useState(null);
   const [qrEquipment, setQrEquipment] = useState(null);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState(initialParams.get('search') ?? '');
+  const [search, setSearch] = useState(initialParams.get('search') ?? '');
+  const [statusFilter, setStatusFilter] = useState(initialParams.get('status') ?? '');
+  const [categoryFilter, setCategoryFilter] = useState(initialParams.get('category') ?? '');
+  const [locationFilter, setLocationFilter] = useState(initialParams.get('location') ?? '');
+  const [page, setPage] = useState(() => {
+    const initialPage = Number(initialParams.get('page'));
+    return Number.isInteger(initialPage) && initialPage > 0 ? initialPage : 1;
+  });
 
   // ดีเลย์ยิง API 400ms หลังพิมพ์หยุด กันยิงถี่เกินตอนค้นหาในฐานข้อมูลหลักพันแถว
+  // เทียบค่ากับ ref แทนใช้ boolean "run แรก" เฉยๆ เพราะ StrictMode (dev) เรียก effect ซ้ำตอน mount
+  // ถ้าใช้ boolean ตัวเดียวจะโดน flip ทิ้งจาก invoke แรก แล้ว invoke ที่สองจะหลุดไป reset page กลับเป็น 1
+  // ทับค่าที่กู้มาจาก URL ตอนกด "กลับหน้ารายการ" จากหน้ารายละเอียด (เทียบค่าแทนจึง idempotent ไม่ว่าจะ
+  // ถูกเรียกกี่รอบก็ตามตราบใดที่ searchInput ยังไม่เปลี่ยนจริง)
+  const appliedSearchRef = useRef(searchInput);
+
   useEffect(() => {
+    if (searchInput === appliedSearchRef.current) return;
+
     const timer = setTimeout(() => {
+      appliedSearchRef.current = searchInput;
       setSearch(searchInput.trim());
       setPage(1);
     }, 400);
@@ -69,7 +91,14 @@ export default function EquipmentManager({ user }) {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const listParams = { page, limit: PAGE_SIZE, search, status: statusFilter };
+  const listParams = {
+    page,
+    limit: PAGE_SIZE,
+    search,
+    status: statusFilter,
+    categoryId: categoryFilter,
+    locationId: locationFilter,
+  };
 
   const equipmentQuery = useQuery({
     queryKey: ['equipment', 'active', listParams],
@@ -84,16 +113,14 @@ export default function EquipmentManager({ user }) {
     enabled: admin && view === 'deleted',
     placeholderData: keepPreviousData,
   });
-  // ใช้เป็นตัวเลือกใน Form เพิ่ม/แก้ไข ซึ่งมีแต่ Admin เห็น
+  // ใช้เป็นตัวเลือกทั้งใน dropdown กรองรายการ (ทุกคนเห็น) และใน Form เพิ่ม/แก้ไข (เฉพาะ Admin)
   const categoriesQuery = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories,
-    enabled: admin,
   });
   const locationsQuery = useQuery({
     queryKey: ['locations'],
     queryFn: getLocations,
-    enabled: admin,
   });
   const historyQuery = useQuery({
     queryKey: ['equipment', historyEquipment?.item_id, 'history'],
@@ -107,6 +134,26 @@ export default function EquipmentManager({ user }) {
   const categories = categoriesQuery.data?.categories ?? [];
   const locations = locationsQuery.data?.locations ?? [];
   const history = historyQuery.data?.history ?? [];
+
+  // ตัวเลือกสำหรับ dropdown เปลี่ยนสถานที่แบบ inline ในตาราง และ dropdown กรองรายการ
+  // (รูปแบบ label เดียวกับใน EquipmentForm)
+  const locationOptions = useMemo(
+    () =>
+      locations.map((location) => ({
+        value: String(location.location_id),
+        label: `${location.location_name}${location.room ? ` · ห้อง ${location.room}` : ''}`,
+      })),
+    [locations],
+  );
+  // ตัวเลือกสำหรับ dropdown กรองรายการตามหมวดหมู่
+  const categoryOptions = useMemo(
+    () =>
+      categories.map((category) => ({
+        value: String(category.category_id),
+        label: category.category_name,
+      })),
+    [categories],
+  );
 
   function invalidateEquipmentLists() {
     queryClient.invalidateQueries({ queryKey: ['equipment'] });
@@ -170,6 +217,17 @@ export default function EquipmentManager({ user }) {
     onError: (mutationError) => showError(mutationError.message),
   });
 
+  // เปลี่ยนสถานที่แบบ inline ในตาราง ใช้ endpoint แก้ไขทั่วไปตัวเดียวกับฟอร์ม (รองรับ location_id อยู่แล้ว)
+  const locationMutation = useMutation({
+    mutationFn: ({ item, locationId }) =>
+      updateEquipment(item.item_id, { location_id: locationId }),
+    onSuccess: (_data, { item }) => {
+      invalidateEquipmentLists();
+      showSuccess(`เปลี่ยนสถานที่ ${item.equipment_code} สำเร็จ`);
+    },
+    onError: (mutationError) => showError(mutationError.message),
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (item) => deleteEquipment(item.item_id),
     onSuccess: (_data, item) => {
@@ -193,6 +251,7 @@ export default function EquipmentManager({ user }) {
   // ปุ่มของแถวไหนกำลังถูก mutate อยู่ ใช้ disable เฉพาะแถวนั้นระหว่างรอผล (item_id ไม่มีทางเป็น 0)
   const busyItemId =
     (statusMutation.isPending && statusMutation.variables?.item?.item_id) ||
+    (locationMutation.isPending && locationMutation.variables?.item?.item_id) ||
     (deleteMutation.isPending && deleteMutation.variables?.item_id) ||
     (restoreMutation.isPending && restoreMutation.variables?.item_id) ||
     null;
@@ -214,6 +273,28 @@ export default function EquipmentManager({ user }) {
   function changeStatusFilter(nextStatus) {
     setStatusFilter(nextStatus);
     setPage(1);
+  }
+
+  function changeCategoryFilter(nextCategory) {
+    setCategoryFilter(nextCategory);
+    setPage(1);
+  }
+
+  function changeLocationFilter(nextLocation) {
+    setLocationFilter(nextLocation);
+    setPage(1);
+  }
+
+  // ให้หน้ารายละเอียดครุภัณฑ์รู้ว่าตอนกด "กลับหน้ารายการ" ต้องพากลับมาหน้า/ตัวกรองไหน (ดู initialParams ด้านบน)
+  function buildReturnUrl() {
+    const params = new URLSearchParams({ tab: 'equipment' });
+    if (page > 1) params.set('page', String(page));
+    if (search) params.set('search', search);
+    if (statusFilter) params.set('status', statusFilter);
+    if (categoryFilter) params.set('category', categoryFilter);
+    if (locationFilter) params.set('location', locationFilter);
+
+    return `/?${params.toString()}`;
   }
 
   function openCreateForm() {
@@ -239,6 +320,10 @@ export default function EquipmentManager({ user }) {
 
   function changeStatus(item, status) {
     statusMutation.mutate({ item, status });
+  }
+
+  function changeLocation(item, locationId) {
+    locationMutation.mutate({ item, locationId: locationId || null });
   }
 
   // ครั้งแรกเป็นเพียงเปิดโหมดยืนยัน ครั้งที่สองจึงยิง DELETE API
@@ -329,6 +414,28 @@ export default function EquipmentManager({ user }) {
             </option>
           ))}
         </select>
+        <SelectWithCreate
+          name="categoryFilter"
+          value={categoryFilter}
+          onChange={(event) => changeCategoryFilter(event.target.value)}
+          options={categoryOptions}
+          emptyLabel="ทุกหมวดหมู่"
+          createLabel="+ เพิ่มหมวดหมู่ใหม่..."
+          createFields={categoryCreateFields}
+          onCreate={(fields) => handleCreateCategory(fields.name, fields.code_prefix)}
+          popover
+        />
+        <SelectWithCreate
+          name="locationFilter"
+          value={locationFilter}
+          onChange={(event) => changeLocationFilter(event.target.value)}
+          options={locationOptions}
+          emptyLabel="ทุกสถานที่"
+          createLabel="+ เพิ่มสถานที่ใหม่..."
+          createFields={locationCreateFields}
+          onCreate={(fields) => handleCreateLocation(fields)}
+          popover
+        />
       </div>
 
       {displayError && <p className="error-message">{displayError}</p>}
@@ -371,7 +478,7 @@ export default function EquipmentManager({ user }) {
       ) : equipment.length === 0 ? (
         <div className="empty-state">
           <p>
-            {search || statusFilter
+            {search || statusFilter || categoryFilter || locationFilter
               ? 'ไม่พบครุภัณฑ์ที่ตรงกับเงื่อนไข'
               : 'ยังไม่มีรายการครุภัณฑ์'}
           </p>
@@ -387,11 +494,14 @@ export default function EquipmentManager({ user }) {
             onViewDetails={(item) =>
               navigate(
                 `/equipment/${encodeURIComponent(item.equipment_code)}`,
+                { state: { returnTo: buildReturnUrl() } },
               )
             }
             onShowQr={setQrEquipment}
             onEdit={openEditForm}
             onStatusChange={changeStatus}
+            locationOptions={locationOptions}
+            onLocationChange={changeLocation}
             onHistory={openHistory}
             onDelete={removeItem}
             onCancelDelete={() => setConfirmingDeleteId(null)}

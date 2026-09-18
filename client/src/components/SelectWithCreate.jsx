@@ -15,6 +15,9 @@ export default function SelectWithCreate({
   createLabel,
   createFields,
   onCreate,
+  // true = ใช้ตอนอยู่ในแถว toolbar แคบๆ (เช่น filter ของรายการครุภัณฑ์) ฟอร์มกรอกจะลอยเป็น popover
+  // แทนที่จะดันมาแทนที่ select ตรงๆ ซึ่งทำให้แถวเบี้ยว/สูงกระโดดตอนพิมพ์
+  popover = false,
 }) {
   const [creating, setCreating] = useState(false);
   const [fields, setFields] = useState({});
@@ -66,53 +69,7 @@ export default function SelectWithCreate({
     setFields({});
   }
 
-  if (creating) {
-    return (
-      <div className="select-with-create">
-        {createFields.map((field, index) => (
-          <div key={field.name} className="select-with-create-field">
-            <input
-              type="text"
-              placeholder={field.label}
-              value={fields[field.name] ?? ''}
-              onChange={(event) => updateField(field.name, event.target.value)}
-              onKeyDown={handleKeyDown}
-              maxLength={field.maxLength}
-              // eslint-disable-next-line jsx-a11y/no-autofocus -- โฟกัสช่องแรกให้พิมพ์ต่อได้ทันทีหลังกดเพิ่ม
-              autoFocus={index === 0}
-            />
-            {field.maxLength && (
-              <CharCount
-                length={(fields[field.name] ?? '').length}
-                max={field.maxLength}
-              />
-            )}
-          </div>
-        ))}
-        {error && <p className="error-message select-with-create-error">{error}</p>}
-        <div className="select-with-create-actions">
-          <button
-            type="button"
-            className="button-primary"
-            onClick={submitCreate}
-            disabled={submitting}
-          >
-            {submitting ? 'กำลังเพิ่ม...' : 'เพิ่ม'}
-          </button>
-          <button
-            type="button"
-            className="button-secondary"
-            onClick={cancelCreate}
-            disabled={submitting}
-          >
-            ยกเลิก
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
+  const selectElement = (
     <select name={name} value={value} onChange={handleSelectChange} required={required}>
       <option value="">{emptyLabel}</option>
       {options.map((option) => (
@@ -123,4 +80,60 @@ export default function SelectWithCreate({
       <option value={CREATE_OPTION_VALUE}>{createLabel}</option>
     </select>
   );
+
+  const createForm = (
+    <div className="select-with-create">
+      {createFields.map((field, index) => (
+        <div key={field.name} className="select-with-create-field">
+          <input
+            type="text"
+            placeholder={field.label}
+            value={fields[field.name] ?? ''}
+            onChange={(event) => updateField(field.name, event.target.value)}
+            onKeyDown={handleKeyDown}
+            maxLength={field.maxLength}
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- โฟกัสช่องแรกให้พิมพ์ต่อได้ทันทีหลังกดเพิ่ม
+            autoFocus={index === 0}
+          />
+          {field.maxLength && (
+            <CharCount
+              length={(fields[field.name] ?? '').length}
+              max={field.maxLength}
+            />
+          )}
+        </div>
+      ))}
+      {error && <p className="error-message select-with-create-error">{error}</p>}
+      <div className="select-with-create-actions">
+        <button
+          type="button"
+          className="button-primary"
+          onClick={submitCreate}
+          disabled={submitting}
+        >
+          {submitting ? 'กำลังเพิ่ม...' : 'เพิ่ม'}
+        </button>
+        <button
+          type="button"
+          className="button-secondary"
+          onClick={cancelCreate}
+          disabled={submitting}
+        >
+          ยกเลิก
+        </button>
+      </div>
+    </div>
+  );
+
+  // popover: select อยู่กับที่เสมอ ไม่ทำให้แถวขยับ ฟอร์มกรอกลอยขึ้นมาด้านล่างแทนที่จะแทนที่ select ตรงๆ
+  if (popover) {
+    return (
+      <div className="select-with-create-popover-anchor">
+        {selectElement}
+        {creating && <div className="select-with-create-popover">{createForm}</div>}
+      </div>
+    );
+  }
+
+  return creating ? createForm : selectElement;
 }

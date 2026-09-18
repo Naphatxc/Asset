@@ -10,6 +10,7 @@ import {
   getRepairFileUrl,
   startRepair,
 } from '../../../api/repair.js';
+import FileDropInput from '../../../components/FileDropInput.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 
 const statusLabels = {
@@ -180,15 +181,13 @@ export default function RepairDetailDialog({ repairId, onClose }) {
                 </ul>
               )}
 
+              <FileDropInput
+                files={pendingFiles}
+                onChange={setPendingFiles}
+                accept="image/jpeg,image/png,image/webp,application/pdf"
+              />
+
               <div className="form-actions">
-                <input
-                  type="file"
-                  multiple
-                  accept="image/jpeg,image/png,image/webp,application/pdf"
-                  onChange={(event) =>
-                    setPendingFiles(Array.from(event.target.files ?? []))
-                  }
-                />
                 <button
                   className="button-secondary"
                   type="button"

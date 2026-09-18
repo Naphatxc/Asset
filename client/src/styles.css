@@ -683,6 +683,25 @@ button:disabled {
   flex: 1;
 }
 
+/* popover: ใช้ตอน SelectWithCreate อยู่ในแถว toolbar แคบๆ (filter ของรายการครุภัณฑ์) ฟอร์มกรอกลอยขึ้นมา
+   ด้านล่าง select แทนที่จะดันแถวให้เบี้ยว (ดู SelectWithCreate.jsx prop popover) */
+.select-with-create-popover-anchor {
+  position: relative;
+}
+
+.select-with-create-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  width: max(240px, 100%);
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid #d7cbcf;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(50, 30, 40, 0.18);
+}
+
 /* input กรองข้อความซ้อนอยู่บน select ปกติ (ดู SearchableSelect.jsx) เช่น เลือกผู้ยืม/ครุภัณฑ์ตอนแจ้งซ่อม */
 .searchable-select {
   display: grid;
@@ -824,6 +843,112 @@ button:disabled {
 
 .stat-card-users {
   background: linear-gradient(135deg, var(--stat-plum), var(--stat-pink));
+}
+
+/* การ์ดคลิกได้ "ต้องดำเนินการ" (คำขอยืมรออนุมัติ/ครุภัณฑ์รอซ่อม/เลยกำหนดคืน) — สีเทาเมื่อค่าเป็น 0
+   (ไม่มีอะไรต้องทำ) เปลี่ยนเป็นสีเตือนเมื่อมีรายการค้างจริง ให้กวาดตาเห็นได้ทันทีว่าต้องรีบดูอันไหนก่อน */
+.attention-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.attention-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid #ead9df;
+  border-radius: 12px;
+  background: #fffbfd;
+  color: #333333;
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.attention-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(180, 59, 107, 0.15);
+}
+
+.attention-card-value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--stat-slate-dark);
+}
+
+.attention-card-label {
+  font-size: 0.85rem;
+  color: #6b6b6b;
+}
+
+.attention-card-active .attention-card-value {
+  color: var(--stat-plum);
+}
+
+.attention-card-overdue.attention-card-active {
+  border-color: #f3b4c4;
+  background: #fff0f4;
+}
+
+.attention-card-overdue.attention-card-active .attention-card-value {
+  color: #a61b43;
+}
+
+/* กิจกรรมล่าสุด (ยืม/คืน/แจ้งซ่อม) เรียงตามเวลา ดู DashboardOverview.jsx buildRecentActivity ฝั่ง backend */
+.activity-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.activity-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  font-size: 1rem;
+  background: #f1f1f1;
+}
+
+.activity-icon-borrow {
+  background: #fff4cc;
+}
+
+.activity-icon-return {
+  background: #e8fff5;
+}
+
+.activity-icon-repair {
+  background: #fff0e8;
+}
+
+.activity-body {
+  display: grid;
+  gap: 2px;
+}
+
+.activity-text {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.activity-time {
+  font-size: 0.78rem;
+  color: var(--stat-slate-dark);
 }
 
 .overview-grid {
@@ -1160,11 +1285,6 @@ button:disabled {
   margin-top: 24px;
 }
 
-.detail-logout {
-  margin-top: 0;
-  margin-left: auto;
-}
-
 .qr-row-actions {
   min-width: 150px;
 }
@@ -1223,6 +1343,29 @@ button:disabled {
   flex: 1 1 170px;
 }
 
+.withdraw-dialog {
+  width: min(100%, 480px);
+  padding: 24px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 26px 70px rgba(25, 18, 21, 0.3);
+}
+
+.withdraw-dialog h2 {
+  margin: 2px 0 0;
+}
+
+.withdraw-dialog-material {
+  margin: 0 0 16px;
+  color: #454545;
+}
+
+/* วัสดุใกล้/ถึงจำนวนขั้นต่ำ — badge เตือนในตารางวัสดุ (ดู MaterialManager.jsx) */
+.status-low_stock {
+  color: #a61b43;
+  background: #fff0f4;
+}
+
 .repair-dialog {
   width: min(100%, 640px);
   max-height: 90vh;
@@ -1278,6 +1421,53 @@ button:disabled {
   text-decoration: underline;
 }
 
+/* ===== ช่องแนบไฟล์แบบลากวาง (ดู FileDropInput.jsx) — ใช้กับแจ้งซ่อม/แนบไฟล์เพิ่ม ===== */
+.file-drop-zone {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  border: 2px dashed #d7cbcf;
+  border-radius: 12px;
+  background: #fffdfd;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.file-drop-zone:hover,
+.file-drop-zone:focus-visible {
+  border-color: var(--stat-pink-soft);
+}
+
+.file-drop-zone-active {
+  border-color: var(--stat-pink-soft);
+  background: var(--stat-pink-paper);
+}
+
+.file-drop-zone p {
+  margin: 0;
+  color: #8a6b73;
+  font-size: 0.9rem;
+}
+
+.file-drop-native-input {
+  display: none;
+}
+
+.file-chip-removable button {
+  all: unset;
+  margin-left: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.file-chip-removable button:hover {
+  color: var(--stat-plum);
+  text-decoration: underline;
+}
+
 @media (max-width: 640px) {
   .detail-header,
   .detail-actions {
@@ -1295,10 +1485,6 @@ button:disabled {
 
   .detail-grid .detail-wide {
     grid-column: auto;
-  }
-
-  .detail-logout {
-    margin-left: 0;
   }
 
   .modal-backdrop {

@@ -11,8 +11,17 @@ function parseListQuery(query) {
   const search = String(query.search ?? '').trim() || undefined;
   const statusInput = String(query.status ?? '').trim();
   const status = allowedStatuses.includes(statusInput) ? statusInput : undefined;
+  const categoryId = Number(query.category_id);
+  const locationId = Number(query.location_id);
 
-  return { page, limit, search, status };
+  return {
+    page,
+    limit,
+    search,
+    status,
+    categoryId: Number.isInteger(categoryId) && categoryId > 0 ? categoryId : undefined,
+    locationId: Number.isInteger(locationId) && locationId > 0 ? locationId : undefined,
+  };
 }
 
 export async function getEquipmentList(request, response, next) {

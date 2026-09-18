@@ -12,6 +12,7 @@ import { useToast } from '../../components/ToastProvider.jsx';
 import BorrowManager from './components/BorrowManager.jsx';
 import DashboardOverview from './components/DashboardOverview.jsx';
 import EquipmentManager from './components/EquipmentManager.jsx';
+import MaterialManager from './components/MaterialManager.jsx';
 import MyBorrows from './components/MyBorrows.jsx';
 import RepairManager from './components/RepairManager.jsx';
 import UserTable from './components/UserTable.jsx';
@@ -19,6 +20,7 @@ import UserTable from './components/UserTable.jsx';
 const adminTabs = [
   { key: 'overview', label: 'ภาพรวม' },
   { key: 'equipment', label: 'ครุภัณฑ์' },
+  { key: 'materials', label: 'วัสดุ' },
   { key: 'borrow', label: 'ยืม-คืน' },
   { key: 'repair', label: 'แจ้งซ่อม' },
   { key: 'users', label: 'ผู้ใช้งาน' },
@@ -26,6 +28,7 @@ const adminTabs = [
 
 const userTabs = [
   { key: 'equipment', label: 'ครุภัณฑ์' },
+  { key: 'materials', label: 'วัสดุ' },
   { key: 'borrow', label: 'ยืมของฉัน' },
 ];
 
@@ -47,6 +50,7 @@ export default function Dashboard({ user, onLogout }) {
   }
 
   const [updatingUserId, setUpdatingUserId] = useState(null);
+  const [userSearch, setUserSearch] = useState('');
 
   // รายชื่อผู้ใช้เป็นข้อมูลเฉพาะ Admin จึงโหลดหลังทราบ role แล้วเท่านั้น
   const { data: usersData } = useQuery({
@@ -55,6 +59,12 @@ export default function Dashboard({ user, onLogout }) {
     enabled: admin,
   });
   const users = usersData?.users ?? [];
+  // รายชื่อผู้ใช้ทั้งระบบมีไม่มาก (หลักสิบ) จึงกรองฝั่ง client พอ ไม่ต้องเพิ่ม search param ที่ backend
+  const filteredUsers = userSearch.trim()
+    ? users.filter((item) =>
+        item.name.toLowerCase().includes(userSearch.trim().toLowerCase()),
+      )
+    : users;
 
   const updateRoleMutation = useMutation({
     mutationFn: ({ userId, role }) => updateUserRoleRequest(userId, role),
@@ -117,6 +127,8 @@ export default function Dashboard({ user, onLogout }) {
 
         {activeTab === 'equipment' && <EquipmentManager user={user} />}
 
+        {activeTab === 'materials' && <MaterialManager user={user} />}
+
         {activeTab === 'borrow' && (admin ? <BorrowManager /> : <MyBorrows />)}
 
         {activeTab === 'repair' && admin && <RepairManager />}
@@ -124,12 +136,26 @@ export default function Dashboard({ user, onLogout }) {
         {activeTab === 'users' && admin && (
           <section className="admin-section">
             <h2>จัดการผู้ใช้งาน</h2>
-            <UserTable
-              users={users}
-              currentUserId={user.user_id}
-              updatingUserId={updatingUserId}
-              onUpdateRole={updateUserRole}
-            />
+            <div className="equipment-filters">
+              <input
+                type="search"
+                value={userSearch}
+                onChange={(event) => setUserSearch(event.target.value)}
+                placeholder="ค้นหาชื่อผู้ใช้งาน"
+              />
+            </div>
+            {filteredUsers.length === 0 ? (
+              <div className="empty-state">
+                <p>ไม่พบผู้ใช้งานที่ตรงกับคำค้นหา</p>
+              </div>
+            ) : (
+              <UserTable
+                users={filteredUsers}
+                currentUserId={user.user_id}
+                updatingUserId={updatingUserId}
+                onUpdateRole={updateUserRole}
+              />
+            )}
           </section>
         )}
       </main>

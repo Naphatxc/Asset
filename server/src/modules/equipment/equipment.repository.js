@@ -10,11 +10,19 @@ export const equipmentInclude = {
   },
 };
 
-//แบ่งหน้า (page/limit) + ค้นหารหัส/ชื่อ + กรองสถานะ แทนที่จะดึงมาทั้งหมดทีเดียว
-function buildListWhere({ deleted, search, status }) {
+//แบ่งหน้า (page/limit) + ค้นหารหัส/ชื่อ + กรองสถานะ/หมวดหมู่/สถานที่ แทนที่จะดึงมาทั้งหมดทีเดียว
+function buildListWhere({ deleted, search, status, categoryId, locationId }) {
   return {
     deleted_at: deleted ? { not: null } : null,
     ...(status ? { status } : {}),
+    ...(categoryId || locationId
+      ? {
+          equipment: {
+            ...(categoryId ? { category_id: categoryId } : {}),
+            ...(locationId ? { location_id: locationId } : {}),
+          },
+        }
+      : {}),
     ...(search
       ? {
           OR: [
@@ -27,10 +35,10 @@ function buildListWhere({ deleted, search, status }) {
 }
 
 export async function findManyActive(
-  { page = 1, limit = 20, search, status } = {},
+  { page = 1, limit = 20, search, status, categoryId, locationId } = {},
   client = prisma,
 ) {
-  const where = buildListWhere({ deleted: false, search, status });
+  const where = buildListWhere({ deleted: false, search, status, categoryId, locationId });
   const [items, total] = await Promise.all([
     client.equipment_items.findMany({
       where,
@@ -46,10 +54,10 @@ export async function findManyActive(
 }
 
 export async function findManyDeleted(
-  { page = 1, limit = 20, search, status } = {},
+  { page = 1, limit = 20, search, status, categoryId, locationId } = {},
   client = prisma,
 ) {
-  const where = buildListWhere({ deleted: true, search, status });
+  const where = buildListWhere({ deleted: true, search, status, categoryId, locationId });
   const [items, total] = await Promise.all([
     client.equipment_items.findMany({
       where,
