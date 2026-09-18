@@ -595,6 +595,9 @@ button:disabled {
 
 .form-grid label {
   display: grid;
+  /* align-content: start กัน grid แจกพื้นที่ว่างส่วนเกิน (ตอนแถวข้างๆ สูงกว่า เช่นมีตัวนับตัวอักษร) เข้าไป
+     ยืดตัว select/input เองจนสูงไม่เท่ากับช่องข้างๆ ที่ไม่มีตัวนับ — ให้พื้นที่เกินไปอยู่ท้ายกล่องแทน */
+  align-content: start;
   gap: 7px;
   color: #454545;
   font-weight: 600;
