@@ -1,7 +1,11 @@
 // Dashboard เป็นโครงหน้าหลัง Login ดูแล state/logic การจัดการผู้ใช้ (เฉพาะ Admin) ของตัวเองทั้งหมด
 // จัดวางเป็น sidebar + เนื้อหา สลับหัวข้อด้วย tab แทนการเรียงทุก section ต่อกันยาว
+// tab ที่เลือกอยู่เก็บใน URL (?tab=) แทน useState เฉยๆ เพราะหน้ารายละเอียดครุภัณฑ์ (/equipment/:code)
+// ลิงก์ "กลับหน้ารายการ" กลับมาที่ "/" ซึ่ง remount Dashboard ใหม่ทุกครั้ง — ถ้าเก็บ state ไว้ในคอมโพเนนต์เฉยๆ
+// จะรีเซ็ตกลับเป็นแท็บเริ่มต้น (ภาพรวม) เสมอ ไม่ใช่แท็บที่ผู้ใช้มาจาก
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { getUsers, updateUserRole as updateUserRoleRequest } from '../../api/admin-users.js';
 import BorrowManager from './components/BorrowManager.jsx';
@@ -28,7 +32,18 @@ export default function Dashboard({ user, onLogout }) {
   const queryClient = useQueryClient();
   const admin = user.role === 'admin';
   const tabs = admin ? adminTabs : userTabs;
-  const [activeTab, setActiveTab] = useState(admin ? 'overview' : 'equipment');
+  const defaultTab = admin ? 'overview' : 'equipment';
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  // เผื่อ URL ถูกแก้มือเป็นแท็บที่ role นี้ไม่มีสิทธิ์เห็น (เช่น user ทั่วไปใส่ ?tab=users เอง)
+  const activeTab = tabs.some((tab) => tab.key === requestedTab)
+    ? requestedTab
+    : defaultTab;
+
+  function selectTab(key) {
+    setSearchParams({ tab: key });
+  }
+
   const [adminError, setAdminError] = useState('');
   const [updatingUserId, setUpdatingUserId] = useState(null);
 
@@ -85,7 +100,7 @@ export default function Dashboard({ user, onLogout }) {
                   ? 'dashboard-nav-item active'
                   : 'dashboard-nav-item'
               }
-              onClick={() => setActiveTab(tab.key)}
+              onClick={() => selectTab(tab.key)}
             >
               {tab.label}
             </button>

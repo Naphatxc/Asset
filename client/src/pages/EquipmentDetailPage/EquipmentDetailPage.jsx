@@ -203,7 +203,7 @@ export default function EquipmentDetailPage({ user, onLogout }) {
         )}
 
         <div className="detail-actions">
-          <Link className="button-link button-secondary" to="/">
+          <Link className="button-link button-secondary" to="/?tab=equipment">
             กลับหน้ารายการ
           </Link>
           {admin && !editing && (
