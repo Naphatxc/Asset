@@ -1002,6 +1002,72 @@ button:disabled {
   background: #edfff7;
 }
 
+/* ===== Toast แจ้งเตือน (ดู ToastProvider.jsx) ===== */
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(50, 30, 40, 0.18);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  animation: toast-in 0.2s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.toast span {
+  flex: 1;
+}
+
+.toast-success {
+  border: 1px solid #9ed8c1;
+  color: #176b4d;
+  background: #edfff7;
+}
+
+.toast-error {
+  border: 1px solid #f4b6c8;
+  color: #9d174d;
+  background: #fff1f5;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.toast-close:hover {
+  opacity: 1;
+}
+
 /* ===== Routing, หน้ารายละเอียด และ QR Code ===== */
 .destination-message {
   padding: 10px 12px;

@@ -10,6 +10,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { ApiError } from './api/http.js';
 import App from './App.jsx';
+import { ToastProvider } from './components/ToastProvider.jsx';
 import './styles.css';
 
 // 401 = session หมดอายุ/ยังไม่ login จัดการรวมจุดเดียวที่นี่ แทนการเช็ค error.status ในทุก component
@@ -33,10 +34,12 @@ createRoot(document.getElementById('root')).render(
   // StrictMode ช่วยเตือนปัญหาที่พบบ่อยระหว่างพัฒนา React
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      {/* BrowserRouter ทำให้ URL /equipment/:code เปิดหน้า React ได้โดยไม่ Reload ทั้งเว็บ */}
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <ToastProvider>
+        {/* BrowserRouter ทำให้ URL /equipment/:code เปิดหน้า React ได้โดยไม่ Reload ทั้งเว็บ */}
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ToastProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

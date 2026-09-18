@@ -10,6 +10,7 @@ import {
 } from '../../api/equipment.js';
 import EquipmentForm from '../../components/EquipmentForm.jsx';
 import QrCodeDialog from '../../components/QrCodeDialog.jsx';
+import { useToast } from '../../components/ToastProvider.jsx';
 
 const statusLabels = {
   available: 'พร้อมใช้งาน',
@@ -48,9 +49,9 @@ function formatLocation(equipment) {
 export default function EquipmentDetailPage({ user, onLogout }) {
   const { code = '' } = useParams();
   const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
   const [showQr, setShowQr] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [notice, setNotice] = useState('');
   const admin = user.role === 'admin';
 
   const equipmentQuery = useQuery({
@@ -80,17 +81,16 @@ export default function EquipmentDetailPage({ user, onLogout }) {
       queryClient.invalidateQueries({ queryKey: ['equipment', code] });
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
       setEditing(false);
-      setNotice('แก้ไขข้อมูลครุภัณฑ์สำเร็จ');
+      showSuccess('แก้ไขข้อมูลครุภัณฑ์สำเร็จ');
     },
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   function openEditForm() {
-    setNotice('');
     setEditing(true);
   }
 
   function submitEdit(payload) {
-    setNotice('');
     updateMutation.mutate(payload);
   }
 
@@ -137,11 +137,6 @@ export default function EquipmentDetailPage({ user, onLogout }) {
             </span>
           </div>
         </header>
-
-        {updateMutation.error && (
-          <p className="error-message">{updateMutation.error.message}</p>
-        )}
-        {notice && <p className="success-message">{notice}</p>}
 
         {editing ? (
           <>

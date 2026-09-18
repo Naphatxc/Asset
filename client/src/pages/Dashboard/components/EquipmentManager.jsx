@@ -26,6 +26,7 @@ import {
   updateEquipmentStatus,
 } from '../../../api/equipment.js';
 import EquipmentForm from '../../../components/EquipmentForm.jsx';
+import { useToast } from '../../../components/ToastProvider.jsx';
 import EquipmentHistory from './EquipmentHistory.jsx';
 import EquipmentTable from './EquipmentTable.jsx';
 import QrCodeDialog from '../../../components/QrCodeDialog.jsx';
@@ -42,12 +43,12 @@ const statusFilterOptions = [
 export default function EquipmentManager({ user }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
   const admin = user.role === 'admin';
 
-  // State ควบคุมหน้าจอเท่านั้น (ไม่ใช่ข้อมูลจาก server)
+  // State ควบคุมหน้าจอเท่านั้น (ไม่ใช่ข้อมูลจาก server) — ผลลัพธ์ของ action (สำเร็จ/ผิดพลาด) ไปออกเป็น
+  // toast แทน (ดู ToastProvider.jsx) จึงไม่มี error/notice state ค้างอยู่ในหน้าจออีกต่อไป
   const [view, setView] = useState('active');
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [formMode, setFormMode] = useState(null);
   const [editingEquipment, setEditingEquipment] = useState(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
@@ -148,14 +149,14 @@ export default function EquipmentManager({ user }) {
         : createEquipment(payload),
     onSuccess: () => {
       invalidateEquipmentLists();
-      setNotice(
+      showSuccess(
         formMode === 'edit'
           ? 'แก้ไขข้อมูลครุภัณฑ์สำเร็จ'
           : 'เพิ่มครุภัณฑ์สำเร็จ',
       );
       closeForm();
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   // การเปลี่ยนสถานะแยก endpoint จากการแก้ข้อมูลทั่วไป เพื่อให้ History ชัดเจน
@@ -164,19 +165,19 @@ export default function EquipmentManager({ user }) {
       updateEquipmentStatus(item.item_id, status),
     onSuccess: (_data, { item }) => {
       invalidateEquipmentLists();
-      setNotice(`เปลี่ยนสถานะ ${item.equipment_code} สำเร็จ`);
+      showSuccess(`เปลี่ยนสถานะ ${item.equipment_code} สำเร็จ`);
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (item) => deleteEquipment(item.item_id),
     onSuccess: (_data, item) => {
       invalidateEquipmentLists();
-      setNotice(`ลบ ${item.equipment_code} แล้ว สามารถกู้คืนได้`);
+      showSuccess(`ลบ ${item.equipment_code} แล้ว สามารถกู้คืนได้`);
       setConfirmingDeleteId(null);
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   // Restore ทำให้ deleted_at กลับเป็น null แล้วให้ทั้งสอง query invalidate ไปโหลดใหม่เอง
@@ -184,9 +185,9 @@ export default function EquipmentManager({ user }) {
     mutationFn: (item) => restoreEquipment(item.item_id),
     onSuccess: (_data, item) => {
       invalidateEquipmentLists();
-      setNotice(`กู้คืน ${item.equipment_code} สำเร็จ`);
+      showSuccess(`กู้คืน ${item.equipment_code} สำเร็จ`);
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   // ปุ่มของแถวไหนกำลังถูก mutate อยู่ ใช้ disable เฉพาะแถวนั้นระหว่างรอผล (item_id ไม่มีทางเป็น 0)
@@ -197,18 +198,12 @@ export default function EquipmentManager({ user }) {
     null;
 
   const loading = activeListQuery.isLoading;
-  // ให้ความสำคัญกับ error ตอนโหลดรายการก่อน ถ้าโหลดได้ปกติค่อยแสดง error ของ action ล่าสุด (ถ้ามี)
-  const displayError = activeListQuery.error?.message || error;
+  // แสดงเฉพาะตอนโหลดรายการล้มเหลวจริงๆ (สถานะหน้าจอค้าง ไม่ใช่ผลลัพธ์ของ action ที่ไปออกเป็น toast แล้ว)
+  const displayError = activeListQuery.error?.message;
   const optionsError = categoriesQuery.error?.message || locationsQuery.error?.message;
-
-  function clearMessages() {
-    setError('');
-    setNotice('');
-  }
 
   // สลับระหว่างข้อมูลที่ใช้งานอยู่กับข้อมูลที่ถูก Soft Delete
   function switchView(nextView) {
-    clearMessages();
     setView(nextView);
     setPage(1);
     setFormMode(null);
@@ -222,14 +217,12 @@ export default function EquipmentManager({ user }) {
   }
 
   function openCreateForm() {
-    clearMessages();
     setEditingEquipment(null);
     setHistoryEquipment(null);
     setFormMode('create');
   }
 
   function openEditForm(item) {
-    clearMessages();
     setEditingEquipment(item);
     setHistoryEquipment(null);
     setFormMode('edit');
@@ -241,12 +234,10 @@ export default function EquipmentManager({ user }) {
   }
 
   function submitForm(payload) {
-    clearMessages();
     saveEquipmentMutation.mutate(payload);
   }
 
   function changeStatus(item, status) {
-    clearMessages();
     statusMutation.mutate({ item, status });
   }
 
@@ -254,22 +245,19 @@ export default function EquipmentManager({ user }) {
   function removeItem(item) {
     if (confirmingDeleteId !== item.item_id) {
       setConfirmingDeleteId(item.item_id);
-      setNotice('กด “ยืนยันลบ” อีกครั้งเพื่อลบแบบ Soft Delete');
+      showSuccess('กด “ยืนยันลบ” อีกครั้งเพื่อลบแบบ Soft Delete');
       return;
     }
 
-    clearMessages();
     deleteMutation.mutate(item);
   }
 
   function restoreItem(item) {
-    clearMessages();
     restoreMutation.mutate(item);
   }
 
   // History โหลดเมื่อผู้ใช้ขอดูเท่านั้น (enabled: historyEquipment != null) เพื่อลด request ตอนเปิดหน้า
   function openHistory(item) {
-    clearMessages();
     setFormMode(null);
     setHistoryEquipment(item);
   }
@@ -344,7 +332,6 @@ export default function EquipmentManager({ user }) {
       </div>
 
       {displayError && <p className="error-message">{displayError}</p>}
-      {notice && <p className="success-message">{notice}</p>}
 
       {formMode && (
         <>
@@ -407,10 +394,7 @@ export default function EquipmentManager({ user }) {
             onStatusChange={changeStatus}
             onHistory={openHistory}
             onDelete={removeItem}
-            onCancelDelete={() => {
-              setConfirmingDeleteId(null);
-              setNotice('');
-            }}
+            onCancelDelete={() => setConfirmingDeleteId(null)}
             onRestore={restoreItem}
           />
 

@@ -9,6 +9,7 @@ import {
 } from '../../../api/borrow.js';
 import { getEquipment } from '../../../api/equipment.js';
 import EquipmentPicker from '../../../components/EquipmentPicker.jsx';
+import { useToast } from '../../../components/ToastProvider.jsx';
 
 const statusLabels = {
   pending: 'รออนุมัติ',
@@ -42,10 +43,9 @@ function tomorrowDateInput() {
 
 export default function MyBorrows() {
   const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
 
   const [formOpen, setFormOpen] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [returnDate, setReturnDate] = useState(tomorrowDateInput);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
 
@@ -66,13 +66,7 @@ export default function MyBorrows() {
     borrow.details.map((detail) => ({ borrow, detail })),
   );
 
-  function clearMessages() {
-    setError('');
-    setNotice('');
-  }
-
   function openForm() {
-    clearMessages();
     setReturnDate(tomorrowDateInput());
     setSelectedItemIds([]);
     setFormOpen(true);
@@ -94,10 +88,10 @@ export default function MyBorrows() {
     mutationFn: requestBorrow,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['borrows', 'mine'] });
-      setNotice('ส่งคำขอยืมสำเร็จ รอการอนุมัติจากผู้ดูแลระบบ');
+      showSuccess('ส่งคำขอยืมสำเร็จ รอการอนุมัติจากผู้ดูแลระบบ');
       closeForm();
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   const returnMutation = useMutation({
@@ -105,14 +99,13 @@ export default function MyBorrows() {
     // กดคืนเองแค่ส่งคำขอ (return_requested_at) ยังไม่เปลี่ยนสถานะครุภัณฑ์จริง จึงไม่ invalidate ['equipment']
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['borrows', 'mine'] });
-      setNotice(data.message);
+      showSuccess(data.message);
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   function submitForm(event) {
     event.preventDefault();
-    clearMessages();
     requestMutation.mutate({ returnDate, itemIds: selectedItemIds });
   }
 
@@ -121,7 +114,7 @@ export default function MyBorrows() {
     : null;
 
   const loading = borrowsQuery.isLoading;
-  const displayError = borrowsQuery.error?.message || error;
+  const displayError = borrowsQuery.error?.message;
 
   return (
     <section className="admin-section">
@@ -136,7 +129,6 @@ export default function MyBorrows() {
       </div>
 
       {displayError && <p className="error-message">{displayError}</p>}
-      {notice && <p className="success-message">{notice}</p>}
 
       {formOpen && (
         <form className="equipment-form" onSubmit={submitForm}>

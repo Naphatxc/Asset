@@ -10,6 +10,7 @@ import {
   getRepairFileUrl,
   startRepair,
 } from '../../../api/repair.js';
+import { useToast } from '../../../components/ToastProvider.jsx';
 
 const statusLabels = {
   pending_repair: 'รอซ่อม',
@@ -39,8 +40,7 @@ function formatCost(value) {
 
 export default function RepairDetailDialog({ repairId, onClose }) {
   const queryClient = useQueryClient();
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const { showSuccess, showError } = useToast();
   const [repairDetail, setRepairDetail] = useState('');
   const [repairCost, setRepairCost] = useState('');
   const [pendingFiles, setPendingFiles] = useState([]);
@@ -55,14 +55,13 @@ export default function RepairDetailDialog({ repairId, onClose }) {
     queryClient.invalidateQueries({ queryKey: ['repair', repairId] });
     queryClient.invalidateQueries({ queryKey: ['repairs'] });
     queryClient.invalidateQueries({ queryKey: ['equipment'] });
-    setError('');
-    setNotice(message);
+    showSuccess(message);
   }
 
   const startMutation = useMutation({
     mutationFn: () => startRepair(repairId),
     onSuccess: () => refresh('เริ่มซ่อมแล้ว'),
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   const completeMutation = useMutation({
@@ -72,13 +71,13 @@ export default function RepairDetailDialog({ repairId, onClose }) {
         repairCost: repairCost === '' ? null : Number(repairCost),
       }),
     onSuccess: () => refresh('บันทึกผลการซ่อมสำเร็จ'),
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   const cancelMutation = useMutation({
     mutationFn: () => cancelRepair(repairId),
     onSuccess: () => refresh('ยกเลิกการแจ้งซ่อมแล้ว'),
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   const addFilesMutation = useMutation({
@@ -87,7 +86,7 @@ export default function RepairDetailDialog({ repairId, onClose }) {
       setPendingFiles([]);
       refresh('แนบไฟล์สำเร็จ');
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   const busy =
@@ -119,8 +118,6 @@ export default function RepairDetailDialog({ repairId, onClose }) {
         {repairQuery.error && (
           <p className="error-message">{repairQuery.error.message}</p>
         )}
-        {error && <p className="error-message">{error}</p>}
-        {notice && <p className="success-message">{notice}</p>}
 
         {repair && (
           <>

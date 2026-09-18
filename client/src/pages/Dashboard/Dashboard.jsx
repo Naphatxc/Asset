@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { getUsers, updateUserRole as updateUserRoleRequest } from '../../api/admin-users.js';
+import { useToast } from '../../components/ToastProvider.jsx';
 import BorrowManager from './components/BorrowManager.jsx';
 import DashboardOverview from './components/DashboardOverview.jsx';
 import EquipmentManager from './components/EquipmentManager.jsx';
@@ -30,6 +31,7 @@ const userTabs = [
 
 export default function Dashboard({ user, onLogout }) {
   const queryClient = useQueryClient();
+  const { showError } = useToast();
   const admin = user.role === 'admin';
   const tabs = admin ? adminTabs : userTabs;
   const defaultTab = admin ? 'overview' : 'equipment';
@@ -44,7 +46,6 @@ export default function Dashboard({ user, onLogout }) {
     setSearchParams({ tab: key });
   }
 
-  const [adminError, setAdminError] = useState('');
   const [updatingUserId, setUpdatingUserId] = useState(null);
 
   // รายชื่อผู้ใช้เป็นข้อมูลเฉพาะ Admin จึงโหลดหลังทราบ role แล้วเท่านั้น
@@ -65,11 +66,10 @@ export default function Dashboard({ user, onLogout }) {
   // เปลี่ยน role แล้วให้ query ['admin-users'] invalidate ไปโหลดตารางใหม่เอง
   async function updateUserRole(userId, role) {
     try {
-      setAdminError('');
       setUpdatingUserId(userId);
       await updateRoleMutation.mutateAsync({ userId, role });
     } catch (updateError) {
-      setAdminError(updateError.message);
+      showError(updateError.message);
     } finally {
       setUpdatingUserId(null);
     }
@@ -124,7 +124,6 @@ export default function Dashboard({ user, onLogout }) {
         {activeTab === 'users' && admin && (
           <section className="admin-section">
             <h2>จัดการผู้ใช้งาน</h2>
-            {adminError && <p className="error-message">{adminError}</p>}
             <UserTable
               users={users}
               currentUserId={user.user_id}

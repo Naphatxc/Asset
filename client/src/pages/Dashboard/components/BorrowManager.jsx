@@ -15,6 +15,7 @@ import {
 import { getEquipment } from '../../../api/equipment.js';
 import EquipmentPicker from '../../../components/EquipmentPicker.jsx';
 import SearchableSelect from '../../../components/SearchableSelect.jsx';
+import { useToast } from '../../../components/ToastProvider.jsx';
 
 const statusLabels = {
   pending: 'รออนุมัติ',
@@ -48,10 +49,9 @@ function tomorrowDateInput() {
 
 export default function BorrowManager() {
   const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
 
   const [formOpen, setFormOpen] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [userId, setUserId] = useState('');
   const [returnDate, setReturnDate] = useState(tomorrowDateInput);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
@@ -89,13 +89,7 @@ export default function BorrowManager() {
     .filter((borrow) => !pendingOnly || borrow.status === 'pending')
     .flatMap((borrow) => borrow.details.map((detail) => ({ borrow, detail })));
 
-  function clearMessages() {
-    setError('');
-    setNotice('');
-  }
-
   function openForm() {
-    clearMessages();
     setUserId('');
     setReturnDate(tomorrowDateInput());
     setSelectedItemIds([]);
@@ -119,10 +113,10 @@ export default function BorrowManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['borrows'] });
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      setNotice('บันทึกการยืมสำเร็จ');
+      showSuccess('บันทึกการยืมสำเร็จ');
       closeForm();
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   const approveMutation = useMutation({
@@ -130,18 +124,18 @@ export default function BorrowManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['borrows'] });
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      setNotice('อนุมัติคำขอยืมสำเร็จ');
+      showSuccess('อนุมัติคำขอยืมสำเร็จ');
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   const rejectMutation = useMutation({
     mutationFn: rejectBorrow,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['borrows'] });
-      setNotice('ปฏิเสธคำขอยืมแล้ว');
+      showSuccess('ปฏิเสธคำขอยืมแล้ว');
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   const returnMutation = useMutation({
@@ -149,14 +143,13 @@ export default function BorrowManager() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['borrows'] });
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      setNotice(data.message);
+      showSuccess(data.message);
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   function submitForm(event) {
     event.preventDefault();
-    clearMessages();
     createMutation.mutate({
       userId: Number(userId),
       returnDate,
@@ -173,7 +166,7 @@ export default function BorrowManager() {
     : null;
 
   const loading = borrowsQuery.isLoading;
-  const displayError = borrowsQuery.error?.message || error;
+  const displayError = borrowsQuery.error?.message;
 
   return (
     <section className="equipment-section">
@@ -209,7 +202,6 @@ export default function BorrowManager() {
       </div>
 
       {displayError && <p className="error-message">{displayError}</p>}
-      {notice && <p className="success-message">{notice}</p>}
 
       {formOpen && (
         <form className="equipment-form" onSubmit={submitForm}>

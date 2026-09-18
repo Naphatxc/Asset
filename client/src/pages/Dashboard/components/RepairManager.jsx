@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { getEquipment } from '../../../api/equipment.js';
 import { getRepairs, reportRepair, startRepair } from '../../../api/repair.js';
 import SearchableSelect from '../../../components/SearchableSelect.jsx';
+import { useToast } from '../../../components/ToastProvider.jsx';
 import RepairDetailDialog from './RepairDetailDialog.jsx';
 
 const statusLabels = {
@@ -33,10 +34,9 @@ function formatDateTime(value) {
 
 export default function RepairManager() {
   const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
 
   const [formOpen, setFormOpen] = useState(false);
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [itemId, setItemId] = useState('');
   const [issue, setIssue] = useState('');
   const [files, setFiles] = useState([]);
@@ -70,13 +70,7 @@ export default function RepairManager() {
     (repair) => repair.status === 'pending_repair',
   ).length;
 
-  function clearMessages() {
-    setError('');
-    setNotice('');
-  }
-
   function openForm() {
-    clearMessages();
     setItemId('');
     setIssue('');
     setFiles([]);
@@ -92,10 +86,10 @@ export default function RepairManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repairs'] });
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      setNotice('แจ้งซ่อมสำเร็จ');
+      showSuccess('แจ้งซ่อมสำเร็จ');
       closeForm();
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   const startMutation = useMutation({
@@ -103,19 +97,18 @@ export default function RepairManager() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['repairs'] });
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
-      setNotice('เริ่มซ่อมแล้ว');
+      showSuccess('เริ่มซ่อมแล้ว');
     },
-    onError: (mutationError) => setError(mutationError.message),
+    onError: (mutationError) => showError(mutationError.message),
   });
 
   function submitForm(event) {
     event.preventDefault();
-    clearMessages();
     reportMutation.mutate();
   }
 
   const loading = repairsQuery.isLoading;
-  const displayError = repairsQuery.error?.message || error;
+  const displayError = repairsQuery.error?.message;
 
   return (
     <section className="equipment-section">
@@ -156,7 +149,6 @@ export default function RepairManager() {
       </div>
 
       {displayError && <p className="error-message">{displayError}</p>}
-      {notice && <p className="success-message">{notice}</p>}
 
       {formOpen && (
         <form className="equipment-form" onSubmit={submitForm}>
