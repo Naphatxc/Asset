@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS locations (
 -- equipment เก็บข้อมูลร่วมของครุภัณฑ์ เช่น ชื่อ หมวดหมู่ และสถานที่
 CREATE TABLE IF NOT EXISTS equipment (
   equipment_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  equipment_name VARCHAR(150) NOT NULL,
+  -- 255 ไม่ใช่ 150 เพราะข้อมูลครุภัณฑ์จริงจากระบบเก่ามีชื่อยาวสุดถึง 194 ตัวอักษร
+  equipment_name VARCHAR(255) NOT NULL,
   category_id INT UNSIGNED NOT NULL,
   location_id INT UNSIGNED NULL,
   fiscal_year YEAR NULL,
@@ -49,7 +50,7 @@ CREATE TABLE IF NOT EXISTS equipment (
 CREATE TABLE IF NOT EXISTS equipment_items (
   item_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   equipment_id INT UNSIGNED NOT NULL,
-  equipment_name VARCHAR(150) NOT NULL,
+  equipment_name VARCHAR(255) NOT NULL,
   equipment_code VARCHAR(50) NOT NULL UNIQUE,
   status ENUM('available', 'borrowed', 'pending_repair', 'repairing') NOT NULL DEFAULT 'available',
   price DECIMAL(10,2) NULL,

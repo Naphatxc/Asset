@@ -76,6 +76,7 @@ export default function SelectWithCreate({
             value={fields[field.name] ?? ''}
             onChange={(event) => updateField(field.name, event.target.value)}
             onKeyDown={handleKeyDown}
+            maxLength={field.maxLength}
             // eslint-disable-next-line jsx-a11y/no-autofocus -- โฟกัสช่องแรกให้พิมพ์ต่อได้ทันทีหลังกดเพิ่ม
             autoFocus={index === 0}
           />

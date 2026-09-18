@@ -18,7 +18,8 @@ model categories {
 
 model equipment {
   equipment_id    Int               @id @default(autoincrement()) @db.UnsignedInt
-  equipment_name  String            @db.VarChar(150)
+  // 255 ไม่ใช่ 150 เพราะข้อมูลครุภัณฑ์จริงจากระบบเก่า (ยังไม่ได้ migrate) มีชื่อยาวสุดถึง 194 ตัวอักษร
+  equipment_name  String            @db.VarChar(255)
   category_id     Int               @db.UnsignedInt
   location_id     Int?              @db.UnsignedInt
   fiscal_year     Int?              @db.Year
@@ -51,7 +52,7 @@ model equipment_history {
 model equipment_items {
   item_id           Int                    @id @default(autoincrement()) @db.UnsignedInt
   equipment_id      Int                    @db.UnsignedInt
-  equipment_name    String                 @db.VarChar(150)
+  equipment_name    String                 @db.VarChar(255)
   equipment_code    String                 @unique(map: "equipment_code") @db.VarChar(50)
   status            equipment_items_status @default(available)
   price             Decimal?               @db.Decimal(10, 2)

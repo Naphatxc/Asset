@@ -10,6 +10,17 @@ export const allowedStatuses = [
   'repairing',
 ];
 
+// อิงจากข้อมูลครุภัณฑ์จริงที่ยังไม่ได้ migrate เข้าระบบนี้ (ชื่อยาวสุด 194 ตัวอักษร, คุณสมบัติ/รายละเอียด
+// ยาวสุด ~244 ตัวอักษร) เผื่อ headroom ให้พอมิกรทได้จริง แต่ยังกันไม่ให้พิมพ์ยาวเกินจริงได้ไม่จำกัด
+// ตัวเลขต้องตรงกับ @db.VarChar(...) ใน schema.prisma ของ equipment_name/equipment_code เป๊ะๆ
+export const MAX_EQUIPMENT_NAME_LENGTH = 255;
+export const MAX_EQUIPMENT_CODE_LENGTH = 50;
+export const MAX_LONG_TEXT_LENGTH = 2000; // description / remark (คุณสมบัติ) เป็น TEXT ไม่จำกัดจาก DB
+
+function exceedsLength(value, max) {
+  return typeof value === 'string' && value.length > max;
+}
+
 // รายชื่อ field ที่ API แก้ไขทั่วไปยอมรับ (ไม่รวม code และ status)
 export const editableFields = [
   'equipment_name',
@@ -61,6 +72,27 @@ export function validateCreateEquipment(request, _response, next) {
   if (!equipmentName || !equipmentCode || !categoryId || !description) {
     return next(
       new AppError(400, 'กรุณากรอกชื่อ รหัส หมวดหมู่ และรายละเอียดของครุภัณฑ์'),
+    );
+  }
+
+  if (exceedsLength(equipmentName, MAX_EQUIPMENT_NAME_LENGTH)) {
+    return next(
+      new AppError(400, `ชื่อครุภัณฑ์ต้องไม่เกิน ${MAX_EQUIPMENT_NAME_LENGTH} ตัวอักษร`),
+    );
+  }
+  if (exceedsLength(equipmentCode, MAX_EQUIPMENT_CODE_LENGTH)) {
+    return next(
+      new AppError(400, `รหัสครุภัณฑ์ต้องไม่เกิน ${MAX_EQUIPMENT_CODE_LENGTH} ตัวอักษร`),
+    );
+  }
+  if (exceedsLength(description, MAX_LONG_TEXT_LENGTH)) {
+    return next(
+      new AppError(400, `รายละเอียดต้องไม่เกิน ${MAX_LONG_TEXT_LENGTH} ตัวอักษร`),
+    );
+  }
+  if (exceedsLength(remark, MAX_LONG_TEXT_LENGTH)) {
+    return next(
+      new AppError(400, `คุณสมบัติต้องไม่เกิน ${MAX_LONG_TEXT_LENGTH} ตัวอักษร`),
     );
   }
 

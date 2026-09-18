@@ -8,6 +8,10 @@ import { runSerializableTransaction } from '../../utils/transaction.js';
 import * as borrowRepository from '../borrow/borrow.repository.js';
 import * as categoryRepository from '../options/category.repository.js';
 import * as repairRepository from '../repair/repair.repository.js';
+import {
+  MAX_EQUIPMENT_NAME_LENGTH,
+  MAX_LONG_TEXT_LENGTH,
+} from './equipment.validator.js';
 
 // ใช้ก่อนเปลี่ยนสถานะ/ลบครุภัณฑ์ตรงๆ กันไม่ให้ทับสถานะที่ borrow/repair flow ควบคุมอยู่ (เช่น ตั้งกลับเป็น
 // available ทั้งที่มีคนยืมค้างอยู่จริง) คืน error message ถ้าเจอ ไม่งั้นคืน null ให้ caller ทำงานต่อได้
@@ -436,11 +440,29 @@ export async function updateEquipment(itemId, body, actorId) {
       if (!equipmentName) {
         return { error: 'กรุณากรอกชื่อครุภัณฑ์', status: 400 };
       }
+      if (equipmentName.length > MAX_EQUIPMENT_NAME_LENGTH) {
+        return {
+          error: `ชื่อครุภัณฑ์ต้องไม่เกิน ${MAX_EQUIPMENT_NAME_LENGTH} ตัวอักษร`,
+          status: 400,
+        };
+      }
       if (!Number.isInteger(categoryId) || categoryId <= 0) {
         return { error: 'หมวดหมู่ไม่ถูกต้อง', status: 400 };
       }
       if (!description) {
         return { error: 'กรุณากรอกรายละเอียดครุภัณฑ์', status: 400 };
+      }
+      if (description.length > MAX_LONG_TEXT_LENGTH) {
+        return {
+          error: `รายละเอียดต้องไม่เกิน ${MAX_LONG_TEXT_LENGTH} ตัวอักษร`,
+          status: 400,
+        };
+      }
+      if (remark && remark.length > MAX_LONG_TEXT_LENGTH) {
+        return {
+          error: `คุณสมบัติต้องไม่เกิน ${MAX_LONG_TEXT_LENGTH} ตัวอักษร`,
+          status: 400,
+        };
       }
       if (
         locationId !== null &&

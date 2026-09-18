@@ -2,16 +2,30 @@
 import { useEffect, useMemo, useState } from 'react';
 import SelectWithCreate from './SelectWithCreate.jsx';
 
+// จำกัดความยาวแต่ละช่องกันพิมพ์ยาวเกินจริง (spam) ตัวเลขอิงจากข้อมูลครุภัณฑ์จริงที่ยังไม่ได้ migrate เข้าระบบนี้
+// (ชื่อยาวสุด 194 ตัวอักษร, คุณสมบัติ/รายละเอียดยาวสุด ~244 ตัวอักษร) เผื่อ headroom ให้พอ แต่ต้องตรงกับ
+// server (equipment.validator.js / options.validator.js) เพราะฝั่ง client แค่กันเบื้องต้น ฝั่ง server คือตัวจริง
+const MAX_EQUIPMENT_NAME_LENGTH = 255;
+const MAX_EQUIPMENT_CODE_LENGTH = 50;
+const MAX_LONG_TEXT_LENGTH = 2000; // description / คุณสมบัติ (remark)
+const MAX_NAME_LENGTH = 100; // ชื่อหมวดหมู่ / ชื่อสถานที่ / อาคาร
+const MAX_CODE_PREFIX_LENGTH = 20;
+const MAX_ROOM_LENGTH = 30;
+
 // ให้ SelectWithCreate ของหมวดหมู่/สถานที่ ไม่ต้องรู้ shape ของ field ที่ใช้กรอกตอนเพิ่มใหม่เอง
 // code_prefix ไม่บังคับ — ถ้าใส่ไว้ ระบบจะเดารหัสครุภัณฑ์ตัวถัดไปให้อัตโนมัติทุกครั้งที่เลือกหมวดหมู่นี้
 const categoryCreateFields = [
-  { name: 'name', label: 'ชื่อหมวดหมู่ใหม่', required: true },
-  { name: 'code_prefix', label: 'รหัสย่อ เช่น PC (ไม่บังคับ ใช้ออกรหัสครุภัณฑ์อัตโนมัติ)' },
+  { name: 'name', label: 'ชื่อหมวดหมู่ใหม่', required: true, maxLength: MAX_NAME_LENGTH },
+  {
+    name: 'code_prefix',
+    label: 'รหัสย่อ เช่น PC (ไม่บังคับ ใช้ออกรหัสครุภัณฑ์อัตโนมัติ)',
+    maxLength: MAX_CODE_PREFIX_LENGTH,
+  },
 ];
 const locationCreateFields = [
-  { name: 'name', label: 'ชื่อสถานที่ใหม่', required: true },
-  { name: 'building', label: 'อาคาร (ถ้ามี)' },
-  { name: 'room', label: 'ห้อง (ถ้ามี)' },
+  { name: 'name', label: 'ชื่อสถานที่ใหม่', required: true, maxLength: MAX_NAME_LENGTH },
+  { name: 'building', label: 'อาคาร (ถ้ามี)', maxLength: MAX_NAME_LENGTH },
+  { name: 'room', label: 'ห้อง (ถ้ามี)', maxLength: MAX_ROOM_LENGTH },
 ];
 
 // ช่องที่ required แสดงดอกจันทร์สีแดงกำกับให้เห็นชัดว่าต้องกรอก (ดู .required-mark ใน styles.css)
@@ -227,6 +241,7 @@ export default function EquipmentForm({
             name="equipment_name"
             value={form.equipment_name}
             onChange={updateField}
+            maxLength={MAX_EQUIPMENT_NAME_LENGTH}
             required
           />
         </label>
@@ -260,7 +275,8 @@ export default function EquipmentForm({
             name="equipment_code"
             value={form.equipment_code}
             onChange={updateEquipmentCode}
-            placeholder={editing ? undefined : 'เลือกหมวดหมู่ก่อนเพื่อให้ระบบออกรหัสให้ หรือพิมพ์เอง'}
+            placeholder={editing ? undefined : 'เลือกหมวดหมู่ก่อนเพื่อให้ระบบออกรหัสให้ หรือพิมพ์เอง ตัวอย่าง:'}
+            maxLength={MAX_EQUIPMENT_CODE_LENGTH}
             readOnly={editing}
             required
           />
@@ -350,6 +366,7 @@ export default function EquipmentForm({
             rows="3"
             value={form.description}
             onChange={updateField}
+            maxLength={MAX_LONG_TEXT_LENGTH}
             required
           />
         </label>
@@ -361,6 +378,7 @@ export default function EquipmentForm({
             rows="3"
             value={form.remark}
             onChange={updateField}
+            maxLength={MAX_LONG_TEXT_LENGTH}
           />
         </label>
       </div>
