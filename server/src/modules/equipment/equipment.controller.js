@@ -27,6 +27,22 @@ export async function getEquipmentList(request, response, next) {
   }
 }
 
+export async function getNextEquipmentCode(request, response, next) {
+  try {
+    const categoryId = Number(request.query.category_id);
+
+    if (!Number.isInteger(categoryId) || categoryId <= 0) {
+      return response.status(200).json({ code: null });
+    }
+
+    const result = await equipmentService.getNextEquipmentCode(categoryId);
+
+    response.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getEquipmentByCode(request, response, next) {
   try {
     const equipmentCode = String(request.params.code ?? '')

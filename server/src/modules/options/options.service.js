@@ -19,12 +19,20 @@ export async function getLocations() {
   }
 }
 
-export async function createCategory(categoryName) {
+export async function createCategory(categoryName, codePrefix) {
   try {
-    return await categoryRepository.create(categoryName);
+    return await categoryRepository.create({ categoryName, codePrefix });
   } catch (error) {
     if (error.code === 'P2002') {
-      throw new AppError(409, 'มีหมวดหมู่ชื่อนี้อยู่แล้ว');
+      // target มาจาก unique constraint ที่ชนกัน (ดู map: ใน schema.prisma) เพื่อบอกผู้ใช้ให้ตรงจุด
+      const target = String(error.meta?.target ?? '');
+
+      throw new AppError(
+        409,
+        target.includes('code_prefix')
+          ? 'มีหมวดหมู่ที่ใช้รหัสย่อนี้อยู่แล้ว'
+          : 'มีหมวดหมู่ชื่อนี้อยู่แล้ว',
+      );
     }
 
     throw new AppError(500, 'ไม่สามารถเพิ่มหมวดหมู่ได้', { cause: error });

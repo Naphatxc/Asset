@@ -64,6 +64,22 @@ export async function findManyDeleted(
   return { items, total };
 }
 
+// หาตัวเลขสูงสุดที่เคยใช้กับ prefix นี้ (นับรวมของที่ถูก soft-delete ไปแล้วด้วย เพราะ equipment_code unique
+// ทั้งตาราง ไม่ได้ยกเว้นแถวที่ลบ) ใช้ออกรหัสตัวถัดไปเป็น prefix-เลข+1 ตอนสร้างครุภัณฑ์ใหม่
+export async function findMaxCodeNumberByPrefix(prefix, client = prisma) {
+  const rows = await client.equipment_items.findMany({
+    where: { equipment_code: { startsWith: `${prefix}-` } },
+    select: { equipment_code: true },
+  });
+
+  return rows.reduce((max, row) => {
+    const suffix = row.equipment_code.slice(prefix.length + 1);
+    const number = Number(suffix);
+
+    return Number.isInteger(number) && number > max ? number : max;
+  }, 0);
+}
+
 export async function findByCode(equipmentCode, client = prisma) {
   return client.equipment_items.findFirst({
     where: {

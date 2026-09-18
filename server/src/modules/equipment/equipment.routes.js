@@ -40,6 +40,12 @@ adminEquipmentRouter.get(
   equipmentController.getDeletedEquipmentList,
 );
 
+// GET /api/admin/equipment-items/next-code?category_id= - เดารหัสครุภัณฑ์ตัวถัดไปจาก code_prefix ของหมวดหมู่
+adminEquipmentRouter.get(
+  '/next-code',
+  equipmentController.getNextEquipmentCode,
+);
+
 // GET /api/admin/equipment-items/:id/history - Audit Log พร้อมชื่อผู้เปลี่ยน
 adminEquipmentRouter.get(
   '/:id/history',

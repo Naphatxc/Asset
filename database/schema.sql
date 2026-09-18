@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS categories (
   category_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   category_name VARCHAR(100) NOT NULL UNIQUE,
-  description TEXT NULL
+  description TEXT NULL,
+  -- ใช้ออกรหัสครุภัณฑ์อัตโนมัติ (เช่น "PC" -> PC-0005) ไม่บังคับกรอก เพราะหมวดหมู่เก่าอาจยังไม่ได้ตั้งไว้
+  code_prefix VARCHAR(20) NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS locations (

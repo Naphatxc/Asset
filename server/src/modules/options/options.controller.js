@@ -22,8 +22,11 @@ export async function getLocations(_request, response, next) {
 
 export async function createCategory(request, response, next) {
   try {
-    const { categoryName } = request.validated;
-    const category = await optionsService.createCategory(categoryName);
+    const { categoryName, codePrefix } = request.validated;
+    const category = await optionsService.createCategory(
+      categoryName,
+      codePrefix,
+    );
 
     response.status(201).json({ message: 'เพิ่มหมวดหมู่สำเร็จ', category });
   } catch (error) {

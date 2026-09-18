@@ -10,6 +10,8 @@ model categories {
   category_id   Int         @id @default(autoincrement()) @db.UnsignedInt
   category_name String      @unique(map: "category_name") @db.VarChar(100)
   description   String?     @db.Text
+  // ใช้ออกรหัสครุภัณฑ์อัตโนมัติ (เช่น "PC" -> PC-0005) ไม่บังคับกรอก เพราะหมวดหมู่เก่าอาจยังไม่ได้ตั้งไว้
+  code_prefix   String?     @unique(map: "categories_code_prefix") @db.VarChar(20)
   equipment     equipment[]
   materials     materials[]
 }

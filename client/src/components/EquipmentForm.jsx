@@ -3,8 +3,10 @@ import { useEffect, useMemo, useState } from 'react';
 import SelectWithCreate from './SelectWithCreate.jsx';
 
 // ให้ SelectWithCreate ของหมวดหมู่/สถานที่ ไม่ต้องรู้ shape ของ field ที่ใช้กรอกตอนเพิ่มใหม่เอง
+// code_prefix ไม่บังคับ — ถ้าใส่ไว้ ระบบจะเดารหัสครุภัณฑ์ตัวถัดไปให้อัตโนมัติทุกครั้งที่เลือกหมวดหมู่นี้
 const categoryCreateFields = [
   { name: 'name', label: 'ชื่อหมวดหมู่ใหม่', required: true },
+  { name: 'code_prefix', label: 'รหัสย่อ เช่น PC (ไม่บังคับ ใช้ออกรหัสครุภัณฑ์อัตโนมัติ)' },
 ];
 const locationCreateFields = [
   { name: 'name', label: 'ชื่อสถานที่ใหม่', required: true },
@@ -70,16 +72,41 @@ export default function EquipmentForm({
   onCancel,
   onCreateCategory,
   onCreateLocation,
+  onFetchNextCode,
 }) {
   const [form, setForm] = useState(() =>
     createInitialForm(equipment),
   );
+  // true ทันทีที่ผู้ใช้พิมพ์รหัสเอง กันไม่ให้ auto-suggest ทับค่าที่พิมพ์เองทิ้งตอนเปลี่ยนหมวดหมู่
+  const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
   const editing = Boolean(equipment);
 
-  // เมื่อผู้ใช้กดแก้ไขคนละรายการ ให้เติมข้อมูลของรายการใหม่ลงฟอร์ม
+  // เมื่อผู้ใช้กดแก้ไขคนละรายการ (หรือเปิดฟอร์มสร้างใหม่) ให้เติมข้อมูลของรายการใหม่ลงฟอร์ม
   useEffect(() => {
     setForm(createInitialForm(equipment));
+    setCodeManuallyEdited(false);
   }, [equipment]);
+
+  // ตอนสร้างครุภัณฑ์ใหม่ (ไม่ใช่แก้ไข) และยังไม่เคยพิมพ์รหัสเอง: พอเลือกหมวดหมู่ที่มี code_prefix ตั้งไว้
+  // ให้เดารหัสตัวถัดไปมาเติมให้อัตโนมัติ (ยังแก้เองทับได้เสมอ ไม่ใช่ readOnly)
+  useEffect(() => {
+    if (editing || !form.category_id || codeManuallyEdited) return;
+
+    let ignore = false;
+
+    onFetchNextCode(Number(form.category_id))
+      .then((code) => {
+        if (ignore || !code) return;
+        setForm((current) => ({ ...current, equipment_code: code }));
+      })
+      .catch(() => {
+        // เดาไม่สำเร็จก็ไม่เป็นไร ผู้ใช้พิมพ์รหัสเองได้ตามปกติ ไม่ต้อง block ฟอร์ม
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [form.category_id, editing, codeManuallyEdited, onFetchNextCode]);
 
   // แปลงเป็น { value, label } ให้ SelectWithCreate ใช้ตรงกัน ไม่ต้องรู้ shape ของ categories/locations เอง
   const categoryOptions = useMemo(
@@ -106,6 +133,11 @@ export default function EquipmentForm({
     setForm((current) => ({ ...current, [name]: value }));
     // ผู้ใช้เริ่มแก้ไขแล้ว เคลียร์ error เดิมทิ้ง กันข้อความค้างแม้แก้ไขถูกแล้ว
     if (formError) setFormError('');
+  }
+
+  function updateEquipmentCode(event) {
+    setCodeManuallyEdited(true);
+    updateField(event);
   }
 
   // เช็คฟิลด์ที่ required ทั้งหมดก่อนยิง API เลยสักครั้ง (นอกเหนือจาก HTML required ที่ browser เช็คให้อยู่แล้ว)
@@ -200,7 +232,7 @@ export default function EquipmentForm({
           <input
             name="equipment_code"
             value={form.equipment_code}
-            onChange={updateField}
+            onChange={updateEquipmentCode}
             placeholder="STAT-PC-0002"
             readOnly={editing}
             required
@@ -221,7 +253,9 @@ export default function EquipmentForm({
             options={categoryOptions}
             createLabel="+ เพิ่มหมวดหมู่ใหม่..."
             createFields={categoryCreateFields}
-            onCreate={(fields) => onCreateCategory(fields.name)}
+            onCreate={(fields) =>
+              onCreateCategory(fields.name, fields.code_prefix)
+            }
           />
         </label>
 

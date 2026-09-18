@@ -6,6 +6,7 @@ import { AppError } from '../../utils/AppError.js';
 import { hasOwn, toDate } from '../../utils/parsing.js';
 import { runSerializableTransaction } from '../../utils/transaction.js';
 import * as borrowRepository from '../borrow/borrow.repository.js';
+import * as categoryRepository from '../options/category.repository.js';
 import * as repairRepository from '../repair/repair.repository.js';
 
 // ใช้ก่อนเปลี่ยนสถานะ/ลบครุภัณฑ์ตรงๆ กันไม่ให้ทับสถานะที่ borrow/repair flow ควบคุมอยู่ (เช่น ตั้งกลับเป็น
@@ -110,6 +111,35 @@ export async function getDeletedEquipmentList({
     };
   } catch (error) {
     throw new AppError(500, 'ไม่สามารถโหลดรายการครุภัณฑ์ที่ถูกลบได้', {
+      cause: error,
+    });
+  }
+}
+
+// เดารหัสครุภัณฑ์ตัวถัดไปให้ตอนสร้างใหม่ จาก code_prefix ของหมวดหมู่ที่เลือก + เลขสูงสุดที่ใช้ไปแล้ว + 1
+// คืน code: null ถ้าหมวดหมู่ยังไม่ได้ตั้ง code_prefix ไว้ (ผู้ใช้พิมพ์รหัสเองเหมือนเดิม)
+export async function getNextEquipmentCode(categoryId) {
+  try {
+    const category = await categoryRepository.findById(categoryId);
+
+    if (!category) {
+      throw new AppError(404, 'ไม่พบหมวดหมู่');
+    }
+    if (!category.code_prefix) {
+      return { code: null };
+    }
+
+    const nextNumber = await equipmentRepository.findMaxCodeNumberByPrefix(
+      category.code_prefix,
+    );
+
+    return {
+      code: `${category.code_prefix}-${String(nextNumber + 1).padStart(4, '0')}`,
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw new AppError(500, 'ไม่สามารถออกรหัสครุภัณฑ์อัตโนมัติได้', {
       cause: error,
     });
   }

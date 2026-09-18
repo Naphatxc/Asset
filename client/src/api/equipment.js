@@ -37,11 +37,18 @@ export function getLocations() {
   return request('/api/locations');
 }
 
-export function createCategory(categoryName) {
+export function createCategory(categoryName, codePrefix) {
   return request('/api/admin/categories', {
     method: 'POST',
-    body: { category_name: categoryName },
+    body: { category_name: categoryName, code_prefix: codePrefix || null },
   });
+}
+
+// เดารหัสครุภัณฑ์ตัวถัดไปจาก code_prefix ของหมวดหมู่ที่เลือก (code: null ถ้าหมวดหมู่นั้นยังไม่ได้ตั้ง prefix ไว้)
+export function getNextEquipmentCode(categoryId) {
+  return request(
+    `/api/admin/equipment-items/next-code?category_id=${categoryId}`,
+  );
 }
 
 export function createLocation({ locationName, building, room }) {

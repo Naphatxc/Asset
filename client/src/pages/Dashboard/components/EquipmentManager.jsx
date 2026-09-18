@@ -20,6 +20,7 @@ import {
   getEquipment,
   getEquipmentHistory,
   getLocations,
+  getNextEquipmentCode,
   restoreEquipment,
   updateEquipment,
   updateEquipmentStatus,
@@ -112,11 +113,17 @@ export default function EquipmentManager({ user }) {
 
   // เรียกจาก SelectWithCreate ในฟอร์มโดยตรง ("+ เพิ่มหมวดหมู่/สถานที่ใหม่...") คืนค่าเป็น { value, label }
   // ให้เลือกตัวที่เพิ่งสร้างในฟอร์มได้ทันที และ invalidate cache ให้ dropdown ครั้งถัดไปเห็นตัวใหม่ด้วย
-  async function handleCreateCategory(categoryName) {
-    const { category } = await createCategory(categoryName);
+  async function handleCreateCategory(categoryName, codePrefix) {
+    const { category } = await createCategory(categoryName, codePrefix);
     queryClient.invalidateQueries({ queryKey: ['categories'] });
 
     return { value: String(category.category_id), label: category.category_name };
+  }
+
+  // เรียกตอนเลือกหมวดหมู่ในฟอร์มสร้างครุภัณฑ์ใหม่ เพื่อเดารหัสตัวถัดไปให้ (code: null ถ้าหมวดหมู่นั้นไม่มี prefix)
+  async function handleFetchNextCode(categoryId) {
+    const { code } = await getNextEquipmentCode(categoryId);
+    return code;
   }
 
   async function handleCreateLocation({ name, building, room }) {
@@ -351,6 +358,7 @@ export default function EquipmentManager({ user }) {
             onCancel={closeForm}
             onCreateCategory={handleCreateCategory}
             onCreateLocation={handleCreateLocation}
+            onFetchNextCode={handleFetchNextCode}
           />
         </>
       )}
