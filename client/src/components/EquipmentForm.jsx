@@ -87,10 +87,17 @@ export default function EquipmentForm({
     setCodeManuallyEdited(false);
   }, [equipment]);
 
-  // ตอนสร้างครุภัณฑ์ใหม่ (ไม่ใช่แก้ไข) และยังไม่เคยพิมพ์รหัสเอง: พอเลือกหมวดหมู่ที่มี code_prefix ตั้งไว้
-  // ให้เดารหัสตัวถัดไปมาเติมให้อัตโนมัติ (ยังแก้เองทับได้เสมอ ไม่ใช่ readOnly)
+  // ตอนสร้างครุภัณฑ์ใหม่ (ไม่ใช่แก้ไข) และยังไม่เคยพิมพ์รหัสเอง: รหัสต้องตามหมวดหมู่ที่เลือกเสมอ — เปลี่ยน
+  // หมวดหมู่ปุ๊บเคลียร์รหัสเดิมทิ้งก่อน (กันรหัสของหมวดหมู่ก่อนหน้าค้างอยู่ทั้งที่ไม่ตรงกันแล้ว) แล้วค่อยเติม
+  // รหัสตัวถัดไปให้ถ้าหมวดหมู่นั้นมี code_prefix ตั้งไว้ (ยังแก้เองทับได้เสมอ ไม่ใช่ readOnly)
   useEffect(() => {
-    if (editing || !form.category_id || codeManuallyEdited) return;
+    if (editing || codeManuallyEdited) return;
+
+    setForm((current) =>
+      current.equipment_code ? { ...current, equipment_code: '' } : current,
+    );
+
+    if (!form.category_id) return;
 
     let ignore = false;
 
@@ -226,21 +233,6 @@ export default function EquipmentForm({
 
         <label>
           <span>
-            รหัสครุภัณฑ์
-            <RequiredMark />
-          </span>
-          <input
-            name="equipment_code"
-            value={form.equipment_code}
-            onChange={updateEquipmentCode}
-            placeholder="STAT-PC-0002"
-            readOnly={editing}
-            required
-          />
-        </label>
-
-        <label>
-          <span>
             หมวดหมู่
             <RequiredMark />
           </span>
@@ -256,6 +248,21 @@ export default function EquipmentForm({
             onCreate={(fields) =>
               onCreateCategory(fields.name, fields.code_prefix)
             }
+          />
+        </label>
+
+        <label>
+          <span>
+            รหัสครุภัณฑ์
+            <RequiredMark />
+          </span>
+          <input
+            name="equipment_code"
+            value={form.equipment_code}
+            onChange={updateEquipmentCode}
+            placeholder={editing ? undefined : 'เลือกหมวดหมู่ก่อนเพื่อให้ระบบออกรหัสให้ หรือพิมพ์เอง'}
+            readOnly={editing}
+            required
           />
         </label>
 
