@@ -1,6 +1,7 @@
 // Data Access Layer สำหรับตาราง locations
 import { prisma } from '../../config/prisma.js';
 
+// ไม่ orderBy ที่ DB ด้วยเหตุผลเดียวกับ category.repository.js — เรียงด้วย Intl.Collator('th') ที่ service แทน
 export async function findMany(client = prisma) {
   return client.locations.findMany({
     select: {
@@ -9,7 +10,6 @@ export async function findMany(client = prisma) {
       building: true,
       room: true,
     },
-    orderBy: { location_name: 'asc' },
   });
 }
 

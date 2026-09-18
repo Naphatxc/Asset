@@ -1,4 +1,8 @@
 -- ไฟล์นี้ใช้สร้างฐานข้อมูลใหม่ตั้งแต่ต้น ทุก CREATE ใช้ IF NOT EXISTS จึงรันซ้ำได้
+-- หมายเหตุเรื่องเรียงข้อความไทย: MySQL ไม่มี collation ที่เข้าใจกฎพจนานุกรมไทย (สระนำอย่าง "เ" ต้อง
+-- เรียงราวกับอยู่หลังพยัญชนะ) ให้ใช้กับ utf8mb4 เลย มีแต่ tis620_thai_ci ซึ่งผูกกับ charset tis620 เก่าที่
+-- เก็บได้แค่ไทย/อังกฤษ ไม่รองรับ Unicode เต็มรูปแบบ จึงไม่ใช้ตรงนี้ — การเรียงแบบพจนานุกรมไทยทำที่ฝั่ง
+-- แอปด้วย Intl.Collator('th') แทน (ดู server/src/modules/options/options.service.js)
 CREATE DATABASE IF NOT EXISTS asset_management
   CHARACTER SET utf8mb4
   COLLATE utf8mb4_unicode_ci;

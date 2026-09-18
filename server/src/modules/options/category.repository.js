@@ -1,6 +1,8 @@
 // Data Access Layer สำหรับตาราง categories
 import { prisma } from '../../config/prisma.js';
 
+// ไม่ orderBy ที่ DB เพราะ MySQL ไม่มี collation ที่เรียงข้อความไทยแบบพจนานุกรมถูกต้อง (ดูเหตุผลเต็มๆ ใน
+// options.service.js) เรียงด้วย Intl.Collator('th') ที่ชั้น service แทน ที่นี่ส่งดิบๆ ไปพอ
 export async function findMany(client = prisma) {
   return client.categories.findMany({
     select: {
@@ -9,7 +11,6 @@ export async function findMany(client = prisma) {
       description: true,
       code_prefix: true,
     },
-    orderBy: { category_name: 'asc' },
   });
 }
 

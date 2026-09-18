@@ -3,9 +3,18 @@ import * as categoryRepository from './category.repository.js';
 import * as locationRepository from './location.repository.js';
 import { AppError } from '../../utils/AppError.js';
 
+// MySQL ไม่มี collation ที่เรียงข้อความไทยแบบพจนานุกรมถูกต้องสำหรับ utf8mb4 เลย (สระนำอย่าง "เ" ต้องถูก
+// เรียงราวกับอยู่หลังพยัญชนะ เช่น "เครื่องใช้ไฟฟ้า" ต้องอยู่หมวด ค ไม่ใช่หมวด เ) มีแต่ tis620_thai_ci ซึ่งผูก
+// กับ charset tis620 เก่าที่เก็บ Unicode เต็มรูปแบบไม่ได้ จึงเรียงด้วย Intl.Collator('th') ที่ฝั่งแอปแทน
+const thaiCollator = new Intl.Collator('th');
+
 export async function getCategories() {
   try {
-    return await categoryRepository.findMany();
+    const categories = await categoryRepository.findMany();
+
+    return categories.sort((a, b) =>
+      thaiCollator.compare(a.category_name, b.category_name),
+    );
   } catch (error) {
     throw new AppError(500, 'ไม่สามารถโหลดหมวดหมู่ได้', { cause: error });
   }
@@ -13,7 +22,11 @@ export async function getCategories() {
 
 export async function getLocations() {
   try {
-    return await locationRepository.findMany();
+    const locations = await locationRepository.findMany();
+
+    return locations.sort((a, b) =>
+      thaiCollator.compare(a.location_name, b.location_name),
+    );
   } catch (error) {
     throw new AppError(500, 'ไม่สามารถโหลดสถานที่ได้', { cause: error });
   }
