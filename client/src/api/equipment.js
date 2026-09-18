@@ -37,6 +37,20 @@ export function getLocations() {
   return request('/api/locations');
 }
 
+export function createCategory(categoryName) {
+  return request('/api/admin/categories', {
+    method: 'POST',
+    body: { category_name: categoryName },
+  });
+}
+
+export function createLocation({ locationName, building, room }) {
+  return request('/api/admin/locations', {
+    method: 'POST',
+    body: { location_name: locationName, building, room },
+  });
+}
+
 // กลุ่มคำสั่งของ Admin (Create/Update/Delete/Restore/History)
 export function createEquipment(equipment) {
   return request('/api/admin/equipment-items', {

@@ -18,3 +18,23 @@ export async function getLocations() {
     throw new AppError(500, 'ไม่สามารถโหลดสถานที่ได้', { cause: error });
   }
 }
+
+export async function createCategory(categoryName) {
+  try {
+    return await categoryRepository.create(categoryName);
+  } catch (error) {
+    if (error.code === 'P2002') {
+      throw new AppError(409, 'มีหมวดหมู่ชื่อนี้อยู่แล้ว');
+    }
+
+    throw new AppError(500, 'ไม่สามารถเพิ่มหมวดหมู่ได้', { cause: error });
+  }
+}
+
+export async function createLocation({ locationName, building, room }) {
+  try {
+    return await locationRepository.create({ locationName, building, room });
+  } catch (error) {
+    throw new AppError(500, 'ไม่สามารถเพิ่มสถานที่ได้', { cause: error });
+  }
+}

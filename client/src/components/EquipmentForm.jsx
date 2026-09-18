@@ -1,6 +1,16 @@
 // Form เดียวใช้ได้ทั้งเพิ่มและแก้ไข โดยดูจากว่ามี equipment ส่งเข้ามาหรือไม่
 import { useEffect, useMemo, useState } from 'react';
-import SearchableSelect from './SearchableSelect.jsx';
+import SelectWithCreate from './SelectWithCreate.jsx';
+
+// ให้ SelectWithCreate ของหมวดหมู่/สถานที่ ไม่ต้องรู้ shape ของ field ที่ใช้กรอกตอนเพิ่มใหม่เอง
+const categoryCreateFields = [
+  { name: 'name', label: 'ชื่อหมวดหมู่ใหม่', required: true },
+];
+const locationCreateFields = [
+  { name: 'name', label: 'ชื่อสถานที่ใหม่', required: true },
+  { name: 'building', label: 'อาคาร (ถ้ามี)' },
+  { name: 'room', label: 'ห้อง (ถ้ามี)' },
+];
 
 // ช่องที่ required แสดงดอกจันทร์สีแดงกำกับให้เห็นชัดว่าต้องกรอก (ดู .required-mark ใน styles.css)
 function RequiredMark() {
@@ -58,6 +68,8 @@ export default function EquipmentForm({
   submitting,
   onSubmit,
   onCancel,
+  onCreateCategory,
+  onCreateLocation,
 }) {
   const [form, setForm] = useState(() =>
     createInitialForm(equipment),
@@ -69,7 +81,7 @@ export default function EquipmentForm({
     setForm(createInitialForm(equipment));
   }, [equipment]);
 
-  // แปลงเป็น { value, label } ให้ SearchableSelect ใช้ตรงกัน ไม่ต้องรู้ shape ของ categories/locations เอง
+  // แปลงเป็น { value, label } ให้ SelectWithCreate ใช้ตรงกัน ไม่ต้องรู้ shape ของ categories/locations เอง
   const categoryOptions = useMemo(
     () =>
       categories.map((category) => ({
@@ -177,26 +189,30 @@ export default function EquipmentForm({
             หมวดหมู่
             <RequiredMark />
           </span>
-          <SearchableSelect
+          <SelectWithCreate
             name="category_id"
             value={form.category_id}
             onChange={updateField}
             required
-            placeholder="พิมพ์ชื่อหมวดหมู่..."
             emptyLabel="เลือกหมวดหมู่"
             options={categoryOptions}
+            createLabel="+ เพิ่มหมวดหมู่ใหม่..."
+            createFields={categoryCreateFields}
+            onCreate={(fields) => onCreateCategory(fields.name)}
           />
         </label>
 
         <label>
           สถานที่
-          <SearchableSelect
+          <SelectWithCreate
             name="location_id"
             value={form.location_id}
             onChange={updateField}
-            placeholder="พิมพ์ชื่อสถานที่..."
             emptyLabel="ยังไม่ระบุ"
             options={locationOptions}
+            createLabel="+ เพิ่มสถานที่ใหม่..."
+            createFields={locationCreateFields}
+            onCreate={(fields) => onCreateLocation(fields)}
           />
         </label>
 

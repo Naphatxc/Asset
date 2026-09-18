@@ -11,7 +11,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import {
+  createCategory,
   createEquipment,
+  createLocation,
   deleteEquipment,
   getCategories,
   getDeletedEquipment,
@@ -106,6 +108,29 @@ export default function EquipmentManager({ user }) {
 
   function invalidateEquipmentLists() {
     queryClient.invalidateQueries({ queryKey: ['equipment'] });
+  }
+
+  // เรียกจาก SelectWithCreate ในฟอร์มโดยตรง ("+ เพิ่มหมวดหมู่/สถานที่ใหม่...") คืนค่าเป็น { value, label }
+  // ให้เลือกตัวที่เพิ่งสร้างในฟอร์มได้ทันที และ invalidate cache ให้ dropdown ครั้งถัดไปเห็นตัวใหม่ด้วย
+  async function handleCreateCategory(categoryName) {
+    const { category } = await createCategory(categoryName);
+    queryClient.invalidateQueries({ queryKey: ['categories'] });
+
+    return { value: String(category.category_id), label: category.category_name };
+  }
+
+  async function handleCreateLocation({ name, building, room }) {
+    const { location } = await createLocation({
+      locationName: name,
+      building: building || null,
+      room: room || null,
+    });
+    queryClient.invalidateQueries({ queryKey: ['locations'] });
+
+    return {
+      value: String(location.location_id),
+      label: `${location.location_name}${location.room ? ` · ห้อง ${location.room}` : ''}`,
+    };
   }
 
   // Form เดียวกันเลือก Create หรือ Edit จาก formMode
@@ -324,6 +349,8 @@ export default function EquipmentManager({ user }) {
             submitting={saveEquipmentMutation.isPending}
             onSubmit={submitForm}
             onCancel={closeForm}
+            onCreateCategory={handleCreateCategory}
+            onCreateLocation={handleCreateLocation}
           />
         </>
       )}

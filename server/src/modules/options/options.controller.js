@@ -19,3 +19,29 @@ export async function getLocations(_request, response, next) {
     next(error);
   }
 }
+
+export async function createCategory(request, response, next) {
+  try {
+    const { categoryName } = request.validated;
+    const category = await optionsService.createCategory(categoryName);
+
+    response.status(201).json({ message: 'เพิ่มหมวดหมู่สำเร็จ', category });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createLocation(request, response, next) {
+  try {
+    const { locationName, building, room } = request.validated;
+    const location = await optionsService.createLocation({
+      locationName,
+      building,
+      room,
+    });
+
+    response.status(201).json({ message: 'เพิ่มสถานที่สำเร็จ', location });
+  } catch (error) {
+    next(error);
+  }
+}
