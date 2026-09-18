@@ -99,14 +99,37 @@ export default function EquipmentForm({
     [locations],
   );
 
+  const [formError, setFormError] = useState('');
+
   function updateField(event) {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
+    // ผู้ใช้เริ่มแก้ไขแล้ว เคลียร์ error เดิมทิ้ง กันข้อความค้างแม้แก้ไขถูกแล้ว
+    if (formError) setFormError('');
+  }
+
+  // เช็คฟิลด์ที่ required ทั้งหมดก่อนยิง API เลยสักครั้ง (นอกเหนือจาก HTML required ที่ browser เช็คให้อยู่แล้ว)
+  // เพื่อโชว์ข้อความ error แบบเดียวกับที่ใช้ทั้งแอป แทนข้อความ default ของ browser ที่หน้าตาไม่ตรงกัน
+  function findRequiredFieldError() {
+    if (!form.equipment_name.trim()) return 'กรุณากรอกชื่อครุภัณฑ์';
+    if (!form.equipment_code.trim()) return 'กรุณากรอกรหัสครุภัณฑ์';
+    if (!form.category_id) return 'กรุณาเลือกหมวดหมู่';
+    if (!form.description.trim()) return 'กรุณากรอกรายละเอียดครุภัณฑ์';
+
+    return null;
   }
 
   // ก่อนส่ง API แปลง id/ราคา/ปีจาก string ของ input กลับเป็น number หรือ null
   function handleSubmit(event) {
     event.preventDefault();
+
+    const requiredFieldError = findRequiredFieldError();
+    if (requiredFieldError) {
+      setFormError(requiredFieldError);
+      return;
+    }
+
+    setFormError('');
 
     const payload = {
       equipment_name: form.equipment_name.trim(),
@@ -277,17 +300,21 @@ export default function EquipmentForm({
         </label>
 
         <label className="field-wide">
-          รายละเอียด
+          <span>
+            รายละเอียด
+            <RequiredMark />
+          </span>
           <textarea
             name="description"
             rows="3"
             value={form.description}
             onChange={updateField}
+            required
           />
         </label>
 
         <label className="field-wide">
-          หมายเหตุ
+          คุณสมบัติ
           <textarea
             name="remark"
             rows="3"
@@ -296,6 +323,8 @@ export default function EquipmentForm({
           />
         </label>
       </div>
+
+      {formError && <p className="error-message">{formError}</p>}
 
       <div className="form-actions">
         <button

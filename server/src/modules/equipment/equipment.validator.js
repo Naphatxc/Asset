@@ -58,9 +58,9 @@ export function validateCreateEquipment(request, _response, next) {
     priceValue == null || priceValue === '' ? null : Number(priceValue);
   const warrantyExpire = toDate(body.warranty_expire);
 
-  if (!equipmentName || !equipmentCode || !categoryId) {
+  if (!equipmentName || !equipmentCode || !categoryId || !description) {
     return next(
-      new AppError(400, 'กรุณากรอกชื่อ รหัส และหมวดหมู่ของครุภัณฑ์'),
+      new AppError(400, 'กรุณากรอกชื่อ รหัส หมวดหมู่ และรายละเอียดของครุภัณฑ์'),
     );
   }
 

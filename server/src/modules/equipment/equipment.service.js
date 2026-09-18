@@ -409,6 +409,9 @@ export async function updateEquipment(itemId, body, actorId) {
       if (!Number.isInteger(categoryId) || categoryId <= 0) {
         return { error: 'หมวดหมู่ไม่ถูกต้อง', status: 400 };
       }
+      if (!description) {
+        return { error: 'กรุณากรอกรายละเอียดครุภัณฑ์', status: 400 };
+      }
       if (
         locationId !== null &&
         (!Number.isInteger(locationId) || locationId <= 0)
