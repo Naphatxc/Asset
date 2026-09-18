@@ -633,10 +633,28 @@ button:disabled {
   font-weight: 700;
 }
 
+/* ตัวนับตัวอักษรใต้ช่องที่มี maxLength เตือนก่อนโดนตัดจริงตอนใกล้เต็ม (ดู CharCount ใน EquipmentForm.jsx) */
+.char-count {
+  justify-self: end;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #8a8a8a;
+}
+
+.char-count-warning {
+  color: #dc2626;
+  font-weight: 600;
+}
+
 /* ฟอร์มกรอกสั้นๆ ที่แทนที่ select ตอนกด "+ เพิ่ม...ใหม่" (หมวดหมู่/สถานที่) */
 .select-with-create {
   display: grid;
   gap: 8px;
+}
+
+.select-with-create-field {
+  display: grid;
+  gap: 3px;
 }
 
 .select-with-create input {

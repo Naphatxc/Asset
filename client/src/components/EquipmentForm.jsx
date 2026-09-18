@@ -1,5 +1,6 @@
 // Form เดียวใช้ได้ทั้งเพิ่มและแก้ไข โดยดูจากว่ามี equipment ส่งเข้ามาหรือไม่
 import { useEffect, useMemo, useState } from 'react';
+import CharCount from './CharCount.jsx';
 import SelectWithCreate from './SelectWithCreate.jsx';
 
 // จำกัดความยาวแต่ละช่องกันพิมพ์ยาวเกินจริง (spam) ตัวเลขอิงจากข้อมูลครุภัณฑ์จริงที่ยังไม่ได้ migrate เข้าระบบนี้
@@ -244,6 +245,7 @@ export default function EquipmentForm({
             maxLength={MAX_EQUIPMENT_NAME_LENGTH}
             required
           />
+          <CharCount length={form.equipment_name.length} max={MAX_EQUIPMENT_NAME_LENGTH} />
         </label>
 
         <label>
@@ -275,11 +277,18 @@ export default function EquipmentForm({
             name="equipment_code"
             value={form.equipment_code}
             onChange={updateEquipmentCode}
-            placeholder={editing ? undefined : 'เลือกหมวดหมู่ก่อนเพื่อให้ระบบออกรหัสให้ หรือพิมพ์เอง ตัวอย่าง:'}
+            placeholder={
+              editing
+                ? undefined
+                : 'เลือกหมวดหมู่ก่อนเพื่อให้ระบบออกรหัสให้ หรือพิมพ์เอง ตัวอย่าง: STAT-PC-0001'
+            }
             maxLength={MAX_EQUIPMENT_CODE_LENGTH}
             readOnly={editing}
             required
           />
+          {!editing && (
+            <CharCount length={form.equipment_code.length} max={MAX_EQUIPMENT_CODE_LENGTH} />
+          )}
         </label>
 
         <label>
@@ -369,6 +378,7 @@ export default function EquipmentForm({
             maxLength={MAX_LONG_TEXT_LENGTH}
             required
           />
+          <CharCount length={form.description.length} max={MAX_LONG_TEXT_LENGTH} />
         </label>
 
         <label className="field-wide">
@@ -380,6 +390,7 @@ export default function EquipmentForm({
             onChange={updateField}
             maxLength={MAX_LONG_TEXT_LENGTH}
           />
+          <CharCount length={form.remark.length} max={MAX_LONG_TEXT_LENGTH} />
         </label>
       </div>
 
