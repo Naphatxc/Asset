@@ -8,6 +8,7 @@ import {
   returnBorrowDetail,
 } from '../../../api/borrow.js';
 import { getEquipment } from '../../../api/equipment.js';
+import EquipmentPicker from '../../../components/EquipmentPicker.jsx';
 
 const statusLabels = {
   pending: 'รออนุมัติ',
@@ -168,21 +169,11 @@ export default function MyBorrows() {
               ) : availableEquipment.length === 0 ? (
                 <p className="loading-message">ไม่มีครุภัณฑ์ที่พร้อมให้ยืมตอนนี้</p>
               ) : (
-                <div className="checkbox-list">
-                  {availableEquipment.map((item) => (
-                    <label key={item.item_id} className="checkbox-list-item">
-                      <input
-                        type="checkbox"
-                        checked={selectedItemIds.includes(item.item_id)}
-                        onChange={() => toggleItem(item.item_id)}
-                      />
-                      <span className="equipment-code">
-                        {item.equipment_code}
-                      </span>
-                      <span>{item.equipment_name}</span>
-                    </label>
-                  ))}
-                </div>
+                <EquipmentPicker
+                  items={availableEquipment}
+                  selectedIds={selectedItemIds}
+                  onToggle={toggleItem}
+                />
               )}
             </label>
           </div>

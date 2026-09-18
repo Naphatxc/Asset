@@ -2,7 +2,7 @@
 // ใช้ query key ['equipment'] และ ['admin-users'] ร่วมกับ EquipmentManager/UserTable เพื่อแชร์ cache เดียวกัน
 // คำขอจาก user (status pending) ต้องกด "อนุมัติ"/"ปฏิเสธ" ก่อนถึงจะกลายเป็นการยืมจริง ส่วน Admin สร้างใบยืมเองถือว่าอนุมัติทันที
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { getUsers } from '../../../api/admin-users.js';
 import {
@@ -13,6 +13,8 @@ import {
   returnBorrowDetail,
 } from '../../../api/borrow.js';
 import { getEquipment } from '../../../api/equipment.js';
+import EquipmentPicker from '../../../components/EquipmentPicker.jsx';
+import SearchableSelect from '../../../components/SearchableSelect.jsx';
 
 const statusLabels = {
   pending: 'รออนุมัติ',
@@ -66,6 +68,17 @@ export default function BorrowManager() {
   const borrows = borrowsQuery.data?.borrows ?? [];
   const users = usersQuery.data?.users ?? [];
   const availableEquipment = equipmentQuery.data?.equipment ?? [];
+
+  // แปลงเป็น { value, label } ให้ SearchableSelect ใช้ตรงกัน ค้นหาได้ทั้งชื่อและอีเมล
+  const userOptions = useMemo(
+    () =>
+      users.map((item) => ({
+        value: String(item.user_id),
+        label: `${item.name} (${item.email})`,
+        searchText: `${item.name} ${item.email}`,
+      })),
+    [users],
+  );
 
   const pendingCount = borrows.filter(
     (borrow) => borrow.status === 'pending',
@@ -213,18 +226,15 @@ export default function BorrowManager() {
           <div className="form-grid">
             <label>
               ผู้ยืม
-              <select
+              <SearchableSelect
+                name="userId"
                 value={userId}
                 onChange={(event) => setUserId(event.target.value)}
                 required
-              >
-                <option value="">เลือกผู้ยืม</option>
-                {users.map((item) => (
-                  <option key={item.user_id} value={item.user_id}>
-                    {item.name} ({item.email})
-                  </option>
-                ))}
-              </select>
+                emptyLabel="เลือกผู้ยืม"
+                placeholder="พิมพ์ชื่อหรืออีเมลเพื่อค้นหา..."
+                options={userOptions}
+              />
             </label>
 
             <label>
@@ -243,21 +253,11 @@ export default function BorrowManager() {
               {availableEquipment.length === 0 ? (
                 <p className="loading-message">ไม่มีครุภัณฑ์ที่พร้อมให้ยืมตอนนี้</p>
               ) : (
-                <div className="checkbox-list">
-                  {availableEquipment.map((item) => (
-                    <label key={item.item_id} className="checkbox-list-item">
-                      <input
-                        type="checkbox"
-                        checked={selectedItemIds.includes(item.item_id)}
-                        onChange={() => toggleItem(item.item_id)}
-                      />
-                      <span className="equipment-code">
-                        {item.equipment_code}
-                      </span>
-                      <span>{item.equipment_name}</span>
-                    </label>
-                  ))}
-                </div>
+                <EquipmentPicker
+                  items={availableEquipment}
+                  selectedIds={selectedItemIds}
+                  onToggle={toggleItem}
+                />
               )}
             </label>
           </div>

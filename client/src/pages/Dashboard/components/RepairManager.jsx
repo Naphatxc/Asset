@@ -1,9 +1,10 @@
 // จัดการแจ้งซ่อมครุภัณฑ์ (เฉพาะ Admin) — แจ้งซ่อม + ดูรายละเอียด/เริ่มซ่อม/บันทึกผลซ่อม/ยกเลิก อยู่ใน RepairDetailDialog
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { getEquipment } from '../../../api/equipment.js';
 import { getRepairs, reportRepair, startRepair } from '../../../api/repair.js';
+import SearchableSelect from '../../../components/SearchableSelect.jsx';
 import RepairDetailDialog from './RepairDetailDialog.jsx';
 
 const statusLabels = {
@@ -54,6 +55,17 @@ export default function RepairManager() {
 
   const repairs = repairsQuery.data?.repairs ?? [];
   const availableEquipment = equipmentQuery.data?.equipment ?? [];
+
+  // แปลงเป็น { value, label } ให้ SearchableSelect ใช้ตรงกัน ค้นหาได้ทั้งรหัสและชื่อครุภัณฑ์
+  const equipmentOptions = useMemo(
+    () =>
+      availableEquipment.map((item) => ({
+        value: String(item.item_id),
+        label: `${item.equipment_code} — ${item.equipment_name}`,
+      })),
+    [availableEquipment],
+  );
+
   const pendingCount = repairs.filter(
     (repair) => repair.status === 'pending_repair',
   ).length;
@@ -161,18 +173,15 @@ export default function RepairManager() {
           <div className="form-grid">
             <label>
               ครุภัณฑ์
-              <select
+              <SearchableSelect
+                name="itemId"
                 value={itemId}
                 onChange={(event) => setItemId(event.target.value)}
                 required
-              >
-                <option value="">เลือกครุภัณฑ์ (เฉพาะที่พร้อมใช้งาน)</option>
-                {availableEquipment.map((item) => (
-                  <option key={item.item_id} value={item.item_id}>
-                    {item.equipment_code} — {item.equipment_name}
-                  </option>
-                ))}
-              </select>
+                emptyLabel="เลือกครุภัณฑ์ (เฉพาะที่พร้อมใช้งาน)"
+                placeholder="พิมพ์รหัสหรือชื่อครุภัณฑ์เพื่อค้นหา..."
+                options={equipmentOptions}
+              />
             </label>
 
             <label className="field-wide">
