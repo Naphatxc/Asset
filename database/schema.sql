@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS borrows (
   user_id INT UNSIGNED NOT NULL,
   borrow_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  remark TEXT NULL,
   CONSTRAINT fk_borrow_user FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
@@ -118,8 +119,23 @@ CREATE TABLE IF NOT EXISTS materials (
   unit_name VARCHAR(50) NOT NULL,
   unit_price DECIMAL(10,2) NULL,
   remark TEXT NULL,
+  deleted_at DATETIME NULL, -- NULL = ใช้งานอยู่, มีวันที่ = ถูก Soft Delete
   CONSTRAINT fk_material_category FOREIGN KEY (category_id) REFERENCES categories(category_id),
   CONSTRAINT chk_material_quantity CHECK (quantity >= 0)
+);
+
+-- ประวัติการเบิกวัสดุ: ตัดยอด quantity ทันทีตอนเบิก ไม่มีขั้นตอนรออนุมัติและไม่มีการคืน
+CREATE TABLE IF NOT EXISTS material_withdrawals (
+  withdrawal_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  material_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  quantity INT NOT NULL,
+  remark TEXT NULL,
+  withdrawn_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_withdrawals_material (material_id),
+  INDEX idx_withdrawals_user (user_id),
+  CONSTRAINT fk_withdrawal_material FOREIGN KEY (material_id) REFERENCES materials(material_id),
+  CONSTRAINT fk_withdrawal_user FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 -- repairs เก็บ 1 รายการแจ้งซ่อมต่อครุภัณฑ์ 1 ชิ้น status: pending_repair = แจ้งแล้วรอเริ่มซ่อม,
