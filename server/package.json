@@ -8,7 +8,6 @@
     "start": "node src/server.js",
     "postinstall": "prisma generate --config prisma.config.js",
     "prisma:generate": "prisma generate --config prisma.config.js",
-    "prisma:pull": "prisma db pull --config prisma.config.js",
     "prisma:studio": "prisma studio --config prisma.config.js",
     "prisma:migrate:dev": "prisma migrate dev --config prisma.config.js",
     "prisma:migrate:deploy": "prisma migrate deploy --config prisma.config.js",

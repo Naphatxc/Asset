@@ -6,20 +6,34 @@
 
 - `client/` — React + Vite สำหรับส่วนติดต่อผู้ใช้
 - `server/` — Express API และ Prisma ORM
-- `database/` — MySQL schema และข้อมูลตัวอย่าง
 
 ## เริ่มใช้งาน
 
 1. คัดลอก `server/.env.example` เป็น `server/.env` และกำหนดค่า MySQL
-2. สร้างฐานข้อมูลด้วย `database/schema.sql`
-3. ติดตั้ง dependencies ด้วย `npm install`
-4. ดึง schema จากฐานข้อมูลเดิมด้วย `npm --workspace server run prisma:pull`
-5. Generate Prisma Client ด้วย `npm --workspace server run prisma:generate`
-6. เปิด API: `npm run dev:server`
-7. เปิดเว็บ: `npm run dev:client`
+   (สร้างแค่ฐานข้อมูลเปล่าชื่อ `asset_management` ไว้ ตารางจะถูกสร้างในขั้นที่ 3)
+2. ติดตั้ง dependencies ด้วย `npm install`
+3. สร้างตารางทั้งหมดด้วย `npm --workspace server run prisma:migrate:dev`
+4. เปิด API: `npm run dev:server`
+5. เปิดเว็บ: `npm run dev:client`
 
-Backend ใช้ Prisma Client สำหรับอ่านและเขียนข้อมูลทั้งหมด โดย schema อยู่ที่
-`server/prisma/schema.prisma` และ config อยู่ที่ `server/prisma.config.js`
+## ฐานข้อมูล
+
+`server/prisma/schema.prisma` เป็นแหล่งความจริงเพียงแห่งเดียวของโครงสร้างฐานข้อมูล
+ไฟล์ SQL ที่รันจริงอยู่ใน `server/prisma/migrations/` และ config ของ Prisma CLI อยู่ที่
+`server/prisma.config.js` (ประกอบ connection string จากตัวแปร `DB_*` ใน `.env`)
+
+เวลาจะแก้โครงสร้างตาราง ให้แก้ `schema.prisma` แล้วรัน
+
+```powershell
+npm --workspace server run prisma:migrate:dev -- --name ชื่อ_migration
+```
+
+คำสั่งนี้จะสร้างไฟล์ migration ใหม่พร้อม apply กับฐานข้อมูลในเครื่องให้เลย
+ต้อง commit ไฟล์ที่ได้ใน `server/prisma/migrations/` ด้วยเสมอ เพราะ production
+รัน `prisma migrate deploy` จากไฟล์เหล่านี้อัตโนมัติตอน deploy
+
+อย่าแก้โครงสร้างด้วยการรัน SQL มือ เพราะจะทำให้ฐานข้อมูลหลุดจาก `schema.prisma`
+แล้ว Prisma จะ error `P2022 ColumnNotFound` ตอน query
 
 > ห้าม commit ไฟล์ `.env` เพราะมีรหัสผ่านฐานข้อมูล
 
