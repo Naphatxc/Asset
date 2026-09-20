@@ -12,6 +12,7 @@
     "prisma:studio": "prisma studio --config prisma.config.js",
     "prisma:migrate:dev": "prisma migrate dev --config prisma.config.js",
     "prisma:migrate:deploy": "prisma migrate deploy --config prisma.config.js",
+    "prisma:migrate:baseline": "prisma migrate resolve --applied 0_init --config prisma.config.js",
     "prisma:migrate:status": "prisma migrate status --config prisma.config.js"
   },
   "dependencies": {
@@ -23,9 +24,7 @@
     "dotenv": "latest",
     "express": "latest",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.4.0"
-  },
-  "devDependencies": {
+    "multer": "^2.4.0",
     "prisma": "7.10.0"
   }
 }
