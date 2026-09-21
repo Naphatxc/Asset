@@ -15,6 +15,7 @@ import {
 import { getEquipment } from '../../../api/equipment.js';
 import CharCount from '../../../components/CharCount.jsx';
 import EquipmentPicker from '../../../components/EquipmentPicker.jsx';
+import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
 import SearchableSelect from '../../../components/SearchableSelect.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 
@@ -60,6 +61,7 @@ export default function BorrowManager() {
   const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [remark, setRemark] = useState('');
   const [pendingOnly, setPendingOnly] = useState(false);
+  const [page, setPage] = useState(1);
 
   const borrowsQuery = useQuery({ queryKey: ['borrows'], queryFn: getBorrows });
   const usersQuery = useQuery({ queryKey: ['admin-users'], queryFn: getUsers });
@@ -92,6 +94,8 @@ export default function BorrowManager() {
   const rows = borrows
     .filter((borrow) => !pendingOnly || borrow.status === 'pending')
     .flatMap((borrow) => borrow.details.map((detail) => ({ borrow, detail })));
+  // server ส่งมาทั้งหมด แบ่งหน้าฝั่ง client ให้หน้าตาเหมือนแท็บครุภัณฑ์/วัสดุ
+  const { rows: pageRows, pagination } = paginateRows(rows, page);
 
   function openForm() {
     setUserId('');
@@ -194,7 +198,10 @@ export default function BorrowManager() {
             <input
               type="checkbox"
               checked={pendingOnly}
-              onChange={(event) => setPendingOnly(event.target.checked)}
+              onChange={(event) => {
+                setPendingOnly(event.target.checked);
+                setPage(1);
+              }}
             />
             แสดงเฉพาะรออนุมัติ
           </label>
@@ -310,7 +317,7 @@ export default function BorrowManager() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ borrow, detail }) => (
+              {pageRows.map(({ borrow, detail }) => (
                 <tr key={detail.borrow_detail_id}>
                   <td data-label="ผู้ยืม">
                     {borrow.user_name}
@@ -387,6 +394,8 @@ export default function BorrowManager() {
           </table>
         </div>
       )}
+
+      {!loading && <PaginationBar pagination={pagination} onPageChange={setPage} />}
     </section>
   );
 }

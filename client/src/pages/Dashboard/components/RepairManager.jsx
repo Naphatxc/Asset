@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { getEquipment } from '../../../api/equipment.js';
 import { getRepairs, reportRepair, startRepair } from '../../../api/repair.js';
 import FileDropInput from '../../../components/FileDropInput.jsx';
+import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
 import SearchableSelect from '../../../components/SearchableSelect.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import RepairDetailDialog from './RepairDetailDialog.jsx';
@@ -42,6 +43,7 @@ export default function RepairManager() {
   const [issue, setIssue] = useState('');
   const [files, setFiles] = useState([]);
   const [statusFilter, setStatusFilter] = useState('');
+  const [page, setPage] = useState(1);
   const [openRepairId, setOpenRepairId] = useState(null);
 
   const repairsQuery = useQuery({
@@ -55,6 +57,8 @@ export default function RepairManager() {
   });
 
   const repairs = repairsQuery.data?.repairs ?? [];
+  // server ส่งมาทั้งหมด แบ่งหน้าฝั่ง client ให้หน้าตาเหมือนแท็บครุภัณฑ์/วัสดุ
+  const { rows: pageRepairs, pagination } = paginateRows(repairs, page);
   const availableEquipment = equipmentQuery.data?.equipment ?? [];
 
   // แปลงเป็น { value, label } ให้ SearchableSelect ใช้ตรงกัน ค้นหาได้ทั้งรหัสและชื่อครุภัณฑ์
@@ -132,7 +136,10 @@ export default function RepairManager() {
         <div className="toolbar-actions">
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value)}
+            onChange={(event) => {
+              setStatusFilter(event.target.value);
+              setPage(1);
+            }}
           >
             {statusOptions.map((option) => (
               <option key={option.value} value={option.value}>
@@ -232,7 +239,7 @@ export default function RepairManager() {
               </tr>
             </thead>
             <tbody>
-              {repairs.map((repair) => (
+              {pageRepairs.map((repair) => (
                 <tr key={repair.repair_id}>
                   <td data-label="ครุภัณฑ์">
                     <span className="equipment-code">
@@ -275,6 +282,8 @@ export default function RepairManager() {
           </table>
         </div>
       )}
+
+      {!loading && <PaginationBar pagination={pagination} onPageChange={setPage} />}
 
       {openRepairId && (
         <RepairDetailDialog

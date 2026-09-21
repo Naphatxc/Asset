@@ -10,6 +10,7 @@ import {
 import { getEquipment } from '../../../api/equipment.js';
 import CharCount from '../../../components/CharCount.jsx';
 import EquipmentPicker from '../../../components/EquipmentPicker.jsx';
+import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 
 const MAX_REMARK_LENGTH = 2000; // ต้องตรงกับ server (borrow.validator.js)
@@ -52,6 +53,7 @@ export default function MyBorrows() {
   const [returnDate, setReturnDate] = useState(tomorrowDateInput);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [remark, setRemark] = useState('');
+  const [page, setPage] = useState(1);
 
   const borrowsQuery = useQuery({
     queryKey: ['borrows', 'mine'],
@@ -69,6 +71,7 @@ export default function MyBorrows() {
   const rows = borrows.flatMap((borrow) =>
     borrow.details.map((detail) => ({ borrow, detail })),
   );
+  const { rows: pageRows, pagination } = paginateRows(rows, page);
 
   function openForm() {
     setReturnDate(tomorrowDateInput());
@@ -224,7 +227,7 @@ export default function MyBorrows() {
               </tr>
             </thead>
             <tbody>
-              {rows.map(({ borrow, detail }) => (
+              {pageRows.map(({ borrow, detail }) => (
                 <tr key={detail.borrow_detail_id}>
                   <td data-label="ครุภัณฑ์">
                     <span className="equipment-code">
@@ -270,6 +273,8 @@ export default function MyBorrows() {
           </table>
         </div>
       )}
+
+      {!loading && <PaginationBar pagination={pagination} onPageChange={setPage} />}
     </section>
   );
 }

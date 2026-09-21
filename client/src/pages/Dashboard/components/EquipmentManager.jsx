@@ -29,6 +29,7 @@ import EquipmentForm, {
   categoryCreateFields,
   locationCreateFields,
 } from '../../../components/EquipmentForm.jsx';
+import PaginationBar from '../../../components/PaginationBar.jsx';
 import SelectWithCreate from '../../../components/SelectWithCreate.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import EquipmentHistory from './EquipmentHistory.jsx';
@@ -347,9 +348,6 @@ export default function EquipmentManager({ user }) {
     setHistoryEquipment(item);
   }
 
-  const rangeStart = pagination && pagination.total > 0 ? (pagination.page - 1) * pagination.limit + 1 : 0;
-  const rangeEnd = pagination ? Math.min(pagination.page * pagination.limit, pagination.total) : 0;
-
   return (
     <section className="equipment-section">
       <div className="section-heading equipment-toolbar">
@@ -508,34 +506,7 @@ export default function EquipmentManager({ user }) {
             onRestore={restoreItem}
           />
 
-          {pagination && pagination.totalPages > 1 && (
-            <div className="pagination-bar">
-              <span className="pagination-summary">
-                แสดง {rangeStart}-{rangeEnd} จาก {pagination.total} รายการ
-              </span>
-              <div className="pagination-controls">
-                <button
-                  className="button-secondary"
-                  type="button"
-                  disabled={page <= 1}
-                  onClick={() => setPage((current) => current - 1)}
-                >
-                  ก่อนหน้า
-                </button>
-                <span>
-                  หน้า {pagination.page} / {pagination.totalPages}
-                </span>
-                <button
-                  className="button-secondary"
-                  type="button"
-                  disabled={page >= pagination.totalPages}
-                  onClick={() => setPage((current) => current + 1)}
-                >
-                  ถัดไป
-                </button>
-              </div>
-            </div>
-          )}
+          <PaginationBar pagination={pagination} onPageChange={setPage} />
         </>
       )}
     </section>

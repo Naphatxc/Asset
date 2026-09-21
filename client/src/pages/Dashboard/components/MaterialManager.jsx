@@ -23,6 +23,7 @@ import {
 } from '../../../api/materials.js';
 import { categoryCreateFields } from '../../../components/EquipmentForm.jsx';
 import MaterialForm from '../../../components/MaterialForm.jsx';
+import PaginationBar from '../../../components/PaginationBar.jsx';
 import SelectWithCreate from '../../../components/SelectWithCreate.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import WithdrawMaterialDialog from '../../../components/WithdrawMaterialDialog.jsx';
@@ -249,14 +250,6 @@ export default function MaterialManager({ user }) {
     withdrawMutation.mutate({ item: withdrawingMaterial, quantity, remark });
   }
 
-  const rangeStart =
-    pagination && pagination.total > 0
-      ? (pagination.page - 1) * pagination.limit + 1
-      : 0;
-  const rangeEnd = pagination
-    ? Math.min(pagination.page * pagination.limit, pagination.total)
-    : 0;
-
   return (
     <section className="equipment-section">
       <div className="section-heading equipment-toolbar">
@@ -359,40 +352,44 @@ export default function MaterialManager({ user }) {
             <p>ยังไม่มีประวัติการเบิก</p>
           </div>
         ) : (
-          <div className="table-wrap">
-            <table className="equipment-table responsive-table">
-              <thead>
-                <tr>
-                  <th>วัสดุ</th>
-                  <th>ผู้เบิก</th>
-                  <th>จำนวน</th>
-                  <th>หมายเหตุ</th>
-                  <th>วันที่เบิก</th>
-                </tr>
-              </thead>
-              <tbody>
-                {withdrawals.map((row) => (
-                  <tr key={row.withdrawal_id}>
-                    <td data-label="วัสดุ">
-                      <span className="equipment-code">{row.material_code}</span>
-                      <br />
-                      {row.material_name}
-                    </td>
-                    <td data-label="ผู้เบิก">
-                      {row.user_name}
-                      <br />
-                      {row.user_email}
-                    </td>
-                    <td data-label="จำนวน">
-                      {row.quantity} {row.unit_name}
-                    </td>
-                    <td data-label="หมายเหตุ">{row.remark || '-'}</td>
-                    <td data-label="วันที่เบิก">{formatDateTime(row.withdrawn_at)}</td>
+          <>
+            <div className="table-wrap">
+              <table className="equipment-table responsive-table">
+                <thead>
+                  <tr>
+                    <th>วัสดุ</th>
+                    <th>ผู้เบิก</th>
+                    <th>จำนวน</th>
+                    <th>หมายเหตุ</th>
+                    <th>วันที่เบิก</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {withdrawals.map((row) => (
+                    <tr key={row.withdrawal_id}>
+                      <td data-label="วัสดุ">
+                        <span className="equipment-code">{row.material_code}</span>
+                        <br />
+                        {row.material_name}
+                      </td>
+                      <td data-label="ผู้เบิก">
+                        {row.user_name}
+                        <br />
+                        {row.user_email}
+                      </td>
+                      <td data-label="จำนวน">
+                        {row.quantity} {row.unit_name}
+                      </td>
+                      <td data-label="หมายเหตุ">{row.remark || '-'}</td>
+                      <td data-label="วันที่เบิก">{formatDateTime(row.withdrawn_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <PaginationBar pagination={pagination} onPageChange={setPage} />
+          </>
         )
       ) : materials.length === 0 ? (
         <div className="empty-state">
@@ -493,34 +490,7 @@ export default function MaterialManager({ user }) {
             </table>
           </div>
 
-          {pagination && pagination.totalPages > 1 && (
-            <div className="pagination-bar">
-              <span className="pagination-summary">
-                แสดง {rangeStart}-{rangeEnd} จาก {pagination.total} รายการ
-              </span>
-              <div className="pagination-controls">
-                <button
-                  className="button-secondary"
-                  type="button"
-                  disabled={page <= 1}
-                  onClick={() => setPage((current) => current - 1)}
-                >
-                  ก่อนหน้า
-                </button>
-                <span>
-                  หน้า {pagination.page} / {pagination.totalPages}
-                </span>
-                <button
-                  className="button-secondary"
-                  type="button"
-                  disabled={page >= pagination.totalPages}
-                  onClick={() => setPage((current) => current + 1)}
-                >
-                  ถัดไป
-                </button>
-              </div>
-            </div>
-          )}
+          <PaginationBar pagination={pagination} onPageChange={setPage} />
         </>
       )}
     </section>
