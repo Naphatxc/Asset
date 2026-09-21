@@ -59,7 +59,7 @@ export default function EquipmentTable({
 
   return (
     <div className="table-wrap">
-      <table className="equipment-table">
+      <table className="equipment-table responsive-table">
         <thead>
           <tr>
             <th>รหัส</th>
@@ -80,14 +80,14 @@ export default function EquipmentTable({
 
             return (
               <tr key={item.item_id}>
-                <td>
+                <td data-label="รหัส">
                   <span className="equipment-code">
                     {item.equipment_code}
                   </span>
                 </td>
-                <td>{item.equipment_name}</td>
-                <td>{item.category_name}</td>
-                <td>
+                <td data-label="ชื่อครุภัณฑ์">{item.equipment_name}</td>
+                <td data-label="หมวดหมู่">{item.category_name}</td>
+                <td data-label="สถานที่">
                   {admin && mode === 'active' ? (
                     // Admin เปลี่ยนสถานที่ได้ในตารางเลย ไม่ต้องเปิดฟอร์มแก้ไขทั้งหน้า
                     <select
@@ -109,8 +109,8 @@ export default function EquipmentTable({
                     formatLocation(item)
                   )}
                 </td>
-                <td>{formatPrice(item.price)}</td>
-                <td>
+                <td data-label="ราคา">{formatPrice(item.price)}</td>
+                <td data-label="สถานะ">
                   {admin && mode === 'active' ? (
                     // Admin เปลี่ยนสถานะได้ ส่วน User เห็นเป็น badge อย่างเดียว
                     <select
@@ -139,7 +139,7 @@ export default function EquipmentTable({
                 </td>
 
                 {mode === 'active' && (
-                  <td>
+                  <td className="stack-actions">
                     <div className="row-actions qr-row-actions">
                       <button
                         type="button"
@@ -162,7 +162,7 @@ export default function EquipmentTable({
                 )}
 
                 {admin && (
-                  <td>
+                  <td className="stack-actions">
                     <div className="row-actions">
                       {mode === 'active' ? (
                         <>

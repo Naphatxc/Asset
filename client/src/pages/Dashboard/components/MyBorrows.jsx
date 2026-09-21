@@ -212,7 +212,7 @@ export default function MyBorrows() {
         </div>
       ) : (
         <div className="table-wrap">
-          <table className="equipment-table borrow-table">
+          <table className="equipment-table responsive-table">
             <thead>
               <tr>
                 <th>ครุภัณฑ์</th>
@@ -226,22 +226,22 @@ export default function MyBorrows() {
             <tbody>
               {rows.map(({ borrow, detail }) => (
                 <tr key={detail.borrow_detail_id}>
-                  <td>
+                  <td data-label="ครุภัณฑ์">
                     <span className="equipment-code">
                       {detail.equipment_code}
                     </span>
                     <br />
                     {detail.equipment_name}
                   </td>
-                  <td>{formatDateTime(borrow.borrow_date)}</td>
-                  <td>{formatDateTime(detail.return_date)}</td>
-                  <td>{borrow.remark || '-'}</td>
-                  <td>
+                  <td data-label="วันที่ยืม">{formatDateTime(borrow.borrow_date)}</td>
+                  <td data-label="กำหนดคืน">{formatDateTime(detail.return_date)}</td>
+                  <td data-label="หมายเหตุ">{borrow.remark || '-'}</td>
+                  <td data-label="สถานะ">
                     <span className={`status-badge status-${detail.status}`}>
                       {statusLabels[detail.status] ?? detail.status}
                     </span>
                   </td>
-                  <td>
+                  <td className="stack-actions">
                     {detail.status === 'borrowed' ||
                     detail.status === 'overdue' ? (
                       <div className="row-actions">

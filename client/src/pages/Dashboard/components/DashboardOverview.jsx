@@ -289,7 +289,7 @@ export default function DashboardOverview() {
               </div>
             ) : (
               <div className="table-wrap">
-                <table className="user-table">
+                <table className="user-table responsive-table">
                   <thead>
                     <tr>
                       <th>ครุภัณฑ์</th>
@@ -300,14 +300,14 @@ export default function DashboardOverview() {
                   <tbody>
                     {summary.overdueBorrows.map((item) => (
                       <tr key={item.borrow_detail_id}>
-                        <td>
+                        <td data-label="ครุภัณฑ์">
                           <span className="equipment-code">
                             {item.equipment_code}
                           </span>{' '}
                           {item.equipment_name}
                         </td>
-                        <td>{item.borrower_name}</td>
-                        <td>{formatDateTime(item.return_date)}</td>
+                        <td data-label="ผู้ยืม">{item.borrower_name}</td>
+                        <td data-label="ครบกำหนดคืน">{formatDateTime(item.return_date)}</td>
                       </tr>
                     ))}
                   </tbody>

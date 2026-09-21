@@ -324,8 +324,11 @@ button:disabled {
   flex: none;
 }
 
-.equipment-table {
-  min-width: 1240px;
+/* ไม่ล็อก min-width ของตารางแล้ว ให้กว้างตามเนื้อหาจริง พื้นที่แคบกว่านี้ .responsive-table จะกลายเป็นการ์ดเอง
+   dropdown สถานที่จำกัดความกว้างไว้ ไม่งั้นจะกว้างตามชื่อสถานที่ที่ยาวที่สุดแล้วดันทั้งตารางให้ล้น */
+.equipment-table td .status-select {
+  width: 100%;
+  max-width: 220px;
 }
 
 .equipment-code {
@@ -396,11 +399,6 @@ button:disabled {
 .status-cancelled {
   color: #6b6b6b;
   background: #f1f1f1;
-}
-
-/* ===== ตารางยืม-คืนครุภัณฑ์ ===== */
-.borrow-table {
-  min-width: 900px;
 }
 
 .checkbox-list {
@@ -1099,6 +1097,93 @@ button:disabled {
 
   .dashboard-content {
     padding: 20px 16px;
+  }
+}
+
+/* ===== ตารางแบบ responsive =====
+   ตารางที่ติด .responsive-table กลายเป็นการ์ดทีละแถวเมื่อพื้นที่เนื้อหาแคบ (มือถือ, แท็บเล็ต, หน้าต่างย่อ)
+   ใช้ container query วัดจากความกว้างของ .dashboard-content จริง ไม่ใช่ความกว้างจอ เพราะแท็บเล็ตยังมี
+   sidebar กินที่ 260px อยู่ การ์ดเรียงหลายคอลัมน์เองเมื่อพื้นที่พอ จุดสลับ 960px มาจากตารางยืม-คืนที่ต้องใช้
+   ราว 920px ถึงจะไม่ล้น (ตารางอื่นใช้น้อยกว่า ยกเว้นครุภัณฑ์ ~1215px ที่ยอมให้เลื่อนแนวนอนบนจอ 960–1215px)
+   หัวคอลัมน์ย้ายไปอยู่หน้าค่าแต่ละช่องผ่าน data-label ของ <td> */
+.dashboard-content {
+  container: dashboard / inline-size;
+}
+
+@container dashboard (max-width: 959px) {
+  .table-wrap:has(> .responsive-table) {
+    overflow-x: visible;
+    border: 0;
+    border-radius: 0;
+  }
+
+  table.responsive-table {
+    display: block;
+    min-width: 0;
+  }
+
+  .responsive-table thead {
+    display: none;
+  }
+
+  .responsive-table tbody {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    gap: 12px;
+  }
+
+  /* flex column เพื่อดันแถบปุ่มลงล่างสุดของการ์ด การ์ดในแถวเดียวกันจะได้ปุ่มตรงแนวกัน */
+  .responsive-table tr {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 0;
+    border: 1px solid #dbe3e4;
+    border-radius: 12px;
+    background: #ffffff;
+  }
+
+  /* label วางแบบ absolute ทางซ้าย แทน grid เพราะบางช่องมีหลายส่วน (รหัส<br>ชื่อ, จำนวน+ป้ายใกล้หมด)
+     ซึ่ง grid จะแยกแต่ละส่วนเป็นคนละ cell */
+  table.responsive-table td {
+    position: relative;
+    display: block;
+    padding: 8px 14px 8px 120px;
+    border-bottom: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* dropdown ในตาราง (สถานที่, สิทธิ์) กว้างตามตัวเลือกที่ยาวสุด ต้องจำกัดไม่ให้ดันการ์ดล้น */
+  .responsive-table td select {
+    max-width: 100%;
+  }
+
+  .responsive-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    top: 9px;
+    left: 14px;
+    width: 96px;
+    color: var(--stat-slate-dark);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  table.responsive-table td.stack-actions {
+    margin-top: auto;
+    padding-top: 12px;
+    padding-left: 14px;
+    border-top: 1px solid #e6ebec;
+  }
+
+  /* ตารางครุภัณฑ์มีช่องปุ่ม 2 ช่องติดกัน (QR + จัดการ) ให้เส้นคั่นอยู่แค่เหนือช่องแรก */
+  table.responsive-table td.stack-actions + td.stack-actions {
+    margin-top: 0;
+    padding-top: 4px;
+    border-top: 0;
+  }
+
+  .responsive-table td.stack-actions::before {
+    content: none;
   }
 }
 

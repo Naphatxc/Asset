@@ -360,7 +360,7 @@ export default function MaterialManager({ user }) {
           </div>
         ) : (
           <div className="table-wrap">
-            <table className="equipment-table">
+            <table className="equipment-table responsive-table">
               <thead>
                 <tr>
                   <th>วัสดุ</th>
@@ -373,21 +373,21 @@ export default function MaterialManager({ user }) {
               <tbody>
                 {withdrawals.map((row) => (
                   <tr key={row.withdrawal_id}>
-                    <td>
+                    <td data-label="วัสดุ">
                       <span className="equipment-code">{row.material_code}</span>
                       <br />
                       {row.material_name}
                     </td>
-                    <td>
+                    <td data-label="ผู้เบิก">
                       {row.user_name}
                       <br />
                       {row.user_email}
                     </td>
-                    <td>
+                    <td data-label="จำนวน">
                       {row.quantity} {row.unit_name}
                     </td>
-                    <td>{row.remark || '-'}</td>
-                    <td>{formatDateTime(row.withdrawn_at)}</td>
+                    <td data-label="หมายเหตุ">{row.remark || '-'}</td>
+                    <td data-label="วันที่เบิก">{formatDateTime(row.withdrawn_at)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -405,7 +405,7 @@ export default function MaterialManager({ user }) {
       ) : (
         <>
           <div className="table-wrap">
-            <table className="equipment-table">
+            <table className="equipment-table responsive-table">
               <thead>
                 <tr>
                   <th>รหัส</th>
@@ -424,12 +424,12 @@ export default function MaterialManager({ user }) {
 
                   return (
                     <tr key={item.material_id}>
-                      <td>
+                      <td data-label="รหัส">
                         <span className="equipment-code">{item.material_code}</span>
                       </td>
-                      <td>{item.material_name}</td>
-                      <td>{item.category_name}</td>
-                      <td>
+                      <td data-label="ชื่อวัสดุ">{item.material_name}</td>
+                      <td data-label="หมวดหมู่">{item.category_name}</td>
+                      <td data-label="คงเหลือ">
                         {item.quantity} {item.unit_name}
                         {item.low_stock && (
                           <>
@@ -440,9 +440,9 @@ export default function MaterialManager({ user }) {
                           </>
                         )}
                       </td>
-                      <td>{formatPrice(item.unit_price)}</td>
-                      <td>{formatDate(item.expire_date)}</td>
-                      <td>
+                      <td data-label="ราคา/หน่วย">{formatPrice(item.unit_price)}</td>
+                      <td data-label="วันหมดอายุ">{formatDate(item.expire_date)}</td>
+                      <td className="stack-actions">
                         <div className="row-actions">
                           {view === 'active' && (
                             <button

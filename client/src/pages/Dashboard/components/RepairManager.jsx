@@ -220,7 +220,7 @@ export default function RepairManager() {
         </div>
       ) : (
         <div className="table-wrap">
-          <table className="equipment-table">
+          <table className="equipment-table responsive-table">
             <thead>
               <tr>
                 <th>ครุภัณฑ์</th>
@@ -234,22 +234,22 @@ export default function RepairManager() {
             <tbody>
               {repairs.map((repair) => (
                 <tr key={repair.repair_id}>
-                  <td>
+                  <td data-label="ครุภัณฑ์">
                     <span className="equipment-code">
                       {repair.equipment_code}
                     </span>
                     <br />
                     {repair.equipment_name}
                   </td>
-                  <td>{repair.reporter_name}</td>
-                  <td>{formatDateTime(repair.repair_date)}</td>
-                  <td>{repair.issue}</td>
-                  <td>
+                  <td data-label="ผู้แจ้ง">{repair.reporter_name}</td>
+                  <td data-label="วันที่แจ้ง">{formatDateTime(repair.repair_date)}</td>
+                  <td data-label="ปัญหา">{repair.issue}</td>
+                  <td data-label="สถานะ">
                     <span className={`status-badge status-${repair.status}`}>
                       {statusLabels[repair.status] ?? repair.status}
                     </span>
                   </td>
-                  <td>
+                  <td className="stack-actions">
                     <div className="row-actions">
                       {repair.status === 'pending_repair' && (
                         <button

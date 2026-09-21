@@ -7,7 +7,7 @@ export default function UserTable({
 }) {
   return (
     <div className="table-wrap">
-      <table className="user-table">
+      <table className="user-table responsive-table">
         <thead>
           <tr>
             <th>ชื่อ</th>
@@ -18,9 +18,9 @@ export default function UserTable({
         <tbody>
           {users.map((item) => (
             <tr key={item.user_id}>
-              <td>{item.name}</td>
-              <td>{item.email}</td>
-              <td>
+              <td data-label="ชื่อ">{item.name}</td>
+              <td data-label="อีเมล">{item.email}</td>
+              <td data-label="สิทธิ์">
                 <select
                   value={item.role}
                   disabled={

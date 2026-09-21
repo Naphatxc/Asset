@@ -297,7 +297,7 @@ export default function BorrowManager() {
         </div>
       ) : (
         <div className="table-wrap">
-          <table className="equipment-table borrow-table">
+          <table className="equipment-table responsive-table">
             <thead>
               <tr>
                 <th>ผู้ยืม</th>
@@ -312,27 +312,27 @@ export default function BorrowManager() {
             <tbody>
               {rows.map(({ borrow, detail }) => (
                 <tr key={detail.borrow_detail_id}>
-                  <td>
+                  <td data-label="ผู้ยืม">
                     {borrow.user_name}
                     <br />
                     {borrow.user_email}
                   </td>
-                  <td>
+                  <td data-label="ครุภัณฑ์">
                     <span className="equipment-code">
                       {detail.equipment_code}
                     </span>
                     <br />
                     {detail.equipment_name}
                   </td>
-                  <td>{formatDateTime(borrow.borrow_date)}</td>
-                  <td>{formatDateTime(detail.return_date)}</td>
-                  <td>{borrow.remark || '-'}</td>
-                  <td>
+                  <td data-label="วันที่ยืม">{formatDateTime(borrow.borrow_date)}</td>
+                  <td data-label="กำหนดคืน">{formatDateTime(detail.return_date)}</td>
+                  <td data-label="หมายเหตุ">{borrow.remark || '-'}</td>
+                  <td data-label="สถานะ">
                     <span className={`status-badge status-${detail.status}`}>
                       {statusLabels[detail.status] ?? detail.status}
                     </span>
                   </td>
-                  <td>
+                  <td className="stack-actions">
                     {detail.status === 'pending' ? (
                       <div className="row-actions">
                         <button
