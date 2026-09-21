@@ -177,6 +177,91 @@ export async function closeRound(roundId, actorId) {
   }
 }
 
+// ยกเลิกรอบที่ยังเปิดอยู่ = ย้อนทุกอย่างที่รอบนี้ทำไว้แล้วลบทิ้ง (เหมือนกดล้างผลทุกชิ้น) ใช้ลบรอบทดสอบได้สะอาด
+// ส่วนรอบที่ปิดแล้วถือว่าผลเป็นข้อสรุปจริงไปแล้ว ลบแค่รายงาน ไม่ย้อนห้อง/ใบซ่อม
+// ย้อนแบบ bulk ไม่วนทีละชิ้นแบบ resetRecord เพราะรอบจริงอาจย้ายห้องไปหลายร้อยชิ้น ทำทีละชิ้นใน transaction
+// เดียวจะเกิน timeout ของ runSerializableTransaction
+export async function deleteRound(roundId, actorId) {
+  try {
+    const result = await runSerializableTransaction(async (tx) => {
+      const round = await auditRepository.findRoundById(roundId, tx);
+      if (!round) return { error: 'ไม่พบรอบตรวจนับ', status: 404 };
+
+      const summary = { reverted: round.status === 'open', moved_back: 0, repairs_cancelled: 0, repairs_kept: 0 };
+
+      if (round.status === 'open') {
+        const records = await auditRepository.findRecordsWithEffects(roundId, tx);
+        const history = [];
+
+        const pendingRepairs = records.filter((record) => record.repairs?.status === 'pending_repair');
+        summary.repairs_kept = records.filter((record) => record.repairs?.status === 'repairing').length;
+
+        if (pendingRepairs.length > 0) {
+          await auditRepository.cancelRepairs(
+            pendingRepairs.map((record) => record.repair_id),
+            tx,
+          );
+          await equipmentRepository.updateManyStatus(
+            pendingRepairs.map((record) => record.item_id),
+            'available',
+            tx,
+          );
+          for (const record of pendingRepairs) {
+            history.push({
+              itemId: record.item_id,
+              action: 'status_changed',
+              oldData: { status: 'pending_repair' },
+              newData: { status: 'available', repair_id: record.repair_id, audit_round_id: roundId },
+              changedBy: actorId,
+            });
+          }
+          summary.repairs_cancelled = pendingRepairs.length;
+        }
+
+        const moves = records.filter(
+          (record) =>
+            record.location_moved &&
+            record.equipment_items.equipment.location_id !== record.moved_from_location_id,
+        );
+        // จัดกลุ่มตามห้องเดิม แต่ละห้องสั่ง update ครั้งเดียว
+        const byOrigin = new Map();
+        for (const record of moves) {
+          const group = byOrigin.get(record.moved_from_location_id) ?? [];
+          group.push(record.equipment_items.equipment.equipment_id);
+          byOrigin.set(record.moved_from_location_id, group);
+          history.push({
+            itemId: record.item_id,
+            action: 'updated',
+            oldData: { location_id: record.equipment_items.equipment.location_id },
+            newData: { location_id: record.moved_from_location_id, audit_round_id: roundId },
+            changedBy: actorId,
+          });
+        }
+        for (const [locationId, equipmentIds] of byOrigin) {
+          await auditRepository.setEquipmentLocation(equipmentIds, locationId, tx);
+        }
+        summary.moved_back = moves.length;
+
+        await equipmentHistoryRepository.createMany(history, tx);
+      }
+
+      await auditRepository.deleteRound(roundId, tx);
+
+      return { summary };
+    });
+
+    if (result.error) {
+      throw new AppError(result.status, result.error);
+    }
+
+    return result.summary;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw new AppError(500, 'ไม่สามารถลบรอบตรวจนับได้', { cause: error });
+  }
+}
+
 // ย้ายห้องแล้วบันทึก history แบบเดียวกับแก้ไขครุภัณฑ์ปกติ (snapshot ก่อน/หลังเต็มๆ) แนบรอบที่ทำให้ย้ายไว้ด้วย
 async function moveLocation(itemId, equipmentId, locationId, roundId, actorId, tx) {
   const before = await getSerializedByItemId(itemId, { client: tx });

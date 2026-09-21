@@ -93,6 +93,45 @@ export async function settleUncheckedRecords(roundId, client = prisma) {
   }
 }
 
+// แถวที่การตรวจไปเปลี่ยนข้อมูลจริงไว้ (ย้ายห้อง/เปิดใบซ่อม) ใช้ย้อนคืนตอนยกเลิกทั้งรอบ
+export async function findRecordsWithEffects(roundId, client = prisma) {
+  return client.audit_records.findMany({
+    where: {
+      round_id: roundId,
+      OR: [{ location_moved: true }, { repair_id: { not: null } }],
+    },
+    select: {
+      item_id: true,
+      location_moved: true,
+      moved_from_location_id: true,
+      repair_id: true,
+      repairs: { select: { status: true } },
+      equipment_items: {
+        select: { equipment: { select: { equipment_id: true, location_id: true } } },
+      },
+    },
+  });
+}
+
+export async function cancelRepairs(repairIds, client = prisma) {
+  return client.repairs.updateMany({
+    where: { repair_id: { in: repairIds } },
+    data: { status: 'cancelled' },
+  });
+}
+
+export async function setEquipmentLocation(equipmentIds, locationId, client = prisma) {
+  return client.equipment.updateMany({
+    where: { equipment_id: { in: equipmentIds } },
+    data: { location_id: locationId },
+  });
+}
+
+export async function deleteRound(roundId, client = prisma) {
+  await client.audit_records.deleteMany({ where: { round_id: roundId } });
+  return client.audit_rounds.delete({ where: { round_id: roundId } });
+}
+
 export async function createRecords(records, client = prisma) {
   if (records.length === 0) return;
   return client.audit_records.createMany({ data: records });

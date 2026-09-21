@@ -43,6 +43,17 @@ export async function closeRound(request, response, next) {
   }
 }
 
+export async function deleteRound(request, response, next) {
+  try {
+    const { roundId } = request.validated;
+    const summary = await auditService.deleteRound(roundId, Number(request.user.sub));
+
+    response.status(200).json({ message: 'ลบรอบตรวจนับแล้ว', summary });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function checkItem(request, response, next) {
   try {
     const { roundId, itemId, result, note, locationId, moveLocation } =

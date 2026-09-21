@@ -4,12 +4,30 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-import { closeAuditRound, getAuditRounds, openAuditRound } from '../../../api/audit.js';
+import {
+  closeAuditRound,
+  deleteAuditRound,
+  getAuditRounds,
+  openAuditRound,
+} from '../../../api/audit.js';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import { defaultRoundTitle, formatDateTime } from '../../../utils/audit.js';
 import AuditSummary from './AuditSummary.jsx';
 
 const MAX_TITLE_LENGTH = 100;
+
+function describeDeleteResult(summary) {
+  if (!summary.reverted) return 'ลบรายงานรอบตรวจนับแล้ว';
+
+  const parts = [
+    `ย้ายห้องกลับ ${summary.moved_back} ชิ้น`,
+    `ยกเลิกใบแจ้งซ่อม ${summary.repairs_cancelled} ใบ`,
+  ];
+  if (summary.repairs_kept > 0) {
+    parts.push(`ใบแจ้งซ่อม ${summary.repairs_kept} ใบเริ่มซ่อมไปแล้วจึงไม่ได้ยกเลิก`);
+  }
+  return `ยกเลิกรอบแล้ว — ${parts.join(' · ')}`;
+}
 
 export default function AuditManager() {
   const queryClient = useQueryClient();
@@ -18,6 +36,8 @@ export default function AuditManager() {
   const [formOpen, setFormOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [confirmingClose, setConfirmingClose] = useState(false);
+  // รอบที่กำลังถามยืนยันการลบ (เก็บทั้ง object เพราะข้อความต่างกันระหว่างรอบเปิด/ปิดแล้ว)
+  const [confirmingDelete, setConfirmingDelete] = useState(null);
   const [summaryRoundId, setSummaryRoundId] = useState(null);
 
   const roundsQuery = useQuery({ queryKey: ['audit-rounds'], queryFn: getAuditRounds });
@@ -50,6 +70,53 @@ export default function AuditManager() {
     },
     onError: (mutationError) => showError(mutationError.message),
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (round) => deleteAuditRound(round.round_id),
+    onSuccess: (data, round) => {
+      queryClient.removeQueries({ queryKey: ['audit', round.round_id] });
+      queryClient.invalidateQueries({ queryKey: ['audit-rounds'] });
+      // ยกเลิกรอบที่เปิดอยู่ย้อนห้อง/ใบซ่อมคืน หน้าครุภัณฑ์และแจ้งซ่อมต้องโหลดใหม่
+      queryClient.invalidateQueries({ queryKey: ['equipment'] });
+      queryClient.invalidateQueries({ queryKey: ['repairs'] });
+      setSummaryRoundId((current) => (current === round.round_id ? null : current));
+      setConfirmingDelete(null);
+      showSuccess(describeDeleteResult(data.summary));
+    },
+    onError: (mutationError) => showError(mutationError.message),
+  });
+
+  function askDelete(round) {
+    setConfirmingClose(false);
+    setConfirmingDelete(round);
+  }
+
+  function renderDeleteConfirm(round) {
+    const open = round.status === 'open';
+
+    return (
+      <div className="audit-confirm">
+        <p>
+          {open
+            ? `ยกเลิกรอบ "${round.title}"? ทุกอย่างที่รอบนี้เปลี่ยนไว้จะถูกย้อนคืน: ห้องที่ย้ายระหว่างตรวจจะย้ายกลับ และใบแจ้งซ่อมที่รอบนี้เปิดไว้ (ที่ยังไม่เริ่มซ่อม) จะถูกยกเลิก จากนั้นรอบนี้จะถูกลบถาวร`
+            : `ลบรายงาน "${round.title}" ถาวร? ห้องและใบแจ้งซ่อมที่เปลี่ยนไประหว่างรอบนี้จะยังอยู่ตามเดิม ลบแล้วกู้คืนไม่ได้`}
+        </p>
+        <div className="row-actions">
+          <button
+            type="button"
+            className="button-danger"
+            disabled={deleteMutation.isPending}
+            onClick={() => deleteMutation.mutate(round)}
+          >
+            {deleteMutation.isPending ? 'กำลังลบ...' : open ? 'ยืนยันยกเลิกรอบ' : 'ยืนยันลบ'}
+          </button>
+          <button type="button" onClick={() => setConfirmingDelete(null)}>
+            ไม่ลบ
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   function startForm() {
     setTitle(defaultRoundTitle());
@@ -162,12 +229,22 @@ export default function AuditManager() {
               <button
                 type="button"
                 className="button-danger"
-                onClick={() => setConfirmingClose(true)}
+                onClick={() => {
+                  setConfirmingDelete(null);
+                  setConfirmingClose(true);
+                }}
               >
                 ปิดรอบ
               </button>
             )}
+            {confirmingDelete?.round_id !== openRound.round_id && (
+              <button type="button" onClick={() => askDelete(openRound)}>
+                ยกเลิกรอบ
+              </button>
+            )}
           </div>
+
+          {confirmingDelete?.round_id === openRound.round_id && renderDeleteConfirm(openRound)}
 
           {confirmingClose && (
             <div className="audit-confirm">
@@ -235,6 +312,13 @@ export default function AuditManager() {
                         <button type="button" onClick={() => toggleSummary(round.round_id)}>
                           {summaryRoundId === round.round_id ? 'ซ่อนผล' : 'ดูผล'}
                         </button>
+                        <button
+                          type="button"
+                          className="button-danger"
+                          onClick={() => askDelete(round)}
+                        >
+                          ลบ
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -242,6 +326,7 @@ export default function AuditManager() {
               </tbody>
             </table>
           </div>
+          {confirmingDelete && confirmingDelete.status === 'closed' && renderDeleteConfirm(confirmingDelete)}
         </>
       )}
 

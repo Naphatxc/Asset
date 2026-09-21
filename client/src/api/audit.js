@@ -17,6 +17,11 @@ export function closeAuditRound(roundId) {
   return request(`/api/admin/audits/${roundId}/close`, { method: 'PATCH' });
 }
 
+// รอบที่ยังเปิดอยู่: server ย้อนห้อง/ใบซ่อมที่รอบนี้เปลี่ยนไว้ก่อนลบ ส่วนรอบที่ปิดแล้วลบแค่รายงาน
+export function deleteAuditRound(roundId) {
+  return request(`/api/admin/audits/${roundId}`, { method: 'DELETE' });
+}
+
 // moveLocation = true ให้ย้ายห้องของครุภัณฑ์เป็น locationId ทันที (ห้องที่กำลังเดินตรวจอยู่)
 export function checkAuditItem(roundId, itemId, { result, note, locationId, moveLocation }) {
   return request(`/api/admin/audits/${roundId}/records/${itemId}`, {
