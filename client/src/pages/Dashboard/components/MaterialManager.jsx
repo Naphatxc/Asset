@@ -23,7 +23,7 @@ import {
 } from '../../../api/materials.js';
 import { categoryCreateFields } from '../../../components/EquipmentForm.jsx';
 import MaterialForm from '../../../components/MaterialForm.jsx';
-import PaginationBar from '../../../components/PaginationBar.jsx';
+import PaginationBar, { useClampPage } from '../../../components/PaginationBar.jsx';
 import SelectWithCreate from '../../../components/SelectWithCreate.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import WithdrawMaterialDialog from '../../../components/WithdrawMaterialDialog.jsx';
@@ -131,6 +131,7 @@ export default function MaterialManager({ user }) {
   const withdrawals =
     view === 'withdrawals' ? activeListQuery.data?.withdrawals ?? [] : [];
   const pagination = activeListQuery.data?.pagination;
+  useClampPage(pagination, setPage);
   const categories = categoriesQuery.data?.categories ?? [];
   const categoryOptions = categories.map((category) => ({
     value: String(category.category_id),

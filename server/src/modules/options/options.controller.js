@@ -20,6 +20,16 @@ export async function getLocations(_request, response, next) {
   }
 }
 
+export async function getAvailableEquipment(_request, response, next) {
+  try {
+    const equipment = await optionsService.getAvailableEquipment();
+
+    response.status(200).json({ equipment });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function createCategory(request, response, next) {
   try {
     const { categoryName, codePrefix } = request.validated;

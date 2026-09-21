@@ -2,7 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
-import { getEquipment } from '../../../api/equipment.js';
+import { getAvailableEquipment } from '../../../api/equipment.js';
 import { getRepairs, reportRepair, startRepair } from '../../../api/repair.js';
 import FileDropInput from '../../../components/FileDropInput.jsx';
 import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
@@ -53,7 +53,7 @@ export default function RepairManager() {
   // ใช้ query key เดียวกับ BorrowManager (['equipment','available']) แชร์ cache กันได้เพราะเป็นเงื่อนไขเดียวกัน
   const equipmentQuery = useQuery({
     queryKey: ['equipment', 'available'],
-    queryFn: () => getEquipment({ status: 'available', limit: 500 }),
+    queryFn: getAvailableEquipment,
   });
 
   const repairs = repairsQuery.data?.repairs ?? [];

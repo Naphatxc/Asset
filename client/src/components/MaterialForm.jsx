@@ -115,10 +115,25 @@ export default function MaterialForm({
       remark: form.remark.trim() || null,
     };
 
-    if (!editing) {
-      // material_code กำหนดตอนสร้างเท่านั้น (เหมือน equipment_code) กันรหัสเปลี่ยนทั้งที่ของชิ้นเดิม
-      payload.material_code = form.material_code.trim().toUpperCase();
+    if (editing) {
+      // ส่งเฉพาะช่องที่แก้จริง โดยเฉพาะจำนวนคงเหลือ: ถ้าส่งค่าตอนเปิดฟอร์มกลับไปทุกครั้ง จะทับยอดที่มีคน
+      // เบิกไประหว่างที่ฟอร์มเปิดค้างอยู่ (ชื่อ key ของ payload ตรงกับของ form ทุกตัว)
+      const initial = createInitialForm(material);
+      const changed = Object.fromEntries(
+        Object.entries(payload).filter(([field]) => form[field] !== initial[field]),
+      );
+
+      if (Object.keys(changed).length === 0) {
+        onCancel();
+        return;
+      }
+
+      onSubmit(changed);
+      return;
     }
+
+    // material_code กำหนดตอนสร้างเท่านั้น (เหมือน equipment_code) กันรหัสเปลี่ยนทั้งที่ของชิ้นเดิม
+    payload.material_code = form.material_code.trim().toUpperCase();
 
     onSubmit(payload);
   }

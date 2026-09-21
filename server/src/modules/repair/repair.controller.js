@@ -1,4 +1,5 @@
 import * as repairService from './repair.service.js';
+import { AppError } from '../../utils/AppError.js';
 
 export async function getRepairList(request, response, next) {
   try {
@@ -73,6 +74,16 @@ export async function downloadFile(request, response, next) {
         'Content-Disposition': `inline; filename="${safeFileName}"; filename*=UTF-8''${encodeURIComponent(file.file_name)}`,
         ...(file.file_type ? { 'Content-Type': file.file_type } : {}),
       },
+    }, (sendError) => {
+      // ผู้ใช้ปิดแท็บกลางทางก็เข้ามาตรงนี้ได้ ตอนนั้นส่ง header ไปแล้ว ไม่ต้องตอบอะไรอีก
+      if (!sendError || response.headersSent) return;
+
+      // ไม่ส่ง error ดิบของ send กลับไป เพราะข้อความมี path จริงบน server ติดมาด้วย
+      next(
+        sendError.code === 'ENOENT'
+          ? new AppError(404, 'ไม่พบไฟล์แนบบนเซิร์ฟเวอร์ ไฟล์อาจถูกลบไปแล้ว')
+          : new AppError(500, 'ไม่สามารถเปิดไฟล์แนบได้', { cause: sendError }),
+      );
     });
   } catch (error) {
     next(error);

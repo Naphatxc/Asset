@@ -12,7 +12,7 @@ import {
   rejectBorrow,
   returnBorrowDetail,
 } from '../../../api/borrow.js';
-import { getEquipment } from '../../../api/equipment.js';
+import { getAvailableEquipment } from '../../../api/equipment.js';
 import CharCount from '../../../components/CharCount.jsx';
 import EquipmentPicker from '../../../components/EquipmentPicker.jsx';
 import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
@@ -65,10 +65,10 @@ export default function BorrowManager() {
 
   const borrowsQuery = useQuery({ queryKey: ['borrows'], queryFn: getBorrows });
   const usersQuery = useQuery({ queryKey: ['admin-users'], queryFn: getUsers });
-  // ขอเฉพาะชิ้นที่ว่างจาก backend ตรงๆ (limit สูงพอสำหรับของว่างจริง) แยก cache จากตาราง Equipment หลักที่แบ่งหน้า
+  // ขอเฉพาะชิ้นที่ว่างทั้งหมดจาก backend (ไม่แบ่งหน้า) แยก cache จากตาราง Equipment หลักที่แบ่งหน้า
   const equipmentQuery = useQuery({
     queryKey: ['equipment', 'available'],
-    queryFn: () => getEquipment({ status: 'available', limit: 500 }),
+    queryFn: getAvailableEquipment,
   });
 
   const borrows = borrowsQuery.data?.borrows ?? [];

@@ -94,6 +94,13 @@ async function checkItemsAvailable(itemIds, tx) {
     if (!item) {
       return { error: `ไม่พบครุภัณฑ์รหัส ${itemId}`, status: 404 };
     }
+    // ลบครุภัณฑ์ไม่ได้เช็คคำขอยืมที่ยังรออนุมัติ คำขอจึงค้างอยู่ได้ ต้องกันตอนอนุมัติ ไม่งั้นของที่ลบไปแล้วจะถูกยืมออกไป
+    if (item.deleted_at) {
+      return {
+        error: `ครุภัณฑ์ ${item.equipment_name} ถูกลบออกจากระบบแล้ว`,
+        status: 409,
+      };
+    }
     if (item.status !== 'available') {
       return {
         error: `ครุภัณฑ์ ${item.equipment_name} ไม่ว่างให้ยืม`,

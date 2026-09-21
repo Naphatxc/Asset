@@ -29,7 +29,7 @@ import EquipmentForm, {
   categoryCreateFields,
   locationCreateFields,
 } from '../../../components/EquipmentForm.jsx';
-import PaginationBar from '../../../components/PaginationBar.jsx';
+import PaginationBar, { useClampPage } from '../../../components/PaginationBar.jsx';
 import SelectWithCreate from '../../../components/SelectWithCreate.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import EquipmentHistory from './EquipmentHistory.jsx';
@@ -132,6 +132,7 @@ export default function EquipmentManager({ user }) {
   const activeListQuery = view === 'active' ? equipmentQuery : deletedEquipmentQuery;
   const equipment = activeListQuery.data?.equipment ?? [];
   const pagination = activeListQuery.data?.pagination;
+  useClampPage(pagination, setPage);
   const categories = categoriesQuery.data?.categories ?? [];
   const locations = locationsQuery.data?.locations ?? [];
   const history = historyQuery.data?.history ?? [];

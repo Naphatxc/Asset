@@ -1,5 +1,6 @@
 // ตั้งค่า multer สำหรับอัปโหลดไฟล์แนบการแจ้งซ่อม เก็บไฟล์จริงไว้ที่ server/uploads/repairs
 import crypto from 'node:crypto';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -16,6 +17,10 @@ export const repairUploadDir = path.join(
   'uploads',
   'repairs',
 );
+
+// multer ไม่สร้างโฟลเดอร์ปลายทางให้เอง โฟลเดอร์ใน repo มีอยู่ก็จริง (.gitkeep) แต่ถ้าต่อ Railway Volume ไว้ที่
+// server/uploads (ต้องต่อ ไม่งั้นไฟล์หายทุกครั้งที่ deploy) volume ใหม่จะว่างเปล่า อัปโหลดแรกจะพังด้วย ENOENT
+fs.mkdirSync(repairUploadDir, { recursive: true });
 
 const allowedMimeTypes = new Set([
   'image/jpeg',

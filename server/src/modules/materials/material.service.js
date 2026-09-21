@@ -179,7 +179,7 @@ export async function updateMaterial(materialId, body) {
       throw new AppError(400, 'ราคาต่อหน่วยไม่ถูกต้อง');
     }
 
-    const updated = await materialRepository.update(materialId, {
+    const merged = {
       material_name: materialName,
       category_id: categoryId,
       quantity,
@@ -188,7 +188,13 @@ export async function updateMaterial(materialId, body) {
       unit_name: unitName,
       unit_price: unitPrice,
       remark,
-    });
+    };
+    // ตรวจจากค่าที่ merge แล้ว แต่เขียนลง DB เฉพาะ field ที่ส่งมาจริง โดยเฉพาะ quantity: ถ้าเขียนค่าที่อ่านไว้
+    // กลับไปทุกครั้ง การเบิกที่เกิดขึ้นระหว่างนั้นจะถูกทับหาย ยอดคงเหลือไม่ตรงกับประวัติการเบิก
+    const data = Object.fromEntries(
+      Object.entries(merged).filter(([field]) => hasOwn(body, field)),
+    );
+    const updated = await materialRepository.update(materialId, data);
 
     return serializeMaterial(updated);
   } catch (error) {

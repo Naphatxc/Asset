@@ -115,7 +115,18 @@ export async function findByItemId(
 export async function findManyByItemIds(itemIds, client = prisma) {
   return client.equipment_items.findMany({
     where: { item_id: { in: itemIds } },
-    select: { item_id: true, status: true, equipment_name: true },
+    // deleted_at ด้วย เพราะของที่ถูกลบแล้วยังมี status เดิมค้างอยู่ (เช่น available) ต้องกันไว้ต่างหาก
+    select: { item_id: true, status: true, equipment_name: true, deleted_at: true },
+  });
+}
+
+// ตัวเลือกครุภัณฑ์ที่ว่างทั้งหมดสำหรับฟอร์มยืม/แจ้งซ่อม ไม่แบ่งหน้า (ต้องเลือกได้ครบทุกชิ้น) จึงดึงเฉพาะ field
+// ที่ตัวเลือกใช้จริง ไม่ include หมวดหมู่/สถานที่แบบรายการหลัก ให้ payload เล็กแม้ครุภัณฑ์มีหลายพันชิ้น
+export async function findAvailableOptions(client = prisma) {
+  return client.equipment_items.findMany({
+    where: { deleted_at: null, status: 'available' },
+    select: { item_id: true, equipment_code: true, equipment_name: true },
+    orderBy: { item_id: 'desc' },
   });
 }
 

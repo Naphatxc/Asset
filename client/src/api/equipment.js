@@ -32,6 +32,12 @@ export function getDeletedEquipment(params) {
   return request(`/api/admin/equipment-items/deleted${toListQueryString(params)}`);
 }
 
+// ครุภัณฑ์ที่ว่างทุกชิ้น (ไม่แบ่งหน้า มีแค่ item_id/equipment_code/equipment_name) สำหรับช่องเลือกในฟอร์ม
+// ยืม/แจ้งซ่อม ห้ามใช้ getEquipment({ limit }) แทน เพราะ server ตัด limit ไว้ที่ 500 ของที่เกินจะเลือกไม่ได้
+export function getAvailableEquipment() {
+  return request('/api/available-equipment');
+}
+
 export function getCategories() {
   return request('/api/categories');
 }

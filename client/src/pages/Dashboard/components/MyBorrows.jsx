@@ -7,7 +7,7 @@ import {
   requestBorrow,
   returnBorrowDetail,
 } from '../../../api/borrow.js';
-import { getEquipment } from '../../../api/equipment.js';
+import { getAvailableEquipment } from '../../../api/equipment.js';
 import CharCount from '../../../components/CharCount.jsx';
 import EquipmentPicker from '../../../components/EquipmentPicker.jsx';
 import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
@@ -62,7 +62,7 @@ export default function MyBorrows() {
   // ขอเฉพาะชิ้นที่ว่างจาก backend ตรงๆ แยก cache จากตาราง Equipment หลักที่แบ่งหน้า
   const equipmentQuery = useQuery({
     queryKey: ['equipment', 'available'],
-    queryFn: () => getEquipment({ status: 'available', limit: 500 }),
+    queryFn: getAvailableEquipment,
     enabled: formOpen,
   });
 

@@ -1,6 +1,7 @@
 // Business Logic สำหรับข้อมูลตัวเลือก (categories/locations) ของ Form ครุภัณฑ์
 import * as categoryRepository from './category.repository.js';
 import * as locationRepository from './location.repository.js';
+import * as equipmentRepository from '../equipment/equipment.repository.js';
 import { AppError } from '../../utils/AppError.js';
 
 // MySQL ไม่มี collation ที่เรียงข้อความไทยแบบพจนานุกรมถูกต้องสำหรับ utf8mb4 เลย (สระนำอย่าง "เ" ต้องถูก
@@ -29,6 +30,14 @@ export async function getLocations() {
     );
   } catch (error) {
     throw new AppError(500, 'ไม่สามารถโหลดสถานที่ได้', { cause: error });
+  }
+}
+
+export async function getAvailableEquipment() {
+  try {
+    return await equipmentRepository.findAvailableOptions();
+  } catch (error) {
+    throw new AppError(500, 'ไม่สามารถโหลดรายการครุภัณฑ์ที่ว่างได้', { cause: error });
   }
 }
 
