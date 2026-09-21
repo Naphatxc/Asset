@@ -1,6 +1,7 @@
 // รวม Route ทุกโมดูล mount ใต้ /api ตาม path เดิมของระบบ (ดู app.js)
 import express from 'express';
 
+import adminAuditRouter from '../modules/audit/audit.routes.js';
 import adminUserRoutes from '../modules/users/admin-users.routes.js';
 import authRoutes from '../modules/auth/auth.routes.js';
 import borrowRoutes, {
@@ -30,6 +31,7 @@ router.use('/borrows', borrowRoutes);
 router.use('/admin/borrows', adminBorrowRouter);
 router.use('/admin/dashboard', dashboardRoutes);
 router.use('/admin/repairs', adminRepairRouter);
+router.use('/admin/audits', adminAuditRouter);
 router.use('/materials', materialRoutes);
 router.use('/admin/materials', adminMaterialRouter);
 router.use('/', optionRoutes);

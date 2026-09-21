@@ -16,6 +16,7 @@
     "axios": "^1.20.0",
     "express": "^5.2.1",
     "http-proxy-middleware": "^4.2.0",
+    "qr-scanner": "^1.4.2",
     "qrcode": "^1.5.4",
     "react": "latest",
     "react-dom": "latest",

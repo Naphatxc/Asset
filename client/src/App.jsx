@@ -5,6 +5,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Route, Routes } from 'react-router-dom';
 import { getCurrentUser, logout as logoutRequest } from './api/auth.js';
+import AuditScanPage from './pages/AuditScanPage/AuditScanPage.jsx';
 import Dashboard from './pages/Dashboard/Dashboard.jsx';
 import EquipmentDetailPage from './pages/EquipmentDetailPage/EquipmentDetailPage.jsx';
 import LoginPage from './pages/LoginPage/LoginPage.jsx';
@@ -51,6 +52,7 @@ export default function App() {
           path="/equipment/:code"
           element={<EquipmentDetailPage user={user} />}
         />
+        <Route path="/audit/:roundId" element={<AuditScanPage user={user} />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
     );

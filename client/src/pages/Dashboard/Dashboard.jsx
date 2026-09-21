@@ -9,6 +9,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { getUsers, updateUserRole as updateUserRoleRequest } from '../../api/admin-users.js';
 import { useToast } from '../../components/ToastProvider.jsx';
+import AuditManager from './components/AuditManager.jsx';
 import BorrowManager from './components/BorrowManager.jsx';
 import DashboardOverview from './components/DashboardOverview.jsx';
 import EquipmentManager from './components/EquipmentManager.jsx';
@@ -23,6 +24,7 @@ const adminTabs = [
   { key: 'materials', label: 'วัสดุ' },
   { key: 'borrow', label: 'ยืม-คืน' },
   { key: 'repair', label: 'แจ้งซ่อม' },
+  { key: 'audit', label: 'ตรวจนับประจำปี' },
   { key: 'users', label: 'ผู้ใช้งาน' },
 ];
 
@@ -132,6 +134,8 @@ export default function Dashboard({ user, onLogout }) {
         {activeTab === 'borrow' && (admin ? <BorrowManager /> : <MyBorrows />)}
 
         {activeTab === 'repair' && admin && <RepairManager />}
+
+        {activeTab === 'audit' && admin && <AuditManager />}
 
         {activeTab === 'users' && admin && (
           <section className="admin-section">

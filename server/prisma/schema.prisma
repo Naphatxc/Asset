@@ -64,16 +64,20 @@ model equipment_items {
   equipment_history equipment_history[]
   equipment         equipment              @relation(fields: [equipment_id], references: [equipment_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_item_equipment")
   repairs           repairs[]
+  audit_records     audit_records[]
 
   @@index([equipment_id], map: "fk_item_equipment")
 }
 
 model locations {
-  location_id   Int         @id @default(autoincrement()) @db.UnsignedInt
-  location_name String      @db.VarChar(100)
-  building      String?     @db.VarChar(100)
-  room          String?     @db.VarChar(30)
-  equipment     equipment[]
+  location_id            Int             @id @default(autoincrement()) @db.UnsignedInt
+  location_name          String          @db.VarChar(100)
+  building               String?         @db.VarChar(100)
+  room                   String?         @db.VarChar(30)
+  equipment              equipment[]
+  audit_records_expected audit_records[] @relation("audit_expected_location")
+  audit_records_found    audit_records[] @relation("audit_found_location")
+  audit_records_moved    audit_records[] @relation("audit_moved_from_location")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -113,16 +117,19 @@ model material_withdrawals {
 }
 
 model users {
-  user_id           Int                 @id @default(autoincrement()) @db.UnsignedInt
-  name              String              @db.VarChar(100)
-  email             String              @unique(map: "email") @db.VarChar(255)
-  password_hash     String              @db.VarChar(255)
-  role              users_role          @default(user)
-  created_at        DateTime            @default(now()) @db.DateTime(0)
-  borrows               borrows[]
-  equipment_history     equipment_history[]
-  repairs               repairs[]
-  material_withdrawals  material_withdrawals[]
+  user_id              Int                    @id @default(autoincrement()) @db.UnsignedInt
+  name                 String                 @db.VarChar(100)
+  email                String                 @unique(map: "email") @db.VarChar(255)
+  password_hash        String                 @db.VarChar(255)
+  role                 users_role             @default(user)
+  created_at           DateTime               @default(now()) @db.DateTime(0)
+  borrows              borrows[]
+  equipment_history    equipment_history[]
+  repairs              repairs[]
+  material_withdrawals material_withdrawals[]
+  audit_rounds_opened  audit_rounds[]         @relation("audit_round_opened_by")
+  audit_rounds_closed  audit_rounds[]         @relation("audit_round_closed_by")
+  audit_records        audit_records[]
 }
 
 model borrow_details {
@@ -172,11 +179,68 @@ model repairs {
   repair_date     DateTime        @default(now()) @db.DateTime(0)
   status          repairs_status  @default(pending_repair)
   repair_files    repair_files[]
+  audit_records   audit_records[]
   equipment_items equipment_items @relation(fields: [item_id], references: [item_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_repair_item")
   users           users           @relation(fields: [reported_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_repair_user")
 
   @@index([reported_by], map: "fk_repair_user")
   @@index([item_id], map: "idx_repairs_item")
+}
+
+// รอบตรวจนับครุภัณฑ์ประจำปี เปิดได้ทีละรอบ (บังคับที่ audit.service.js) ปิดแล้วแก้ผลไม่ได้อีก
+model audit_rounds {
+  round_id      Int                 @id @default(autoincrement()) @db.UnsignedInt
+  title         String              @db.VarChar(100)
+  status        audit_rounds_status @default(open)
+  opened_by     Int                 @db.UnsignedInt
+  opened_at     DateTime            @default(now()) @db.DateTime(0)
+  closed_by     Int?                @db.UnsignedInt
+  closed_at     DateTime?           @db.DateTime(0)
+  audit_records audit_records[]
+  opened_user   users               @relation("audit_round_opened_by", fields: [opened_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_round_opened_by")
+  closed_user   users?              @relation("audit_round_closed_by", fields: [closed_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_round_closed_by")
+
+  @@index([opened_by], map: "fk_audit_round_opened_by")
+  @@index([closed_by], map: "fk_audit_round_closed_by")
+}
+
+// หนึ่งแถว = ครุภัณฑ์หนึ่งชิ้นในรอบหนึ่ง สร้างครบทุกชิ้นตั้งแต่ตอนเปิดรอบ (result = null คือยังไม่ได้ตรวจ)
+// ตรวจแล้วมีผลกับข้อมูลจริงทันที (ย้ายห้อง/แจ้งซ่อม) จึงต้องจำไว้ว่าเปลี่ยนอะไรไปบ้าง เผื่อกดผิดแล้วต้องย้อนคืน
+model audit_records {
+  record_id              Int                    @id @default(autoincrement()) @db.UnsignedInt
+  round_id               Int                    @db.UnsignedInt
+  item_id                Int                    @db.UnsignedInt
+  // ห้องตามระบบ ณ ตอนเปิดรอบ ใช้นับว่าแต่ละห้องควรมีกี่ชิ้น ไม่เปลี่ยนตามตอนย้ายห้องระหว่างตรวจ
+  expected_location_id   Int?                   @db.UnsignedInt
+  result                 audit_records_result?
+  note                   String?                @db.Text
+  // ห้องที่ admin เลือกไว้ตอนสแกนเจอ (null = ตรวจโดยไม่ได้เลือกห้อง)
+  found_location_id      Int?                   @db.UnsignedInt
+  // true = การตรวจนี้ย้ายห้องของครุภัณฑ์ไปแล้ว moved_from คือห้องเดิมไว้ย้ายคืน (ห้องเดิมอาจเป็น null ได้)
+  location_moved         Boolean                @default(false)
+  moved_from_location_id Int?                   @db.UnsignedInt
+  // ใบแจ้งซ่อมที่การตรวจนี้สร้างให้อัตโนมัติ (ผลชำรุด) ไว้ยกเลิกคืนถ้าแก้ผลกลับเป็นปกติ
+  repair_id              Int?                   @db.UnsignedInt
+  checked_by             Int?                   @db.UnsignedInt
+  checked_at             DateTime?              @db.DateTime(0)
+  // ชิ้นที่ไม่ได้ตรวจ ตัดสินตอนปิดรอบว่าไม่พบ/ถูกยืม/ซ่อม/ถูกลบ แล้วเก็บตายตัวไว้ ถ้าคิดสดจากสถานะปัจจุบัน
+  // รายงานของรอบเก่าจะเปลี่ยนไปเอง เช่น ของที่ถูกยืมตอนปิดรอบ พอคืนแล้วจะกลายเป็น "ไม่พบ"
+  closing_outcome        audit_closing_outcome?
+  audit_rounds           audit_rounds           @relation(fields: [round_id], references: [round_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_record_round")
+  equipment_items        equipment_items        @relation(fields: [item_id], references: [item_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_record_item")
+  expected_location      locations?             @relation("audit_expected_location", fields: [expected_location_id], references: [location_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_record_expected_location")
+  found_location         locations?             @relation("audit_found_location", fields: [found_location_id], references: [location_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_record_found_location")
+  moved_from_location    locations?             @relation("audit_moved_from_location", fields: [moved_from_location_id], references: [location_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_record_moved_from_location")
+  repairs                repairs?               @relation(fields: [repair_id], references: [repair_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_record_repair")
+  users                  users?                 @relation(fields: [checked_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_record_checked_by")
+
+  @@unique([round_id, item_id], map: "uq_audit_record_round_item")
+  @@index([item_id], map: "fk_audit_record_item")
+  @@index([expected_location_id], map: "fk_audit_record_expected_location")
+  @@index([found_location_id], map: "fk_audit_record_found_location")
+  @@index([moved_from_location_id], map: "fk_audit_record_moved_from_location")
+  @@index([repair_id], map: "fk_audit_record_repair")
+  @@index([checked_by], map: "fk_audit_record_checked_by")
 }
 
 enum equipment_history_action {
@@ -210,4 +274,22 @@ enum repairs_status {
   repairing
   completed
   cancelled
+}
+
+enum audit_rounds_status {
+  open
+  closed
+}
+
+// ผลที่ admin กดเองตอนตรวจ ชิ้นที่ไม่ได้ตรวจ result เป็น null และได้ closing_outcome ตอนปิดรอบแทน
+enum audit_records_result {
+  normal
+  damaged
+}
+
+enum audit_closing_outcome {
+  missing
+  borrowed
+  in_repair
+  deleted
 }

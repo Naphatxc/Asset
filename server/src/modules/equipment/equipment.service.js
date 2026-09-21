@@ -59,7 +59,8 @@ function serializeEquipment(item) {
   };
 }
 
-async function getSerializedByItemId(
+// export ไว้ให้ audit.service.js ใช้ทำ snapshot ก่อน/หลังลง equipment_history รูปแบบเดียวกับการแก้ไขปกติ
+export async function getSerializedByItemId(
   itemId,
   { includeDeleted = false, client } = {},
 ) {

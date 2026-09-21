@@ -1584,3 +1584,364 @@ button:disabled {
     padding: 18px;
   }
 }
+
+/* ===== ตรวจนับครุภัณฑ์ประจำปี =====
+   หน้าสแกน (/audit/:roundId) ออกแบบให้ถือมือถือมือเดียวเดินตรวจ: คอลัมน์เดียวกว้างไม่เกิน 560px
+   ปุ่มผลตรวจใหญ่พอให้นิ้วโป้งกดได้แม่นขณะเดิน ส่วนหน้าจัดการรอบอยู่ในแท็บของ Dashboard ตามปกติ */
+.audit-scan-shell {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 560px);
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 16px 16px 40px;
+}
+
+.audit-scan-header h1 {
+  margin: 4px 0 10px;
+  font-size: clamp(1.3rem, 5vw, 1.7rem);
+}
+
+.audit-back-link {
+  display: inline-block;
+  margin-bottom: 8px;
+  text-decoration: none;
+}
+
+.audit-closed-note {
+  margin: 8px 0 0;
+  color: var(--stat-slate-dark);
+  font-weight: 600;
+}
+
+.audit-panel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #ead9df;
+  border-radius: 14px;
+  background: var(--stat-paper);
+}
+
+.audit-room-label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.audit-room-label select,
+.audit-search input,
+.audit-note {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #d7cbcf;
+  border-radius: 10px;
+  background: var(--stat-paper);
+}
+
+.audit-room-progress {
+  display: grid;
+  gap: 4px;
+  color: #555555;
+  font-size: 0.9rem;
+}
+
+.audit-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.audit-progress-track {
+  flex: 1;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f1e6ea;
+}
+
+.audit-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--stat-gold), var(--stat-pink));
+  transition: width 240ms ease;
+}
+
+.audit-scan-button {
+  padding: 16px;
+  font-size: 1.05rem;
+}
+
+.audit-wide-button {
+  width: 100%;
+}
+
+/* qr-scanner วางกรอบเล็ง (highlightScanRegion) แบบ absolute อ้างอิงกับ parent ของ <video> */
+.qr-scanner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #1c181a;
+}
+
+.qr-scanner video {
+  display: block;
+  width: 100%;
+  max-height: 55dvh;
+  object-fit: cover;
+}
+
+.qr-scanner-error {
+  margin: 0;
+  padding: 14px;
+  color: #ffffff;
+}
+
+.audit-lookup-message {
+  margin: 0;
+}
+
+.audit-item-card {
+  border-width: 2px;
+  box-shadow: 0 10px 26px rgba(88, 53, 68, 0.1);
+}
+
+.audit-item-card.audit-outcome-normal {
+  border-color: #22a06b;
+}
+
+.audit-item-card.audit-outcome-damaged {
+  border-color: #d9480f;
+}
+
+.audit-item-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.audit-item-heading h2 {
+  margin: 4px 0;
+  padding: 0;
+  border: 0;
+  font-size: 1.15rem;
+  line-height: 1.4;
+}
+
+.audit-item-meta {
+  margin: 0;
+  color: #555555;
+}
+
+.audit-notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #805600;
+  background: #fff8e0;
+}
+
+.audit-notice-done {
+  color: #176b4d;
+  background: #e8fff5;
+}
+
+.audit-move-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff0f6;
+  cursor: pointer;
+}
+
+.audit-move-toggle input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--stat-pink);
+}
+
+.audit-note {
+  resize: vertical;
+}
+
+.audit-result-buttons {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 10px;
+}
+
+.audit-result-buttons button {
+  min-height: 56px;
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.audit-result-normal {
+  background: linear-gradient(135deg, #176b4d, #22a06b);
+}
+
+.audit-result-damaged {
+  background: linear-gradient(135deg, #a33a16, #e8590c);
+}
+
+.audit-search {
+  display: flex;
+  gap: 8px;
+}
+
+.audit-search input {
+  flex: 1;
+  min-width: 0;
+}
+
+.audit-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.audit-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #efe3e7;
+  border-radius: 10px;
+  color: inherit;
+  background: #fffbfd;
+  text-align: left;
+  cursor: pointer;
+}
+
+.audit-list-name {
+  display: block;
+  color: #444444;
+  font-size: 0.9rem;
+}
+
+.audit-list-heading {
+  margin: 10px 0 0;
+  font-size: 0.95rem;
+}
+
+.audit-empty {
+  margin: 0;
+  color: #777777;
+}
+
+.audit-outcome-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #637f84;
+  background: #eef3f4;
+}
+
+.audit-outcome-badge.audit-outcome-normal {
+  color: #176b4d;
+  background: #e8fff5;
+}
+
+.audit-outcome-badge.audit-outcome-damaged {
+  color: #a33a16;
+  background: #fff0e8;
+}
+
+.audit-outcome-badge.audit-outcome-borrowed {
+  color: #805600;
+  background: #fff4cc;
+}
+
+.audit-outcome-badge.audit-outcome-in_repair {
+  color: #315b84;
+  background: #eaf4ff;
+}
+
+.audit-outcome-badge.audit-outcome-missing {
+  color: #a61b43;
+  background: #fff0f4;
+}
+
+/* ส่วนจัดการรอบในแท็บ Dashboard */
+.audit-open-round {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid #ead9df;
+  border-radius: 14px;
+  background: var(--stat-pink-paper);
+}
+
+.audit-open-round h3 {
+  margin: 2px 0 0;
+}
+
+.audit-round-meta {
+  margin: 0;
+  color: #555555;
+}
+
+.audit-open-round .row-actions {
+  min-width: 0;
+}
+
+.audit-confirm {
+  padding: 12px 14px;
+  border-left: 4px solid #d9480f;
+  border-radius: 8px;
+  background: #fff4ee;
+}
+
+.audit-confirm p {
+  margin: 0 0 10px;
+}
+
+.audit-history-heading {
+  margin: 26px 0 10px;
+}
+
+.audit-summary {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.audit-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.audit-chip {
+  padding: 7px 12px;
+  border: 1px solid #d9cbd0;
+  border-radius: 999px;
+  color: #444444;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.audit-chip.active {
+  border-color: var(--stat-pink);
+  color: #ffffff;
+  background: var(--stat-pink);
+}
