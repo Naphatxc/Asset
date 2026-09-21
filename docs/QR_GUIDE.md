@@ -63,3 +63,18 @@ npm.cmd run dev:client:lan
 - User: ดูรายละเอียดจาก QR ได้ แต่ไม่มีปุ่มสร้าง QR หรือแก้ไข
 - Admin: ดูรายละเอียด สร้าง/ดาวน์โหลด/พิมพ์ QR และแก้ไขข้อมูลได้
 - รหัสไม่อยู่ในฐานข้อมูลหรือถูก Soft Delete: แสดงหน้า `404 ไม่พบครุภัณฑ์`
+
+## Production (Railway): ทำไม Frontend ต้อง proxy `/api`
+
+Frontend (`assetmath.up.railway.app`) กับ API (`asset-production-c53c.up.railway.app`) นับเป็นคนละ site
+cookie login ของ API จึงเป็น third-party cookie ซึ่ง Safari และทุก browser บน iPhone/iPad บล็อกทิ้ง
+อาการคือบนคอม login ได้ แต่บนโทรศัพท์ login แล้วเด้งกลับหน้า Login (สแกน QR แล้วใช้ไม่ได้)
+
+จึงให้ service `Frontend` รัน `client/server.js` (`npm start`) ที่เสิร์ฟ `dist/` และส่งต่อ `/api/*` ไปที่ API
+browser เห็นทุกอย่างเป็น origin เดียวกัน cookie จึงเป็น first-party ตัวแปรของ service `Frontend`:
+
+```dotenv
+API_PROXY_TARGET=https://asset-production-c53c.up.railway.app
+# ห้ามตั้ง VITE_API_URL — ถ้าไม่มี client จะยิง /api แบบ relative ผ่าน proxy
+VITE_PUBLIC_APP_URL=https://assetmath.up.railway.app
+```

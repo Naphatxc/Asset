@@ -2,7 +2,10 @@
 // แนบ CSRF header ให้ request ที่เปลี่ยนแปลงข้อมูล และโยน ApiError รูปแบบเดียวกันทุกที่
 import axios from 'axios';
 
-export const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+// production ไม่ต้องตั้ง VITE_API_URL → ยิง path แบบ relative (/api/...) ไปที่ origin เดียวกับหน้าเว็บ
+// แล้วให้ client/server.js proxy ต่อไปยัง API cookie จึงเป็น first-party (เหตุผลดูใน server.js)
+export const apiUrl =
+  import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:3000' : '');
 
 const mutatingMethods = new Set(['post', 'put', 'patch', 'delete']);
 

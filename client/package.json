@@ -8,17 +8,18 @@
     "dev:lan": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "serve --single --listen $PORT dist"
+    "start": "node server.js"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.102.8",
     "@vitejs/plugin-react": "latest",
     "axios": "^1.20.0",
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^4.2.0",
     "qrcode": "^1.5.4",
     "react": "latest",
     "react-dom": "latest",
     "react-router-dom": "^7.18.2",
-    "serve": "^14.2.6",
     "vite": "latest"
   }
 }
