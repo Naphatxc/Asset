@@ -38,6 +38,11 @@ export function getAvailableEquipment() {
   return request('/api/available-equipment');
 }
 
+// items ตามรูปแบบไฟล์ที่ server/scripts/export-equipment.js สร้าง (ดู ImportEquipmentDialog.jsx)
+export function importEquipment(items) {
+  return request('/api/admin/equipment-items/import', { method: 'POST', body: { items } });
+}
+
 export function getCategories() {
   return request('/api/categories');
 }

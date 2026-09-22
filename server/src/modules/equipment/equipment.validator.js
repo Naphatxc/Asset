@@ -16,6 +16,7 @@ export const allowedStatuses = [
 export const MAX_EQUIPMENT_NAME_LENGTH = 255;
 export const MAX_EQUIPMENT_CODE_LENGTH = 50;
 export const MAX_LONG_TEXT_LENGTH = 2000; // description / remark (คุณสมบัติ) เป็น TEXT ไม่จำกัดจาก DB
+export const MAX_IMPORT_ROWS = 5000;
 
 function exceedsLength(value, max) {
   return typeof value === 'string' && value.length > max;
@@ -42,6 +43,21 @@ export function validateItemIdParam(request, _response, next) {
   }
 
   request.validated = { ...request.validated, itemId };
+  next();
+}
+
+// ตรวจแค่โครงของไฟล์ ส่วนข้อมูลรายแถวตรวจใน equipment-import.service.js เพราะต้องรายงานแถวที่ผิดทั้งหมดกลับไป
+export function validateImportEquipment(request, _response, next) {
+  const items = request.body?.items;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return next(new AppError(400, 'ไม่พบรายการครุภัณฑ์ในไฟล์'));
+  }
+  if (items.length > MAX_IMPORT_ROWS) {
+    return next(new AppError(400, `นำเข้าได้ครั้งละไม่เกิน ${MAX_IMPORT_ROWS} รายการ กรุณาแบ่งไฟล์`));
+  }
+
+  request.validated = { ...request.validated, items };
   next();
 }
 

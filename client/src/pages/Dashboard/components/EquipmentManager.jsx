@@ -35,6 +35,7 @@ import { useToast } from '../../../components/ToastProvider.jsx';
 import EquipmentHistory from './EquipmentHistory.jsx';
 import EquipmentTable from './EquipmentTable.jsx';
 import QrCodeDialog from '../../../components/QrCodeDialog.jsx';
+import ImportEquipmentDialog from './ImportEquipmentDialog.jsx';
 
 const PAGE_SIZE = 20;
 const statusFilterOptions = [
@@ -63,6 +64,7 @@ export default function EquipmentManager({ user }) {
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
   const [historyEquipment, setHistoryEquipment] = useState(null);
   const [qrEquipment, setQrEquipment] = useState(null);
+  const [importing, setImporting] = useState(false);
   const [searchInput, setSearchInput] = useState(initialParams.get('search') ?? '');
   const [search, setSearch] = useState(initialParams.get('search') ?? '');
   const [statusFilter, setStatusFilter] = useState(initialParams.get('status') ?? '');
@@ -383,13 +385,22 @@ export default function EquipmentManager({ user }) {
               </button>
 
               {view === 'active' && (
-                <button
-                  className="button-primary"
-                  type="button"
-                  onClick={openCreateForm}
-                >
-                  + เพิ่มครุภัณฑ์
-                </button>
+                <>
+                  <button
+                    className="button-secondary"
+                    type="button"
+                    onClick={() => setImporting(true)}
+                  >
+                    นำเข้าจากไฟล์
+                  </button>
+                  <button
+                    className="button-primary"
+                    type="button"
+                    onClick={openCreateForm}
+                  >
+                    + เพิ่มครุภัณฑ์
+                  </button>
+                </>
               )}
             </>
           )}
@@ -471,6 +482,8 @@ export default function EquipmentManager({ user }) {
           onClose={() => setQrEquipment(null)}
         />
       )}
+
+      {importing && <ImportEquipmentDialog onClose={() => setImporting(false)} />}
 
       {loading ? (
         <p className="loading-message">กำลังโหลดครุภัณฑ์...</p>

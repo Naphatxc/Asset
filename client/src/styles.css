@@ -225,6 +225,55 @@ a {
   line-height: 1.5;
 }
 
+/* หน้าต่างนำเข้าครุภัณฑ์จากไฟล์ (ImportEquipmentDialog) ซ่อน input file ของเบราว์เซอร์ ใช้ปุ่มของระบบแทน */
+.import-file-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0;
+  cursor: pointer;
+}
+
+.import-file-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.import-file-picker:focus-within .button-secondary {
+  outline: 2px solid var(--stat-pink-soft);
+  outline-offset: 2px;
+}
+
+.import-file-name {
+  color: #555555;
+  overflow-wrap: anywhere;
+}
+
+.import-preview {
+  padding: 12px 14px;
+  border: 1px solid #ead9df;
+  border-radius: 10px;
+  background: var(--stat-pink-paper);
+}
+
+.import-preview p {
+  margin: 0 0 8px;
+}
+
+.import-category-list,
+.import-errors,
+.import-result ul {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+
+.import-errors {
+  margin-top: 8px;
+}
+
 /* ===== ข้อความผลลัพธ์จาก API ===== */
 .error-message {
   margin: 0;

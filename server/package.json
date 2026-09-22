@@ -12,7 +12,8 @@
     "prisma:migrate:dev": "prisma migrate dev --config prisma.config.js",
     "prisma:migrate:deploy": "prisma migrate deploy --config prisma.config.js",
     "prisma:migrate:baseline": "prisma migrate resolve --applied 0_init --config prisma.config.js",
-    "prisma:migrate:status": "prisma migrate status --config prisma.config.js"
+    "prisma:migrate:status": "prisma migrate status --config prisma.config.js",
+    "export:equipment": "node scripts/export-equipment.js"
   },
   "dependencies": {
     "@prisma/adapter-mariadb": "7.10.0",

@@ -4,6 +4,7 @@ import express from 'express';
 import * as equipmentController from './equipment.controller.js';
 import {
   validateCreateEquipment,
+  validateImportEquipment,
   validateItemIdParam,
   validateUpdateEquipment,
   validateUpdateEquipmentStatus,
@@ -26,6 +27,14 @@ equipmentRouter.get('/', equipmentController.getEquipmentList);
 
 // GET /api/equipment-items/:code - รายละเอียดหนึ่งชิ้น ปลายทางนี้จะใช้กับ QR
 equipmentRouter.get('/:code', equipmentController.getEquipmentByCode);
+
+// POST /api/admin/equipment-items/import - นำเข้าครุภัณฑ์หลายรายการจากไฟล์ { items: [...] }
+// (body ใหญ่กว่าปกติ จึงมี parser แยกที่ app.js)
+adminEquipmentRouter.post(
+  '/import',
+  validateImportEquipment,
+  equipmentController.importEquipment,
+);
 
 // POST /api/admin/equipment-items - เพิ่มข้อมูลและ History ใน Transaction เดียว
 adminEquipmentRouter.post(

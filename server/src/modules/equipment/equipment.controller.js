@@ -1,3 +1,4 @@
+import * as equipmentImportService from './equipment-import.service.js';
 import * as equipmentService from './equipment.service.js';
 import { allowedStatuses } from './equipment.validator.js';
 
@@ -167,6 +168,28 @@ export async function updateEquipment(request, response, next) {
       message: 'แก้ไขครุภัณฑ์สำเร็จ',
       equipment,
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// body: { items: [...] } ตามรูปแบบที่ scripts/export-equipment.js สร้าง แถวไหนผิดตอบ 400 พร้อมรายการแถวที่ผิด
+// (ไม่ใช้ AppError เพราะต้องส่งรายละเอียดหลายแถวกลับไปให้หน้าจอแสดง)
+export async function importEquipment(request, response, next) {
+  try {
+    const { items } = request.validated;
+    const { rows, errors } = equipmentImportService.validateImportRows(items);
+
+    if (errors) {
+      return response.status(400).json({
+        message: `ไฟล์มีข้อมูลไม่ถูกต้อง ${errors.length} แถว ยังไม่ได้นำเข้าเลย กรุณาแก้แล้วลองใหม่`,
+        errors: errors.slice(0, 100),
+      });
+    }
+
+    const result = await equipmentImportService.importEquipment(rows, Number(request.user.sub));
+
+    response.status(200).json({ message: `นำเข้าครุภัณฑ์ ${result.created} รายการ`, ...result });
   } catch (error) {
     next(error);
   }

@@ -10,11 +10,13 @@ export const apiUrl =
 const mutatingMethods = new Set(['post', 'put', 'patch', 'delete']);
 
 // เก็บ HTTP status ไว้กับ Error เช่น 401 เพื่อให้หน้าจอตัดสินใจ Logout ได้
+// data = body ของ response ทั้งก้อน สำหรับ endpoint ที่ส่งรายละเอียดเพิ่มนอกจาก message (เช่น แถวที่ผิดตอนนำเข้า)
 export class ApiError extends Error {
-  constructor(message, status) {
+  constructor(message, status, data = null) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
+    this.data = data;
   }
 }
 
@@ -57,6 +59,7 @@ export async function request(path, options = {}) {
       throw new ApiError(
         error.response.data?.message ?? 'ไม่สามารถดำเนินการได้',
         error.response.status,
+        error.response.data ?? null,
       );
     }
 

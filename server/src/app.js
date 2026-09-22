@@ -13,6 +13,9 @@ export const app = express();
 // credentials: true จำเป็นเพื่อให้ browser แนบ/รับ cookie ข้าม origin (client :5173, server :3000)
 // cors ที่ credentials:true ใช้ origin แบบ wildcard '*' ไม่ได้ จึงต้องระบุ origin ที่อนุญาตจริงเสมอ
 app.use(cors({ origin: clientOrigins, credentials: true }));
+// ไฟล์นำเข้าครุภัณฑ์หลายร้อยรายการใหญ่เกินเพดาน 100kb ปกติ ให้ path นี้ path เดียวรับได้ถึง 10mb
+// ต้องอยู่ก่อน express.json() ตัวหลัก (ตัวหลักจะข้าม request ที่ถูก parse ไปแล้ว)
+app.use('/api/admin/equipment-items/import', express.json({ limit: '10mb' }));
 app.use(express.json());
 app.use(cookieParser());
 
