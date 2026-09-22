@@ -9,6 +9,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { getUsers, updateUserRole as updateUserRoleRequest } from '../../api/admin-users.js';
 import ChangePasswordDialog from '../../components/ChangePasswordDialog.jsx';
+import PaginationBar, { paginateRows } from '../../components/PaginationBar.jsx';
 import { useToast } from '../../components/ToastProvider.jsx';
 import AuditManager from './components/AuditManager.jsx';
 import BorrowManager from './components/BorrowManager.jsx';
@@ -54,6 +55,7 @@ export default function Dashboard({ user, onLogout }) {
 
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [userSearch, setUserSearch] = useState('');
+  const [userPage, setUserPage] = useState(1);
   const [changingPassword, setChangingPassword] = useState(false);
 
   // รายชื่อผู้ใช้เป็นข้อมูลเฉพาะ Admin จึงโหลดหลังทราบ role แล้วเท่านั้น
@@ -69,6 +71,7 @@ export default function Dashboard({ user, onLogout }) {
         item.name.toLowerCase().includes(userSearch.trim().toLowerCase()),
       )
     : users;
+  const { rows: pageUsers, pagination: userPagination } = paginateRows(filteredUsers, userPage);
 
   const updateRoleMutation = useMutation({
     mutationFn: ({ userId, role }) => updateUserRoleRequest(userId, role),
@@ -154,7 +157,10 @@ export default function Dashboard({ user, onLogout }) {
               <input
                 type="search"
                 value={userSearch}
-                onChange={(event) => setUserSearch(event.target.value)}
+                onChange={(event) => {
+                  setUserSearch(event.target.value);
+                  setUserPage(1);
+                }}
                 placeholder="ค้นหาชื่อผู้ใช้งาน"
               />
             </div>
@@ -164,12 +170,13 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             ) : (
               <UserTable
-                users={filteredUsers}
+                users={pageUsers}
                 currentUserId={user.user_id}
                 updatingUserId={updatingUserId}
                 onUpdateRole={updateUserRole}
               />
             )}
+            <PaginationBar pagination={userPagination} onPageChange={setUserPage} />
           </section>
         )}
       </main>
