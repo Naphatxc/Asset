@@ -1,9 +1,8 @@
 // Business Logic สำหรับสมัครสมาชิก / เข้าสู่ระบบ / อ่านข้อมูลผู้ใช้ปัจจุบัน
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 
 import * as userRepository from '../users/user.repository.js';
-import { jwtSecret } from '../../config/env.js';
+import { signAccessToken } from '../../utils/access-token.js';
 import { AppError } from '../../utils/AppError.js';
 
 export async function register({ name, email, password }) {
@@ -47,13 +46,8 @@ export async function login({ email, password }) {
       throw new AppError(401, 'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
     }
 
-    // Token อายุ 1 ชั่วโมง โดย subject (sub) คือ user_id
-    const token = jwt.sign({ role: user.role }, jwtSecret, {
-      subject: String(user.user_id),
-      expiresIn: '1h',
-      issuer: 'asset-management-api',
-      audience: 'asset-management-client',
-    });
+    // subject (sub) คือ user_id อายุตาม idle timeout และต่ออายุเองระหว่างใช้งาน (ดู config/env.js)
+    const { token } = signAccessToken({ userId: user.user_id, role: user.role });
 
     return {
       token,

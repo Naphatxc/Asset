@@ -18,8 +18,16 @@ if (jwtSecret.length < 64) {
 
 export const isProduction = process.env.NODE_ENV === 'production';
 
-// อายุ cookie ต้องตรงกับอายุ JWT (1h) ไม่งั้น cookie จะอยู่นานกว่า token ข้างใน
-export const authCookieMaxAgeMs = 60 * 60 * 1000;
+// นโยบาย session แบบเว็บทั่วไป (OWASP แนะนำ idle + absolute timeout คู่กัน): ใช้งานอยู่ = ต่ออายุไปเรื่อยๆ
+// ไม่ได้แตะเลยเกิน idle timeout = หลุด และต่อได้ไม่เกิน absolute timeout นับจาก login จริง กันบัญชีค้าง
+// บนเครื่องที่ใช้ร่วมกันในภาควิชาไปตลอด (ต่ออายุทำใน auth.middleware.js ผ่าน utils/access-token.js)
+export const sessionIdleTimeoutMs = 2 * 60 * 60 * 1000;
+export const sessionAbsoluteTimeoutMs = 12 * 60 * 60 * 1000;
+// ต่ออายุเฉพาะ token ที่ออกมาเกินช่วงนี้แล้ว ไม่ต้อง sign ใหม่ทุก request
+export const sessionRenewAfterMs = 5 * 60 * 1000;
+
+// อายุ cookie ต้องตรงกับอายุ JWT ไม่งั้น cookie จะอยู่นานกว่า token ข้างใน
+export const authCookieMaxAgeMs = sessionIdleTimeoutMs;
 
 // ชื่อ cookie รวมไว้จุดเดียว ให้ทุกที่ที่ set/read/clear cookie (auth.middleware.js, csrf.middleware.js,
 // auth.controller.js) อ้างอิงค่าเดียวกันเสมอ กันเหตุการณ์แบบ logout ไม่เคลียร์ cookie เพราะพิมพ์ชื่อไม่ตรงกัน
