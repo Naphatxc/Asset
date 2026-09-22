@@ -438,7 +438,7 @@ export default function MaterialManager({ user }) {
                           </>
                         )}
                       </td>
-                      <td data-label="ราคา/หน่วย">{formatPrice(item.unit_price)}</td>
+                      <td className="cell-number" data-label="ราคา/หน่วย">{formatPrice(item.unit_price)}</td>
                       <td data-label="วันหมดอายุ">{formatDate(item.expire_date)}</td>
                       <td className="stack-actions">
                         <div className="row-actions">

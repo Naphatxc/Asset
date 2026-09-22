@@ -109,7 +109,7 @@ export default function EquipmentTable({
                     formatLocation(item)
                   )}
                 </td>
-                <td data-label="ราคา">{formatPrice(item.price)}</td>
+                <td className="cell-number" data-label="ราคา">{formatPrice(item.price)}</td>
                 <td data-label="สถานะ">
                   {admin && mode === 'active' ? (
                     // Admin เปลี่ยนสถานะได้ ส่วน User เห็นเป็น badge อย่างเดียว

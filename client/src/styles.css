@@ -341,6 +341,33 @@ button:disabled {
   border-bottom: 1px solid #e6ebec;
 }
 
+/* ข้อความยาวที่ไม่มีจุดให้ตัดบรรทัด (อีเมล ชื่อ/รหัสยาวๆ ข้อความไม่มีเว้นวรรค) ต้องขึ้นบรรทัดใหม่ในช่องตัวเอง
+   ไม่งั้นความกว้างขั้นต่ำของคอลัมน์เท่ากับคำที่ยาวที่สุด ตารางกว้างเกินหน้าจนต้องเลื่อนไปดูคอลัมน์หลังๆ
+   ต้องเป็น anywhere ไม่ใช่ break-word เพราะ anywhere เท่านั้นที่ลดความกว้างขั้นต่ำของคอลัมน์ ตารางจึงหดพอดีหน้าได้ */
+.user-table td,
+.equipment-table td {
+  overflow-wrap: anywhere;
+}
+
+/* ตัวเลข (ราคา) ห้ามหักกลางค่า เช่น ฿1.0 / 0 */
+.user-table td.cell-number,
+.equipment-table td.cell-number {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+/* โหมดตารางเต็ม (พื้นที่ ≥ 960px) บีบระยะซ้าย-ขวาของช่องลงนิดหน่อย ตารางคอลัมน์เยอะอย่างครุภัณฑ์จะได้มีที่ให้
+   ช่องข้อความ ไม่ต้องหักคำกลางคำบนจอโน้ตบุ๊ก 1366px (โหมดการ์ดใช้ padding ของตัวเองอยู่แล้ว) */
+@container dashboard (min-width: 960px) {
+  .user-table th,
+  .user-table td,
+  .equipment-table th,
+  .equipment-table td {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+}
+
 .user-table th,
 .equipment-table th {
   color: #ffffff;
@@ -609,11 +636,11 @@ button:disabled {
   background: #ffffff;
 }
 
-.row-actions {
-  min-width: 220px;
-}
-
+/* ป้ายปุ่มห้ามตัดกลางคำ (ช่องตารางตั้ง overflow-wrap: anywhere ไว้ ปุ่มจะรับค่านั้นมาด้วย) พื้นที่ไม่พอให้ปุ่ม
+   ขึ้นแถวใหม่ทั้งปุ่มแทน (.row-actions เป็น flex-wrap) */
 .row-actions button {
+  white-space: nowrap;
+  overflow-wrap: normal;
   padding: 6px 9px;
   font-size: 0.8rem;
 }
@@ -1015,11 +1042,13 @@ button:disabled {
 .activity-body {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
 .activity-text {
   margin: 0;
   font-size: 0.92rem;
+  overflow-wrap: anywhere;
 }
 
 .activity-time {
@@ -1027,14 +1056,17 @@ button:disabled {
   color: var(--stat-slate-dark);
 }
 
+/* grid/flex item กว้างอย่างน้อยเท่าเนื้อหาข้างในโดยปริยาย ชื่อยาวๆ ในรายการเลยดันกล่องล้นออกนอกหน้า
+   ต้องตั้ง min-width: 0 ที่ตัวกล่อง (.overview-panel, .activity-body) ให้หดได้แล้วตัดบรรทัดข้างในแทน */
 .overview-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 16px;
   margin-bottom: 16px;
 }
 
 .overview-panel {
+  min-width: 0;
   padding: 18px 20px;
   border: 1px solid #ead9df;
   border-radius: 14px;
@@ -1462,10 +1494,6 @@ button:disabled {
   align-items: center;
   gap: 10px;
   margin-top: 24px;
-}
-
-.qr-row-actions {
-  min-width: 150px;
 }
 
 .modal-backdrop {
