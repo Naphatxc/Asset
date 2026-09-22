@@ -13,22 +13,12 @@ export async function countUsers(client = prisma) {
   return client.users.count();
 }
 
-// นับเฉพาะใบยืมที่อนุมัติแล้ว (สะท้อนการยืมที่เกิดขึ้นจริง) แยกตามเดือนของปีที่ระบุ
-// year เป็น null = รวมทุกปี (แยกเดือนอย่างเดียว)
-export async function countApprovedBorrowsByMonth(year, client = prisma) {
-  if (year == null) {
-    return client.$queryRaw`
-      SELECT MONTH(borrow_date) AS month, COUNT(*) AS count
-      FROM borrows
-      WHERE status = 'approved'
-      GROUP BY MONTH(borrow_date)
-    `;
-  }
-
+// นับเฉพาะใบยืมที่อนุมัติแล้ว (สะท้อนการยืมที่เกิดขึ้นจริง) แยกตามเดือน รวมทุกปี
+export async function countApprovedBorrowsByMonth(client = prisma) {
   return client.$queryRaw`
     SELECT MONTH(borrow_date) AS month, COUNT(*) AS count
     FROM borrows
-    WHERE status = 'approved' AND YEAR(borrow_date) = ${year}
+    WHERE status = 'approved'
     GROUP BY MONTH(borrow_date)
   `;
 }

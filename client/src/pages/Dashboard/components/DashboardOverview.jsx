@@ -2,7 +2,6 @@
 // + รายการเลยกำหนดคืน + กิจกรรมล่าสุด
 // กราฟวาดเองด้วย SVG ธรรมดา ไม่ใช้ library เพิ่ม เพราะข้อมูลมีแค่ 12 เดือน/4 สถานะ ไม่คุ้มเพิ่ม dependency
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { getDashboardSummary } from '../../../api/dashboard.js';
@@ -50,12 +49,6 @@ const statusMeta = [
   { key: 'pending_repair', label: 'รอซ่อม', color: '#e2574c' },
   { key: 'repairing', label: 'กำลังซ่อม', color: '#3b82c4' },
 ];
-
-// ปีปัจจุบัน + ย้อนหลัง 2 ปี ให้เลือก แสดงเป็น พ.ศ. ตามธรรมเนียมเว็บนี้ แต่ค่าที่ส่ง API เป็น ค.ศ.
-function buildYearOptions() {
-  const currentYear = new Date().getFullYear();
-  return [currentYear, currentYear - 1, currentYear - 2];
-}
 
 function MonthlyBarChart({ data }) {
   const width = 760;
@@ -177,18 +170,13 @@ function StatusPieChart({ statusCounts }) {
   );
 }
 
-const ALL_YEARS_VALUE = 'all';
-
 export default function DashboardOverview() {
-  const [year, setYear] = useState(null); // null = ทุกปี
-
   const summaryQuery = useQuery({
-    queryKey: ['dashboard', 'summary', year],
-    queryFn: () => getDashboardSummary(year),
+    queryKey: ['dashboard', 'summary'],
+    queryFn: getDashboardSummary,
   });
 
   const summary = summaryQuery.data;
-  const yearOptions = buildYearOptions();
 
   return (
     <section className="equipment-section">
@@ -196,23 +184,6 @@ export default function DashboardOverview() {
         <div>
           <p className="section-kicker">Overview</p>
           <h2>ภาพรวมระบบ</h2>
-        </div>
-
-        <div className="toolbar-actions">
-          <select
-            value={year ?? ALL_YEARS_VALUE}
-            onChange={(event) => {
-              const { value } = event.target;
-              setYear(value === ALL_YEARS_VALUE ? null : Number(value));
-            }}
-          >
-            <option value={ALL_YEARS_VALUE}>ทุกปี</option>
-            {yearOptions.map((option) => (
-              <option key={option} value={option}>
-                ปี {option + 543}
-              </option>
-            ))}
-          </select>
         </div>
       </div>
 

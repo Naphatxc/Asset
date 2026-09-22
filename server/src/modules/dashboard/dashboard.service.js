@@ -43,7 +43,7 @@ function buildRecentActivity({ recentBorrows, recentReturns, recentRepairs }, li
   return combined.slice(0, limit);
 }
 
-export async function getDashboardSummary(year) {
+export async function getDashboardSummary() {
   try {
     const [
       statusRows,
@@ -59,7 +59,7 @@ export async function getDashboardSummary(year) {
     ] = await Promise.all([
       dashboardRepository.countEquipmentByStatus(),
       dashboardRepository.countUsers(),
-      dashboardRepository.countApprovedBorrowsByMonth(year),
+      dashboardRepository.countApprovedBorrowsByMonth(),
       dashboardRepository.countPendingBorrows(),
       dashboardRepository.countPendingRepairs(),
       dashboardRepository.countOverdueBorrows(),
@@ -97,7 +97,6 @@ export async function getDashboardSummary(year) {
     );
 
     return {
-      year,
       totalEquipment,
       statusCounts,
       userCount,

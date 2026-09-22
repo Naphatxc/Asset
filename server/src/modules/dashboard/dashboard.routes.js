@@ -11,7 +11,7 @@ const router = express.Router();
 
 router.use(authenticate, requireAdmin);
 
-// GET /api/admin/dashboard/summary?year=2569
+// GET /api/admin/dashboard/summary
 router.get('/summary', dashboardController.getDashboardSummary);
 
 export default router;
