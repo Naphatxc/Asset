@@ -4,7 +4,10 @@ import { prisma } from '../../config/prisma.js';
 export const borrowInclude = {
   users: true,
   borrow_details: {
-    include: { equipment_items: true },
+    include: {
+      equipment_items: true,
+      returned_user: { select: { name: true, email: true } },
+    },
   },
 };
 
@@ -69,10 +72,11 @@ export async function findOpenDetailByItemId(itemId, client = prisma) {
   });
 }
 
-export async function markReturned(borrowDetailId, client = prisma) {
+// returnedBy = admin ที่กดรับคืน (โชว์ในหน้ายืม-คืนว่าใครเป็นคนรับของคืน)
+export async function markReturned(borrowDetailId, returnedBy, client = prisma) {
   return client.borrow_details.update({
     where: { borrow_detail_id: borrowDetailId },
-    data: { returned_at: new Date() },
+    data: { returned_at: new Date(), returned_by: returnedBy },
   });
 }
 

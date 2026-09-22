@@ -117,22 +117,23 @@ model material_withdrawals {
 }
 
 model users {
-  user_id               Int                     @id @default(autoincrement()) @db.UnsignedInt
-  name                  String                  @db.VarChar(100)
-  email                 String                  @unique(map: "email") @db.VarChar(255)
-  password_hash         String                  @db.VarChar(255)
-  role                  users_role              @default(user)
-  created_at            DateTime                @default(now()) @db.DateTime(0)
+  user_id                 Int                     @id @default(autoincrement()) @db.UnsignedInt
+  name                    String                  @db.VarChar(100)
+  email                   String                  @unique(map: "email") @db.VarChar(255)
+  password_hash           String                  @db.VarChar(255)
+  role                    users_role              @default(user)
+  created_at              DateTime                @default(now()) @db.DateTime(0)
   // session ที่ login ก่อนเวลานี้ใช้ไม่ได้แล้ว (เปลี่ยน/รีเซ็ตรหัสแล้วอุปกรณ์อื่นต้อง login ใหม่)
-  password_changed_at   DateTime?               @db.DateTime(0)
-  borrows               borrows[]
-  equipment_history     equipment_history[]
-  repairs               repairs[]
-  material_withdrawals  material_withdrawals[]
-  audit_rounds_opened   audit_rounds[]          @relation("audit_round_opened_by")
-  audit_rounds_closed   audit_rounds[]          @relation("audit_round_closed_by")
-  audit_records         audit_records[]
-  password_reset_tokens password_reset_tokens[]
+  password_changed_at     DateTime?               @db.DateTime(0)
+  borrows                 borrows[]
+  equipment_history       equipment_history[]
+  repairs                 repairs[]
+  material_withdrawals    material_withdrawals[]
+  audit_rounds_opened     audit_rounds[]          @relation("audit_round_opened_by")
+  audit_rounds_closed     audit_rounds[]          @relation("audit_round_closed_by")
+  audit_records           audit_records[]
+  password_reset_tokens   password_reset_tokens[]
+  returned_borrow_details borrow_details[]        @relation("borrow_detail_returned_by")
 }
 
 // ลิงก์ "ลืมรหัสผ่าน" ที่ส่งทางอีเมล เก็บแค่ hash (sha256) ของ token ไม่เก็บตัวจริง
@@ -156,11 +157,15 @@ model borrow_details {
   return_date         DateTime        @db.DateTime(0)
   return_requested_at DateTime?       @db.DateTime(0)
   returned_at         DateTime?       @db.DateTime(0)
+  // admin ที่กดรับคืน/ยืนยันการคืน (ผู้ยืมกดคืนเองแค่ขอคืน ยังไม่นับว่าคืน) ใบเก่าเติมจาก equipment_history ตอน migrate
+  returned_by         Int?            @db.UnsignedInt
   borrows             borrows         @relation(fields: [borrow_id], references: [borrow_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_borrow_detail_borrow")
   equipment_items     equipment_items @relation(fields: [item_id], references: [item_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_borrow_detail_item")
+  returned_user       users?          @relation("borrow_detail_returned_by", fields: [returned_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_borrow_detail_returned_by")
 
   @@index([borrow_id], map: "idx_borrow_details_borrow")
   @@index([item_id], map: "idx_borrow_details_item")
+  @@index([returned_by], map: "fk_borrow_detail_returned_by")
 }
 
 model borrows {

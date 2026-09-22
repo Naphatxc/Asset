@@ -338,6 +338,18 @@ export default function BorrowManager() {
                     <span className={`status-badge status-${detail.status}`}>
                       {statusLabels[detail.status] ?? detail.status}
                     </span>
+                    {detail.status === 'returned' && (
+                      <small className="borrow-status-note">
+                        รับคืนโดย {detail.returned_by_name ?? 'ไม่ทราบ'}
+                        <br />
+                        {formatDateTime(detail.returned_at)}
+                      </small>
+                    )}
+                    {detail.status === 'pending_return' && (
+                      <small className="borrow-status-note">
+                        แจ้งคืนเมื่อ {formatDateTime(detail.return_requested_at)}
+                      </small>
+                    )}
                   </td>
                   <td className="stack-actions">
                     {detail.status === 'pending' ? (

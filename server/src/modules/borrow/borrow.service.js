@@ -43,6 +43,8 @@ function serializeDetail(borrow, detail) {
     return_date: detail.return_date,
     return_requested_at: detail.return_requested_at,
     returned_at: detail.returned_at,
+    returned_by_name: detail.returned_user?.name ?? null,
+    returned_by_email: detail.returned_user?.email ?? null,
     status: deriveDetailStatus(borrow, detail),
   };
 }
@@ -304,7 +306,7 @@ export async function returnBorrowDetail(borrowDetailId, actorId) {
         return { borrow: await borrowRepository.findById(detail.borrow_id, tx) };
       }
 
-      await borrowRepository.markReturned(borrowDetailId, tx);
+      await borrowRepository.markReturned(borrowDetailId, actorId, tx);
       await equipmentRepository.updateEquipmentItem(
         detail.item_id,
         { status: 'available' },
