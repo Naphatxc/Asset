@@ -1,4 +1,5 @@
-// adminRepairRouter (mount ที่ /api/admin/repairs): แจ้งซ่อม/ดูรายละเอียด/จัดการสถานะซ่อม สงวนให้ Admin เท่านั้นตาม spec
+// repairRouter (mount ที่ /api/repairs): ผู้ใช้ทุกคนแจ้งซ่อมได้ และดูรายการ/ไฟล์แนบได้เฉพาะที่ตัวเองแจ้ง
+// adminRepairRouter (mount ที่ /api/admin/repairs): ดูทุกรายการ/แนบไฟล์เพิ่ม/จัดการสถานะซ่อม สงวนให้ Admin
 import express from 'express';
 
 import * as repairController from './repair.controller.js';
@@ -15,7 +16,34 @@ import {
 import { verifyCsrfToken } from '../../middlewares/csrf.middleware.js';
 import { uploadRepairFiles } from '../../middlewares/upload.middleware.js';
 
+const repairRouter = express.Router();
 const adminRepairRouter = express.Router();
+
+// Admin เรียก route ฝั่ง User ได้ด้วย (เช่น หน้าแจ้งซ่อมของตัวเอง) จึงจำกัดเจ้าของเฉพาะคนที่ไม่ใช่ Admin
+function limitToOwnRepairs(request, _response, next) {
+  if (request.account?.role !== 'admin') request.repairOwnerId = Number(request.user.sub);
+  next();
+}
+
+repairRouter.use(authenticate, limitToOwnRepairs);
+
+// GET /api/repairs/mine - รายการแจ้งซ่อมที่ตัวเองแจ้ง
+repairRouter.get('/mine', repairController.getMyRepairList);
+
+// GET /api/repairs/files/:fileId - เปิดไฟล์แนบของรายการที่ตัวเองแจ้ง (ต้องมาก่อน /:id)
+repairRouter.get('/files/:fileId', validateFileIdParam, repairController.downloadFile);
+
+// GET /api/repairs/:id - รายละเอียดรายการที่ตัวเองแจ้ง
+repairRouter.get('/:id', validateRepairIdParam, repairController.getRepairDetail);
+
+// POST /api/repairs - แจ้งซ่อม (multipart: item_id, issue, files[]) ผู้แจ้งคือคนที่ login ไม่รับจาก body
+repairRouter.post(
+  '/',
+  verifyCsrfToken,
+  uploadRepairFiles,
+  validateReportRepair,
+  repairController.reportRepair,
+);
 
 adminRepairRouter.use(authenticate, requireAdmin);
 
@@ -79,4 +107,5 @@ adminRepairRouter.patch(
   repairController.cancelRepair,
 );
 
+export { repairRouter };
 export default adminRepairRouter;

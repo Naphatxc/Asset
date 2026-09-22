@@ -34,6 +34,7 @@ const userTabs = [
   { key: 'equipment', label: 'ครุภัณฑ์' },
   { key: 'materials', label: 'วัสดุ' },
   { key: 'borrow', label: 'ยืมของฉัน' },
+  { key: 'repair', label: 'แจ้งซ่อม' },
 ];
 
 export default function Dashboard({ user, onLogout }) {
@@ -146,7 +147,7 @@ export default function Dashboard({ user, onLogout }) {
 
         {activeTab === 'borrow' && (admin ? <BorrowManager /> : <MyBorrows />)}
 
-        {activeTab === 'repair' && admin && <RepairManager />}
+        {activeTab === 'repair' && <RepairManager mine={!admin} />}
 
         {activeTab === 'audit' && admin && <AuditManager />}
 

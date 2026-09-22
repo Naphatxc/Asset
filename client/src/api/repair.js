@@ -1,4 +1,4 @@
-// รวมคำสั่งติดต่อ Repair API — สงวนให้ Admin เท่านั้นตาม spec (แจ้งซ่อม/อนุมัติ/ดูรายละเอียด)
+// รวมคำสั่งติดต่อ Repair API — แจ้งซ่อม/ดูของตัวเองผ่าน /api/repairs (ทุก role) ส่วนจัดการสถานะอยู่ใต้ /api/admin/repairs
 import { apiUrl, request } from './http.js';
 
 export function getRepairs({ status, itemId } = {}) {
@@ -10,8 +10,13 @@ export function getRepairs({ status, itemId } = {}) {
   return request(`/api/admin/repairs${qs ? `?${qs}` : ''}`);
 }
 
-export function getRepairDetail(repairId) {
-  return request(`/api/admin/repairs/${repairId}`);
+export function getMyRepairs() {
+  return request('/api/repairs/mine');
+}
+
+// mine: ดูผ่าน route ฝั่ง User ซึ่ง server จำกัดให้เห็นเฉพาะรายการที่ตัวเองแจ้ง
+export function getRepairDetail(repairId, { mine = false } = {}) {
+  return request(`/api${mine ? '' : '/admin'}/repairs/${repairId}`);
 }
 
 // files มาจาก <input type="file" multiple> ส่งเป็น multipart/form-data
@@ -21,7 +26,7 @@ export function reportRepair({ itemId, issue, files = [] }) {
   formData.append('issue', issue);
   files.forEach((file) => formData.append('files', file));
 
-  return request('/api/admin/repairs', { method: 'POST', body: formData });
+  return request('/api/repairs', { method: 'POST', body: formData });
 }
 
 export function addRepairFiles(repairId, files) {
@@ -51,6 +56,6 @@ export function cancelRepair(repairId) {
 
 // ลิงก์ตรงไปที่ server (ไม่ผ่าน axios) เปิดแท็บใหม่ได้เลย เพราะ cookie เป็น SameSite=Lax
 // จึงแนบไปกับ top-level navigation แบบนี้โดยอัตโนมัติ
-export function getRepairFileUrl(fileId) {
-  return `${apiUrl}/api/admin/repairs/files/${fileId}`;
+export function getRepairFileUrl(fileId, { mine = false } = {}) {
+  return `${apiUrl}/api${mine ? '' : '/admin'}/repairs/files/${fileId}`;
 }

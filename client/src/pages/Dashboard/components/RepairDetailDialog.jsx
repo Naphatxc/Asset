@@ -1,4 +1,5 @@
 // Dialog ดูรายละเอียดรายการแจ้งซ่อม + แนบไฟล์เพิ่ม/บันทึกผลซ่อมเสร็จ/ยกเลิก แล้วแต่สถานะปัจจุบัน
+// mine (User ทั่วไป): ดูอย่างเดียว ไม่มีปุ่มจัดการ เพราะ route จัดการสงวนให้ Admin
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
@@ -39,7 +40,7 @@ function formatCost(value) {
   }).format(Number(value));
 }
 
-export default function RepairDetailDialog({ repairId, onClose }) {
+export default function RepairDetailDialog({ repairId, mine = false, onClose }) {
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
   const [repairDetail, setRepairDetail] = useState('');
@@ -47,8 +48,8 @@ export default function RepairDetailDialog({ repairId, onClose }) {
   const [pendingFiles, setPendingFiles] = useState([]);
 
   const repairQuery = useQuery({
-    queryKey: ['repair', repairId],
-    queryFn: () => getRepairDetail(repairId),
+    queryKey: ['repair', repairId, mine],
+    queryFn: () => getRepairDetail(repairId, { mine }),
   });
   const repair = repairQuery.data?.repair;
 
@@ -170,7 +171,7 @@ export default function RepairDetailDialog({ repairId, onClose }) {
                     <li key={file.file_id}>
                       <a
                         className="file-chip"
-                        href={getRepairFileUrl(file.file_id)}
+                        href={getRepairFileUrl(file.file_id, { mine })}
                         target="_blank"
                         rel="noreferrer"
                       >
@@ -181,25 +182,29 @@ export default function RepairDetailDialog({ repairId, onClose }) {
                 </ul>
               )}
 
-              <FileDropInput
-                files={pendingFiles}
-                onChange={setPendingFiles}
-                accept="image/jpeg,image/png,image/webp,application/pdf"
-              />
+              {!mine && (
+                <>
+                  <FileDropInput
+                    files={pendingFiles}
+                    onChange={setPendingFiles}
+                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                  />
 
-              <div className="form-actions">
-                <button
-                  className="button-secondary"
-                  type="button"
-                  disabled={pendingFiles.length === 0 || busy}
-                  onClick={() => addFilesMutation.mutate()}
-                >
-                  แนบไฟล์เพิ่ม
-                </button>
-              </div>
+                  <div className="form-actions">
+                    <button
+                      className="button-secondary"
+                      type="button"
+                      disabled={pendingFiles.length === 0 || busy}
+                      onClick={() => addFilesMutation.mutate()}
+                    >
+                      แนบไฟล์เพิ่ม
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
-            {repair.status === 'pending_repair' && (
+            {!mine && repair.status === 'pending_repair' && (
               <div className="form-actions">
                 <button
                   className="button-primary"
@@ -220,7 +225,7 @@ export default function RepairDetailDialog({ repairId, onClose }) {
               </div>
             )}
 
-            {repair.status === 'repairing' && (
+            {!mine && repair.status === 'repairing' && (
               <form
                 className="equipment-form"
                 onSubmit={(event) => {

@@ -39,9 +39,9 @@ function serializeRepair(repair) {
   };
 }
 
-export async function getRepairList({ status, itemId } = {}) {
+export async function getRepairList({ status, itemId, reportedBy } = {}) {
   try {
-    const repairs = await repairRepository.findMany({ status, itemId });
+    const repairs = await repairRepository.findMany({ status, itemId, reportedBy });
     return repairs.map(serializeRepair);
   } catch (error) {
     throw new AppError(500, 'ไม่สามารถโหลดรายการแจ้งซ่อมได้', { cause: error });
@@ -54,8 +54,11 @@ async function getSerializedById(repairId) {
   return serializeRepair(repair);
 }
 
-export async function getRepairDetail(repairId) {
-  return getSerializedById(repairId);
+// ownerId: User ทั่วไปดูได้เฉพาะรายการที่ตัวเองแจ้ง ของคนอื่นตอบ 404 เหมือนไม่มีอยู่ ไม่บอกว่ามีแต่ไม่มีสิทธิ์
+export async function getRepairDetail(repairId, { ownerId } = {}) {
+  const repair = await getSerializedById(repairId);
+  if (ownerId && repair.reported_by !== ownerId) throw new AppError(404, 'ไม่พบรายการแจ้งซ่อม');
+  return repair;
 }
 
 function toFileRecords(repairId, files) {
@@ -148,9 +151,11 @@ export async function addRepairFiles(repairId, actorId, files) {
   }
 }
 
-export async function getFile(fileId) {
+export async function getFile(fileId, { ownerId } = {}) {
   const file = await repairRepository.findFileById(fileId);
-  if (!file) throw new AppError(404, 'ไม่พบไฟล์แนบ');
+  if (!file || (ownerId && file.repairs.reported_by !== ownerId)) {
+    throw new AppError(404, 'ไม่พบไฟล์แนบ');
+  }
 
   return { ...file, absolutePath: path.join(repairUploadDir, file.file_path) };
 }

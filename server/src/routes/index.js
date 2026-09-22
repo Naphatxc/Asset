@@ -18,7 +18,7 @@ import materialRoutes, {
 import optionRoutes, {
   adminOptionsRouter,
 } from '../modules/options/options.routes.js';
-import adminRepairRouter from '../modules/repair/repair.routes.js';
+import adminRepairRouter, { repairRouter } from '../modules/repair/repair.routes.js';
 
 const router = express.Router();
 
@@ -30,6 +30,7 @@ router.use('/admin/equipment-items', adminEquipmentRouter);
 router.use('/borrows', borrowRoutes);
 router.use('/admin/borrows', adminBorrowRouter);
 router.use('/admin/dashboard', dashboardRoutes);
+router.use('/repairs', repairRouter);
 router.use('/admin/repairs', adminRepairRouter);
 router.use('/admin/audits', adminAuditRouter);
 router.use('/materials', materialRoutes);

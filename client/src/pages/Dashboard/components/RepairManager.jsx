@@ -1,9 +1,10 @@
-// จัดการแจ้งซ่อมครุภัณฑ์ (เฉพาะ Admin) — แจ้งซ่อม + ดูรายละเอียด/เริ่มซ่อม/บันทึกผลซ่อม/ยกเลิก อยู่ใน RepairDetailDialog
+// จัดการแจ้งซ่อมครุภัณฑ์ — Admin: ทุกรายการ + ดูรายละเอียด/เริ่มซ่อม/บันทึกผลซ่อม/ยกเลิก อยู่ใน RepairDetailDialog
+// mine (User ทั่วไป): แจ้งซ่อมได้ และเห็นเฉพาะรายการที่ตัวเองแจ้ง ดูรายละเอียดได้อย่างเดียว
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
 import { getAvailableEquipment } from '../../../api/equipment.js';
-import { getRepairs, reportRepair, startRepair } from '../../../api/repair.js';
+import { getMyRepairs, getRepairs, reportRepair, startRepair } from '../../../api/repair.js';
 import FileDropInput from '../../../components/FileDropInput.jsx';
 import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
 import SearchableSelect from '../../../components/SearchableSelect.jsx';
@@ -34,7 +35,7 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
-export default function RepairManager() {
+export default function RepairManager({ mine = false }) {
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
 
@@ -46,9 +47,10 @@ export default function RepairManager() {
   const [page, setPage] = useState(1);
   const [openRepairId, setOpenRepairId] = useState(null);
 
+  // รายการของตัวเองมีไม่มาก ดึงมาทั้งหมดแล้วกรองสถานะฝั่ง client ส่วนของ Admin กรองที่ server
   const repairsQuery = useQuery({
-    queryKey: ['repairs', statusFilter],
-    queryFn: () => getRepairs({ status: statusFilter || undefined }),
+    queryKey: mine ? ['repairs', 'mine'] : ['repairs', statusFilter],
+    queryFn: () => (mine ? getMyRepairs() : getRepairs({ status: statusFilter || undefined })),
   });
   // ใช้ query key เดียวกับ BorrowManager (['equipment','available']) แชร์ cache กันได้เพราะเป็นเงื่อนไขเดียวกัน
   const equipmentQuery = useQuery({
@@ -56,7 +58,11 @@ export default function RepairManager() {
     queryFn: getAvailableEquipment,
   });
 
-  const repairs = repairsQuery.data?.repairs ?? [];
+  const allRepairs = repairsQuery.data?.repairs ?? [];
+  const repairs =
+    mine && statusFilter
+      ? allRepairs.filter((repair) => repair.status === statusFilter)
+      : allRepairs;
   // server ส่งมาทั้งหมด แบ่งหน้าฝั่ง client ให้หน้าตาเหมือนแท็บครุภัณฑ์/วัสดุ
   const { rows: pageRepairs, pagination } = paginateRows(repairs, page);
   const availableEquipment = equipmentQuery.data?.equipment ?? [];
@@ -121,7 +127,7 @@ export default function RepairManager() {
         <div>
           <p className="section-kicker">Repair</p>
           <h2>
-            แจ้งซ่อมครุภัณฑ์
+            {mine ? 'แจ้งซ่อมของฉัน' : 'แจ้งซ่อมครุภัณฑ์'}
             {pendingCount > 0 && (
               <span
                 className="status-badge status-pending_repair"
@@ -231,7 +237,7 @@ export default function RepairManager() {
             <thead>
               <tr>
                 <th>ครุภัณฑ์</th>
-                <th>ผู้แจ้ง</th>
+                {!mine && <th>ผู้แจ้ง</th>}
                 <th>วันที่แจ้ง</th>
                 <th>ปัญหา</th>
                 <th>สถานะ</th>
@@ -248,7 +254,7 @@ export default function RepairManager() {
                     <br />
                     {repair.equipment_name}
                   </td>
-                  <td data-label="ผู้แจ้ง">{repair.reporter_name}</td>
+                  {!mine && <td data-label="ผู้แจ้ง">{repair.reporter_name}</td>}
                   <td data-label="วันที่แจ้ง">{formatDateTime(repair.repair_date)}</td>
                   <td data-label="ปัญหา">{repair.issue}</td>
                   <td data-label="สถานะ">
@@ -258,7 +264,7 @@ export default function RepairManager() {
                   </td>
                   <td className="stack-actions">
                     <div className="row-actions">
-                      {repair.status === 'pending_repair' && (
+                      {!mine && repair.status === 'pending_repair' && (
                         <button
                           className="button-restore"
                           type="button"
@@ -288,6 +294,7 @@ export default function RepairManager() {
       {openRepairId && (
         <RepairDetailDialog
           repairId={openRepairId}
+          mine={mine}
           onClose={() => setOpenRepairId(null)}
         />
       )}

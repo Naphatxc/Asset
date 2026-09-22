@@ -7,11 +7,12 @@ export const repairInclude = {
   repair_files: true,
 };
 
-export async function findMany({ status, itemId } = {}, client = prisma) {
+export async function findMany({ status, itemId, reportedBy } = {}, client = prisma) {
   return client.repairs.findMany({
     where: {
       ...(status ? { status } : {}),
       ...(itemId ? { item_id: itemId } : {}),
+      ...(reportedBy ? { reported_by: reportedBy } : {}),
     },
     include: repairInclude,
     orderBy: { repair_id: 'desc' },
@@ -49,5 +50,8 @@ export async function createFiles(files, client = prisma) {
 }
 
 export async function findFileById(fileId, client = prisma) {
-  return client.repair_files.findUnique({ where: { file_id: fileId } });
+  return client.repair_files.findUnique({
+    where: { file_id: fileId },
+    include: { repairs: { select: { reported_by: true } } },
+  });
 }

@@ -13,10 +13,23 @@ export async function getRepairList(request, response, next) {
   }
 }
 
+// route ฝั่ง User (/api/repairs) ใส่ request.repairOwnerId ไว้ จำกัดให้เห็นเฉพาะรายการที่ตัวเองแจ้ง
+export async function getMyRepairList(request, response, next) {
+  try {
+    const repairs = await repairService.getRepairList({ reportedBy: Number(request.user.sub) });
+
+    response.status(200).json({ repairs });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function getRepairDetail(request, response, next) {
   try {
     const { repairId } = request.validated;
-    const repair = await repairService.getRepairDetail(repairId);
+    const repair = await repairService.getRepairDetail(repairId, {
+      ownerId: request.repairOwnerId,
+    });
 
     response.status(200).json({ repair });
   } catch (error) {
@@ -64,7 +77,7 @@ export async function addRepairFiles(request, response, next) {
 export async function downloadFile(request, response, next) {
   try {
     const { fileId } = request.validated;
-    const file = await repairService.getFile(fileId);
+    const file = await repairService.getFile(fileId, { ownerId: request.repairOwnerId });
     // client render เป็นลิงก์ target="_blank" ตั้งใจให้เปิดดูรูป/PDF ในแท็บใหม่ ไม่ใช่ดาวน์โหลด
     // ต้องใช้ inline แทน default ของ response.download() (attachment) ไม่งั้น browser เด้ง save ทุกครั้ง
     const safeFileName = String(file.file_name).replace(/["\r\n]/g, '');
