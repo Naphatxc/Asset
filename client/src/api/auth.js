@@ -30,6 +30,31 @@ export async function getCurrentUser() {
   return data;
 }
 
+// เปลี่ยนรหัสของตัวเอง server ออก session ใหม่ให้ (session เดิมทุกเครื่องใช้ไม่ได้แล้ว) csrf token ยังเป็นค่าเดิม
+export async function changePassword({ currentPassword, newPassword }) {
+  const data = await request('/api/auth/change-password', {
+    method: 'POST',
+    body: { current_password: currentPassword, new_password: newPassword },
+  });
+
+  setCsrfToken(data.csrfToken);
+
+  return data;
+}
+
+// ลืมรหัสผ่าน: server ตอบข้อความเดียวกันเสมอ ไม่ว่าอีเมลนี้จะมีบัญชีหรือไม่
+export function forgotPassword(email) {
+  return request('/api/auth/forgot-password', { method: 'POST', body: { email } });
+}
+
+// token มาจากลิงก์ในอีเมล (/reset-password?token=...)
+export function resetPassword({ token, newPassword }) {
+  return request('/api/auth/reset-password', {
+    method: 'POST',
+    body: { token, new_password: newPassword },
+  });
+}
+
 export async function logout() {
   const data = await request('/api/auth/logout', { method: 'POST' });
 

@@ -18,6 +18,24 @@ if (jwtSecret.length < 64) {
 
 export const isProduction = process.env.NODE_ENV === 'production';
 
+// URL หน้าเว็บที่ใส่ในลิงก์ของอีเมล (เช่น ลิงก์ตั้งรหัสผ่านใหม่) ห้ามเอามาจาก header ของ request (Host/Origin)
+// เพราะคนยิง request ปลอม header ได้ ลิงก์ในอีเมลของเหยื่อจะชี้ไปเว็บของคนร้ายแล้ว token หลุด
+export const appUrl = String(process.env.APP_URL ?? clientOrigins[0] ?? '').replace(/\/+$/, '');
+
+// ส่งอีเมลผ่าน Brevo (HTTP API) ไม่ใช้ SMTP ตรงๆ เพราะผู้ให้บริการ hosting หลายเจ้าบล็อกพอร์ต SMTP ขาออก
+// เลือก Brevo เพราะยืนยันแค่อีเมลผู้ส่งเดียว (เช่น Gmail ของภาควิชา) ก็ส่งได้ ไม่ต้องมีโดเมนของตัวเอง
+// ไม่ได้ตั้งค่า: dev จะพิมพ์อีเมลลง console แทน ส่วน production ปิดฟีเจอร์ลืมรหัสผ่าน (ดู utils/mailer.js)
+export const brevoApiKey = String(process.env.BREVO_API_KEY ?? '').trim();
+// ต้องเป็นอีเมลที่ยืนยันใน Brevo แล้ว (Senders) ไม่งั้น Brevo ปฏิเสธการส่ง
+export const mailFromEmail = String(process.env.MAIL_FROM_EMAIL ?? '').trim();
+export const mailFromName = String(
+  process.env.MAIL_FROM_NAME ?? 'ระบบจัดการวัสดุและครุภัณฑ์',
+).trim();
+
+// ลิงก์ตั้งรหัสผ่านใหม่ใช้ได้นานเท่านี้ และขอลิงก์ใหม่ให้บัญชีเดิมได้ไม่ถี่กว่านี้ (กันใช้ฟอร์มยิงอีเมลใส่คนอื่นรัวๆ)
+export const passwordResetTtlMs = 30 * 60 * 1000;
+export const passwordResetCooldownMs = 60 * 1000;
+
 // นโยบาย session แบบเว็บทั่วไป (OWASP แนะนำ idle + absolute timeout คู่กัน): ใช้งานอยู่ = ต่ออายุไปเรื่อยๆ
 // ไม่ได้แตะเลยเกิน idle timeout = หลุด และต่อได้ไม่เกิน absolute timeout นับจาก login จริง กันบัญชีค้าง
 // บนเครื่องที่ใช้ร่วมกันในภาควิชาไปตลอด (ต่ออายุทำใน auth.middleware.js ผ่าน utils/access-token.js)

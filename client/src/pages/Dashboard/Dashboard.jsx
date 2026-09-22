@@ -8,6 +8,7 @@ import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import { getUsers, updateUserRole as updateUserRoleRequest } from '../../api/admin-users.js';
+import ChangePasswordDialog from '../../components/ChangePasswordDialog.jsx';
 import { useToast } from '../../components/ToastProvider.jsx';
 import AuditManager from './components/AuditManager.jsx';
 import BorrowManager from './components/BorrowManager.jsx';
@@ -36,7 +37,7 @@ const userTabs = [
 
 export default function Dashboard({ user, onLogout }) {
   const queryClient = useQueryClient();
-  const { showError } = useToast();
+  const { showError, showSuccess } = useToast();
   const admin = user.role === 'admin';
   const tabs = admin ? adminTabs : userTabs;
   const defaultTab = admin ? 'overview' : 'equipment';
@@ -53,6 +54,7 @@ export default function Dashboard({ user, onLogout }) {
 
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [userSearch, setUserSearch] = useState('');
+  const [changingPassword, setChangingPassword] = useState(false);
 
   // รายชื่อผู้ใช้เป็นข้อมูลเฉพาะ Admin จึงโหลดหลังทราบ role แล้วเท่านั้น
   const { data: usersData } = useQuery({
@@ -119,6 +121,14 @@ export default function Dashboard({ user, onLogout }) {
           ))}
         </nav>
 
+        <button
+          className="account-button"
+          type="button"
+          onClick={() => setChangingPassword(true)}
+        >
+          เปลี่ยนรหัสผ่าน
+        </button>
+
         <button className="logout-button" type="button" onClick={onLogout}>
           ออกจากระบบ
         </button>
@@ -163,6 +173,16 @@ export default function Dashboard({ user, onLogout }) {
           </section>
         )}
       </main>
+
+      {changingPassword && (
+        <ChangePasswordDialog
+          onClose={() => setChangingPassword(false)}
+          onChanged={() => {
+            setChangingPassword(false);
+            showSuccess('เปลี่ยนรหัสผ่านสำเร็จ');
+          }}
+        />
+      )}
     </div>
   );
 }

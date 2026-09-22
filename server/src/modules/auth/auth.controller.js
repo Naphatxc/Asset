@@ -1,4 +1,5 @@
 import * as authService from './auth.service.js';
+import * as passwordResetService from './password-reset.service.js';
 import {
   accessTokenCookieName,
   accessTokenCookieOptions,
@@ -46,6 +47,51 @@ export async function login(request, response, next) {
 // POST /api/auth/logout — ไม่บังคับผ่าน authenticate เพราะแค่ล้าง cookie เก่าที่อาจหมดอายุไปแล้วก็ยังต้องทำได้
 // clearCookie ต้องส่ง secure/sameSite ให้ตรงกับตอน set (accessTokenCookieOptions/csrfCookieOptions) เป๊ะๆ
 // ไม่งั้นตอน production (cross-site) browser จะเมิน Set-Cookie ที่ขาด SameSite=None; Secure แล้ว cookie เดิมไม่ถูกล้างจริง
+export async function changePassword(request, response, next) {
+  try {
+    const { currentPassword, newPassword } = request.validated;
+    const { token, user } = await authService.changePassword(
+      Number(request.user.sub),
+      currentPassword,
+      newPassword,
+    );
+    // ใช้ csrf token เดิมต่อ แค่ยืดอายุ cookie ให้เท่ากับ session ใหม่
+    const csrfToken = request.cookies?.[csrfTokenCookieName] ?? generateCsrfToken();
+
+    response
+      .cookie(accessTokenCookieName, token, accessTokenCookieOptions)
+      .cookie(csrfTokenCookieName, csrfToken, csrfCookieOptions)
+      .status(200)
+      .json({ message: 'เปลี่ยนรหัสผ่านสำเร็จ', user, csrfToken });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function forgotPassword(request, response, next) {
+  try {
+    await passwordResetService.requestPasswordReset(request.validated.email);
+
+    // ข้อความเดียวกันเสมอ ไม่บอกว่าอีเมลนี้มีบัญชีหรือไม่
+    response.status(200).json({
+      message: 'ถ้ามีบัญชีที่ใช้อีเมลนี้ ระบบได้ส่งลิงก์ตั้งรหัสผ่านใหม่ไปแล้ว กรุณาตรวจสอบกล่องอีเมล',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetPassword(request, response, next) {
+  try {
+    const { token, newPassword } = request.validated;
+    await passwordResetService.resetPasswordWithToken(token, newPassword);
+
+    response.status(200).json({ message: 'ตั้งรหัสผ่านใหม่สำเร็จ กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่' });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export function logout(_request, response) {
   response
     .clearCookie(accessTokenCookieName, {

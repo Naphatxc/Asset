@@ -147,6 +147,75 @@ a {
   box-shadow: 0 13px 26px rgba(237, 0, 130, 0.27);
 }
 
+/* ช่องรหัสผ่าน + ปุ่มรูปตา (PasswordInput) ปุ่มลอยอยู่ขอบขวาในช่อง ต้องล้างสไตล์ปุ่ม gradient ของ
+   .login-form button ทิ้งทั้งหมด และเว้น padding ขวาของ input ไว้ไม่ให้ข้อความวิ่งไปใต้ปุ่ม */
+.password-field {
+  position: relative;
+  display: block;
+}
+
+.password-field input {
+  padding-right: 48px;
+}
+
+.login-form .password-toggle,
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: #8a7a80;
+  background: transparent;
+  box-shadow: none;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.login-form .password-toggle:hover,
+.password-toggle:hover {
+  color: var(--stat-plum);
+  background: rgba(180, 59, 107, 0.08);
+  box-shadow: none;
+  transform: translateY(-50%);
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid var(--stat-pink-soft);
+  outline-offset: 1px;
+}
+
+/* ปุ่มแบบลิงก์ข้อความในฟอร์ม login (ลืมรหัสผ่าน/ยกเลิก) ต้องล้างสไตล์ปุ่ม gradient ของ .login-form button */
+.login-form .forgot-link,
+.login-form .auth-switch {
+  padding: 4px 0;
+  border: 0;
+  color: var(--stat-plum);
+  background: transparent;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+.login-form .forgot-link {
+  justify-self: end;
+  margin-top: -10px;
+  font-size: 0.9rem;
+}
+
+.login-form .forgot-link:hover,
+.login-form .auth-switch:hover {
+  color: var(--stat-pink);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  text-decoration: underline;
+}
+
 /* ===== ข้อความผลลัพธ์จาก API ===== */
 .error-message {
   margin: 0;
@@ -1013,8 +1082,24 @@ button:disabled {
   opacity: 0.55;
 }
 
-.logout-button {
+/* ปุ่มเปลี่ยนรหัสผ่านใน sidebar วางเหนือปุ่มออกจากระบบ ปุ่มออกจากระบบจึงไม่ต้องเว้นระยะบนเองแล้ว */
+.account-button {
   margin-top: 24px;
+  padding: 10px 15px;
+  border: 1px solid #d9cbd0;
+  border-radius: 9px;
+  color: var(--stat-plum);
+  background: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.account-button:hover {
+  border-color: var(--stat-plum);
+}
+
+.logout-button {
+  margin-top: 8px;
   padding: 10px 15px;
   border: 0;
   border-radius: 9px;

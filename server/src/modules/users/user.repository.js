@@ -11,6 +11,7 @@ export async function findByEmail(email, client = prisma) {
       email: true,
       password_hash: true,
       role: true,
+      password_changed_at: true,
     },
   });
 }
@@ -24,6 +25,40 @@ export async function findById(id, client = prisma) {
       email: true,
       role: true,
       created_at: true,
+    },
+  });
+}
+
+// ข้อมูลที่ authenticate ต้องเช็คทุก request: บัญชียังอยู่ไหม, session นี้เก่ากว่าตอนเปลี่ยนรหัสไหม
+// และ role ล่าสุด (requireAdmin ใช้ต่อจากตรงนี้ ไม่ต้อง query ซ้ำ)
+export async function findSessionState(id, client = prisma) {
+  return client.users.findUnique({
+    where: { user_id: id },
+    select: { role: true, password_changed_at: true },
+  });
+}
+
+export async function findPasswordHashById(id, client = prisma) {
+  return client.users.findUnique({
+    where: { user_id: id },
+    select: { password_hash: true },
+  });
+}
+
+// password_changed_at ทำให้ session ทุกอันที่ login ก่อนหน้านี้ใช้ไม่ได้ทันที (ดู auth.middleware.js)
+// changedAt ต้องเป็นวินาทีเต็ม (ไม่มีเศษ ms) กัน MySQL ปัดขึ้น — ผู้เรียกใช้ currentSecond() จาก utils/access-token.js
+export async function updatePassword(id, { passwordHash, changedAt }, client = prisma) {
+  return client.users.update({
+    where: { user_id: id },
+    data: {
+      password_hash: passwordHash,
+      password_changed_at: changedAt,
+    },
+    select: {
+      user_id: true,
+      name: true,
+      email: true,
+      role: true,
     },
   });
 }

@@ -4,7 +4,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
-import { login, register } from '../../api/auth.js';
+import { forgotPassword, login, register } from '../../api/auth.js';
+import PasswordInput from '../../components/PasswordInput.jsx';
 
 export default function LoginPage() {
   const location = useLocation();
@@ -19,6 +20,7 @@ export default function LoginPage() {
 
   // ใช้ตัวแปรเดียวควบคุมว่าต้องแสดงช่องชื่อและข้อความแบบ Login หรือ Register
   const isLogin = authMode === 'login';
+  const isForgot = authMode === 'forgot';
 
   const loginMutation = useMutation({
     mutationFn: login,
@@ -29,6 +31,11 @@ export default function LoginPage() {
   });
 
   const registerMutation = useMutation({ mutationFn: register });
+  const forgotMutation = useMutation({
+    mutationFn: forgotPassword,
+    onSuccess: (data) => setSuccessMessage(data.message),
+    onError: (mutationError) => setError(mutationError.message),
+  });
 
   // Login และ Register ใช้ฟอร์มเดียวกัน แต่เลือก mutation จาก authMode
   async function handleSubmit(event) {
@@ -62,6 +69,67 @@ export default function LoginPage() {
     setPassword('');
     setAuthMode((currentMode) =>
       currentMode === 'login' ? 'register' : 'login',
+    );
+  }
+
+  // ลืมรหัสผ่าน: กรอกอีเมลแล้วระบบส่งลิงก์ตั้งรหัสใหม่ไปให้ เก็บอีเมลที่พิมพ์ไว้ในหน้า login มาใส่ให้เลย
+  function openForgotPassword() {
+    setError('');
+    setSuccessMessage('');
+    setPassword('');
+    forgotMutation.reset();
+    setAuthMode('forgot');
+  }
+
+  function backToLogin() {
+    setError('');
+    setSuccessMessage('');
+    setAuthMode('login');
+  }
+
+  function handleForgotSubmit(event) {
+    event.preventDefault();
+    setError('');
+    setSuccessMessage('');
+    forgotMutation.mutate(email);
+  }
+
+  if (isForgot) {
+    return (
+      <main className="app-shell">
+        <section className="welcome-card">
+          <img className="brand-logo" src="/logo.jpg" alt="Mathematics" />
+          <p className="eyebrow">Material & Asset Management</p>
+          <h1>ลืมรหัสผ่าน</h1>
+          <p>กรอกอีเมลที่ใช้สมัคร ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปให้ (ใช้ได้ 30 นาที)</p>
+
+          <form className="login-form" onSubmit={handleForgotSubmit}>
+            <label>
+              อีเมล
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="name@example.com"
+                maxLength={255}
+                autoComplete="email"
+                required
+              />
+            </label>
+
+            {successMessage && <p className="success-message">{successMessage}</p>}
+            {error && <p className="error-message">{error}</p>}
+
+            <button type="submit" disabled={forgotMutation.isPending}>
+              {forgotMutation.isPending ? 'กำลังส่ง...' : 'ส่งลิงก์ตั้งรหัสผ่านใหม่'}
+            </button>
+          </form>
+
+          <button className="auth-switch" type="button" onClick={backToLogin}>
+            กลับไปหน้าเข้าสู่ระบบ
+          </button>
+        </section>
+      </main>
     );
   }
 
@@ -116,8 +184,7 @@ export default function LoginPage() {
 
           <label>
             รหัสผ่าน
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               placeholder="อย่างน้อย 8 ตัวอักษร"
@@ -127,6 +194,12 @@ export default function LoginPage() {
               required
             />
           </label>
+
+          {isLogin && (
+            <button className="forgot-link" type="button" onClick={openForgotPassword}>
+              ลืมรหัสผ่าน?
+            </button>
+          )}
 
           {successMessage && (
             <p className="success-message">{successMessage}</p>

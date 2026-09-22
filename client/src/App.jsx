@@ -3,16 +3,18 @@
 // Session มาจาก query ['auth','me'] — กลายเป็น null อัตโนมัติเมื่อเจอ 401 (ดู main.jsx: handleAuthError)
 // จึงไม่ต้องส่ง onUnauthorized/onSessionExpired ไล่ผ่าน prop หลายชั้นเหมือนเดิมอีกต่อไป
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { getCurrentUser, logout as logoutRequest } from './api/auth.js';
 import AuditScanPage from './pages/AuditScanPage/AuditScanPage.jsx';
 import Dashboard from './pages/Dashboard/Dashboard.jsx';
 import EquipmentDetailPage from './pages/EquipmentDetailPage/EquipmentDetailPage.jsx';
 import LoginPage from './pages/LoginPage/LoginPage.jsx';
 import NotFoundPage from './pages/NotFoundPage/NotFoundPage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage/ResetPasswordPage.jsx';
 
 export default function App() {
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   // เช็ค session ตอนโหลด/Refresh หน้าเว็บ cookie จะแนบไปเองถ้ามี (retry:false ตั้งไว้ที่ QueryClient กลาง)
   const { data: meData, isLoading: checkingSession } = useQuery({
@@ -32,6 +34,11 @@ export default function App() {
 
     queryClient.setQueryData(['auth', 'me'], null);
     queryClient.removeQueries({ queryKey: ['admin-users'] });
+  }
+
+  // ลิงก์ตั้งรหัสผ่านใหม่จากอีเมลต้องเปิดได้ทั้งตอน login อยู่และไม่ได้ login (ไม่ต้องรอเช็ค session)
+  if (location.pathname === '/reset-password') {
+    return <ResetPasswordPage />;
   }
 
   // ระหว่างตรวจ Session ยังไม่ควรแสดงหน้า Login เพราะหน้าจะกระพริบ

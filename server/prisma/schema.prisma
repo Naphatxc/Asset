@@ -117,19 +117,36 @@ model material_withdrawals {
 }
 
 model users {
-  user_id              Int                    @id @default(autoincrement()) @db.UnsignedInt
-  name                 String                 @db.VarChar(100)
-  email                String                 @unique(map: "email") @db.VarChar(255)
-  password_hash        String                 @db.VarChar(255)
-  role                 users_role             @default(user)
-  created_at           DateTime               @default(now()) @db.DateTime(0)
-  borrows              borrows[]
-  equipment_history    equipment_history[]
-  repairs              repairs[]
-  material_withdrawals material_withdrawals[]
-  audit_rounds_opened  audit_rounds[]         @relation("audit_round_opened_by")
-  audit_rounds_closed  audit_rounds[]         @relation("audit_round_closed_by")
-  audit_records        audit_records[]
+  user_id               Int                     @id @default(autoincrement()) @db.UnsignedInt
+  name                  String                  @db.VarChar(100)
+  email                 String                  @unique(map: "email") @db.VarChar(255)
+  password_hash         String                  @db.VarChar(255)
+  role                  users_role              @default(user)
+  created_at            DateTime                @default(now()) @db.DateTime(0)
+  // session ที่ login ก่อนเวลานี้ใช้ไม่ได้แล้ว (เปลี่ยน/รีเซ็ตรหัสแล้วอุปกรณ์อื่นต้อง login ใหม่)
+  password_changed_at   DateTime?               @db.DateTime(0)
+  borrows               borrows[]
+  equipment_history     equipment_history[]
+  repairs               repairs[]
+  material_withdrawals  material_withdrawals[]
+  audit_rounds_opened   audit_rounds[]          @relation("audit_round_opened_by")
+  audit_rounds_closed   audit_rounds[]          @relation("audit_round_closed_by")
+  audit_records         audit_records[]
+  password_reset_tokens password_reset_tokens[]
+}
+
+// ลิงก์ "ลืมรหัสผ่าน" ที่ส่งทางอีเมล เก็บแค่ hash (sha256) ของ token ไม่เก็บตัวจริง
+// DB รั่วก็เอาไปตั้งรหัสแทนเจ้าของไม่ได้ ใช้ได้ครั้งเดียว (used_at) และหมดอายุตาม expires_at
+model password_reset_tokens {
+  token_id   Int       @id @default(autoincrement()) @db.UnsignedInt
+  user_id    Int       @db.UnsignedInt
+  token_hash String    @unique(map: "uq_password_reset_token_hash") @db.Char(64)
+  expires_at DateTime  @db.DateTime(0)
+  used_at    DateTime? @db.DateTime(0)
+  created_at DateTime  @default(now()) @db.DateTime(0)
+  users      users     @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_password_reset_user")
+
+  @@index([user_id], map: "fk_password_reset_user")
 }
 
 model borrow_details {

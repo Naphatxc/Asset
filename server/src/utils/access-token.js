@@ -30,6 +30,19 @@ export function signAccessToken({ userId, role, loginAt, now = Date.now() }) {
   return { token, maxAgeMs: lifetimeSeconds * 1000 };
 }
 
+// กติกา: session ใช้ได้ก็ต่อเมื่อ login_at > วินาทีที่เปลี่ยนรหัสล่าสุด (ดู auth.middleware.js)
+// password_changed_at เก็บเป็น DATETIME(0) ระดับวินาที ถ้าส่ง Date ที่มีเศษ ms ไป MySQL จะ "ปัดขึ้น" (.900 -> วินาทีถัดไป)
+// จึงต้องปัดลงเองก่อนเขียน และทุก token ที่ออกหลังเปลี่ยนรหัสต้องมี login_at เลยวินาทีนั้นไปอย่างน้อย 1 วินาที
+// ไม่งั้นเครื่องที่เพิ่ง login/เปลี่ยนรหัสในวินาทีเดียวกันจะถูกมองว่าเป็น session เก่าแล้วหลุดทันที
+export function currentSecond(now = Date.now()) {
+  return Math.floor(now / 1000);
+}
+
+export function loginAtAfterPasswordChange(passwordChangedAt, now = Date.now()) {
+  if (!passwordChangedAt) return currentSecond(now);
+  return Math.max(currentSecond(now), currentSecond(passwordChangedAt.getTime()) + 1);
+}
+
 export function verifyAccessToken(token) {
   return jwt.verify(token, jwtSecret, { ...tokenOptions, algorithms: ['HS256'] });
 }

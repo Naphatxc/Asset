@@ -2,7 +2,11 @@
 import bcrypt from 'bcryptjs';
 
 import * as userRepository from '../users/user.repository.js';
-import { signAccessToken } from '../../utils/access-token.js';
+import {
+  currentSecond,
+  loginAtAfterPasswordChange,
+  signAccessToken,
+} from '../../utils/access-token.js';
 import { AppError } from '../../utils/AppError.js';
 
 export async function register({ name, email, password }) {
@@ -47,7 +51,11 @@ export async function login({ email, password }) {
     }
 
     // subject (sub) คือ user_id อายุตาม idle timeout และต่ออายุเองระหว่างใช้งาน (ดู config/env.js)
-    const { token } = signAccessToken({ userId: user.user_id, role: user.role });
+    const { token } = signAccessToken({
+      userId: user.user_id,
+      role: user.role,
+      loginAt: loginAtAfterPasswordChange(user.password_changed_at),
+    });
 
     return {
       token,
@@ -62,6 +70,39 @@ export async function login({ email, password }) {
     if (error instanceof AppError) throw error;
 
     throw new AppError(500, 'ไม่สามารถเข้าสู่ระบบได้', { cause: error });
+  }
+}
+
+// เปลี่ยนรหัสของตัวเองจากเมนูใน Dashboard ต้องยืนยันรหัสปัจจุบันก่อนเสมอ
+// เปลี่ยนแล้ว session อื่นทุกอันใช้ไม่ได้ (password_changed_at) จึงออก session ใหม่ให้เครื่องนี้ใช้ต่อได้เลย
+export async function changePassword(userId, currentPassword, newPassword) {
+  try {
+    const account = await userRepository.findPasswordHashById(userId);
+    if (!account) throw new AppError(401, 'ไม่พบบัญชีผู้ใช้');
+
+    const currentMatches = await bcrypt.compare(currentPassword, account.password_hash);
+    if (!currentMatches) {
+      throw new AppError(400, 'รหัสผ่านปัจจุบันไม่ถูกต้อง');
+    }
+    if (currentPassword === newPassword) {
+      throw new AppError(400, 'รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม');
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+    const changedAt = new Date(currentSecond() * 1000);
+    const user = await userRepository.updatePassword(userId, { passwordHash, changedAt });
+    // session ใหม่ของเครื่องนี้ต้อง login_at เลยวินาทีที่เปลี่ยนไปแล้ว ไม่งั้นถูกตัดสินเป็น session เก่า
+    const { token } = signAccessToken({
+      userId: user.user_id,
+      role: user.role,
+      loginAt: loginAtAfterPasswordChange(changedAt),
+    });
+
+    return { token, user };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw new AppError(500, 'ไม่สามารถเปลี่ยนรหัสผ่านได้', { cause: error });
   }
 }
 
