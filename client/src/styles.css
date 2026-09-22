@@ -1556,6 +1556,27 @@ button:disabled {
   background: rgba(28, 24, 26, 0.64);
 }
 
+/* ข้อความยาวไม่เว้นวรรค (ชื่อครุภัณฑ์/วัสดุ อาการ ชื่อไฟล์) ต้องตัดบรรทัดในกล่อง ไม่ดัน dialog ล้นจอมือถือ
+   min-width: 0 ให้ dialog หดตาม grid ของ .modal-backdrop ได้ ไม่ขยายตามความกว้างข้อความ */
+.qr-dialog,
+.withdraw-dialog,
+.repair-dialog {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ป้ายปุ่มห้ามหักกลางคำ (เหมือนในตาราง) */
+.qr-dialog button,
+.withdraw-dialog button,
+.repair-dialog button {
+  overflow-wrap: normal;
+}
+
+.repair-detail-grid,
+.repair-detail-grid dd {
+  min-width: 0;
+}
+
 .qr-dialog {
   width: min(100%, 520px);
   padding: 24px;
@@ -1664,6 +1685,7 @@ button:disabled {
 .file-chip {
   display: inline-flex;
   align-items: center;
+  max-width: 100%;
   padding: 6px 12px;
   border-radius: 999px;
   background: var(--stat-pink-soft);
