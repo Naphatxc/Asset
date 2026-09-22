@@ -116,6 +116,16 @@ export function validateCreateEquipment(request, _response, next) {
     return next(new AppError(400, 'สถานะครุภัณฑ์ไม่ถูกต้อง'));
   }
 
+  // คอลัมน์เป็น YEAR ของ MySQL (1901–2155) ถ้าปล่อย พ.ศ. อย่าง 2569 หลุดไปจะพังเป็น 500 ตอน insert
+  if (
+    fiscalYear !== null &&
+    (!Number.isInteger(fiscalYear) || fiscalYear < 1901 || fiscalYear > 2155)
+  ) {
+    return next(
+      new AppError(400, 'ปีงบประมาณไม่ถูกต้อง (ต้องเป็น ค.ศ. 1901–2155)'),
+    );
+  }
+
   if (price !== null && (Number.isNaN(price) || price < 0)) {
     return next(new AppError(400, 'ราคาครุภัณฑ์ไม่ถูกต้อง'));
   }

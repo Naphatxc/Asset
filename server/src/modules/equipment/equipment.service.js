@@ -490,7 +490,7 @@ export async function updateEquipment(itemId, body, actorId) {
           fiscalYear < 1901 ||
           fiscalYear > 2155)
       ) {
-        return { error: 'ปีงบประมาณไม่ถูกต้อง', status: 400 };
+        return { error: 'ปีงบประมาณไม่ถูกต้อง (ต้องเป็น ค.ศ. 1901–2155)', status: 400 };
       }
       if (
         price !== null &&

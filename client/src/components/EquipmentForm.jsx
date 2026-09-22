@@ -323,12 +323,13 @@ export default function EquipmentForm({
         )}
 
         <label>
-          ปีงบประมาณ
+          ปีงบประมาณ (ค.ศ.)
           <input
             name="fiscal_year"
             type="number"
             min="1901"
             max="2155"
+            placeholder="เช่น 2026"
             value={form.fiscal_year}
             onChange={updateField}
           />
