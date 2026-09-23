@@ -1828,6 +1828,33 @@ button:disabled {
   display: none;
 }
 
+/* ===== ราคา/ปีของครุภัณฑ์ที่เลือกในฟอร์มแจ้งซ่อม (ดู RepairManager.jsx) ===== */
+.repair-item-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  align-self: end;
+  gap: 10px;
+  margin: 0;
+}
+
+.repair-item-info > div {
+  padding: 8px 12px;
+  border: 1px solid #e7dce0;
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.repair-item-info dt {
+  color: var(--stat-slate-dark);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.repair-item-info dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
 /* ===== รูปครุภัณฑ์/วัสดุ (ดู ImageInput.jsx, ItemThumbnail.jsx) ===== */
 .image-field {
   display: grid;

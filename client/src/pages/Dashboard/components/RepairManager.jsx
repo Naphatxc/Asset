@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 
-import { getAvailableEquipment } from '../../../api/equipment.js';
+import { getAvailableEquipment, getEquipmentByCode } from '../../../api/equipment.js';
 import { getMyRepairs, getRepairs, reportRepair, startRepair } from '../../../api/repair.js';
 import FileDropInput from '../../../components/FileDropInput.jsx';
 import ListFilters, {
@@ -33,6 +33,17 @@ const adminSortColumns = {
   reporter: { label: 'ผู้แจ้ง', type: 'text', get: (repair) => repair.reporter_name },
   repair_date: mySortColumns.repair_date,
 };
+
+function formatPrice(value) {
+  if (value === null || value === undefined || value === '') return '-';
+
+  return new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(Number(value));
+}
+
+// ปี พ.ศ. จาก receive_date (YYYY-MM-DD) — ข้อมูลที่นำเข้าจากระบบเก่ามีวันที่รับแต่ไม่มีปีงบประมาณ
+function formatBuddhistYear(dateValue) {
+  return dateValue ? Number(String(dateValue).slice(0, 4)) + 543 : '-';
+}
 
 function formatDateTime(value) {
   if (!value) return '-';
@@ -104,6 +115,18 @@ export default function RepairManager({ mine = false }) {
       })),
     [availableEquipment],
   );
+
+  // รายการตัวเลือกมีแค่รหัส/ชื่อ (ให้ payload เล็กแม้มีหลายพันชิ้น) พอเลือกแล้วค่อยดึงรายละเอียดของชิ้นนั้นมาโชว์
+  // ราคา/ปีงบประมาณ/ปีที่รับ — query key เดียวกับหน้ารายละเอียดครุภัณฑ์ (EquipmentDetailPage.jsx) แชร์ cache กันได้
+  const selectedCode = availableEquipment.find(
+    (item) => String(item.item_id) === itemId,
+  )?.equipment_code;
+  const selectedEquipmentQuery = useQuery({
+    queryKey: ['equipment', selectedCode],
+    queryFn: () => getEquipmentByCode(selectedCode),
+    enabled: Boolean(selectedCode),
+  });
+  const selectedEquipment = selectedEquipmentQuery.data?.equipment;
 
   const pendingCount = allRepairs.filter(
     (repair) => repair.status === 'pending_repair',
@@ -204,6 +227,38 @@ export default function RepairManager({ mine = false }) {
                 options={equipmentOptions}
               />
             </label>
+
+            {selectedCode && (
+              <dl className="repair-item-info">
+                <div>
+                  <dt>ราคา</dt>
+                  <dd>
+                    {selectedEquipmentQuery.isLoading
+                      ? 'กำลังโหลด...'
+                      : formatPrice(selectedEquipment?.price)}
+                  </dd>
+                </div>
+                <div>
+                  <dt>ปีงบประมาณ</dt>
+                  {/* DB เก็บ ค.ศ. แสดงเป็น พ.ศ. เหมือนหน้ารายละเอียดครุภัณฑ์ */}
+                  <dd>
+                    {selectedEquipmentQuery.isLoading
+                      ? 'กำลังโหลด...'
+                      : selectedEquipment?.fiscal_year
+                        ? selectedEquipment.fiscal_year + 543
+                        : '-'}
+                  </dd>
+                </div>
+                <div>
+                  <dt>ปีที่รับ</dt>
+                  <dd>
+                    {selectedEquipmentQuery.isLoading
+                      ? 'กำลังโหลด...'
+                      : formatBuddhistYear(selectedEquipment?.receive_date)}
+                  </dd>
+                </div>
+              </dl>
+            )}
 
             <label className="field-wide">
               อาการ/ปัญหาที่พบ
