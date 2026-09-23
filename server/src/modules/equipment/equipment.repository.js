@@ -34,8 +34,9 @@ function buildListWhere({ deleted, search, status, categoryId, locationId }) {
   };
 }
 
+// orderBy มาจาก ?sort= (utils/sorting.js) ต่อท้ายด้วย item_id ให้ลำดับคงที่ ข้ามหน้าแล้วไม่มีแถวซ้ำ/หาย
 export async function findManyActive(
-  { page = 1, limit = 20, search, status, categoryId, locationId } = {},
+  { page = 1, limit = 20, search, status, categoryId, locationId, orderBy } = {},
   client = prisma,
 ) {
   const where = buildListWhere({ deleted: false, search, status, categoryId, locationId });
@@ -43,7 +44,7 @@ export async function findManyActive(
     client.equipment_items.findMany({
       where,
       include: equipmentInclude,
-      orderBy: { item_id: 'desc' },
+      orderBy: orderBy ? [orderBy, { item_id: 'desc' }] : { item_id: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     }),
@@ -54,7 +55,7 @@ export async function findManyActive(
 }
 
 export async function findManyDeleted(
-  { page = 1, limit = 20, search, status, categoryId, locationId } = {},
+  { page = 1, limit = 20, search, status, categoryId, locationId, orderBy } = {},
   client = prisma,
 ) {
   const where = buildListWhere({ deleted: true, search, status, categoryId, locationId });
@@ -62,7 +63,7 @@ export async function findManyDeleted(
     client.equipment_items.findMany({
       where,
       include: equipmentInclude,
-      orderBy: { deleted_at: 'desc' },
+      orderBy: orderBy ? [orderBy, { item_id: 'desc' }] : { deleted_at: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     }),

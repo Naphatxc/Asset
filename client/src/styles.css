@@ -425,6 +425,46 @@ button:disabled {
   letter-spacing: 0.025em;
 }
 
+/* หัวคอลัมน์ที่คลิกเรียงได้ (ดู SortableTh ใน ListFilters.jsx) หน้าตาเหมือนหัวตารางปกติ + ลูกศร ▲/▼
+   คอลัมน์ที่ยังไม่ได้เรียงแสดงลูกศรจางๆ ให้รู้ว่ากดได้ */
+.sort-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sort-arrow {
+  font-size: 0.62rem;
+  letter-spacing: -0.1em;
+  opacity: 0.45;
+}
+
+.sort-header.active .sort-arrow,
+.sort-header:hover .sort-arrow {
+  opacity: 1;
+}
+
+.sort-header:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ช่องเลือกเรียงลำดับใช้แทนหัวตารางเฉพาะโหมดการ์ด (หัวตารางถูกซ่อน) ดู @container dashboard ด้านล่าง
+   .sort-only-cards คือแถวที่มีแค่ช่องนี้ (เช่น ประวัติการเบิก) ซ่อนทั้งแถวไม่ให้เหลือช่องว่างตอนเป็นตาราง */
+.equipment-filters .sort-select-cards,
+.equipment-filters.sort-only-cards {
+  display: none;
+}
+
 .user-table tbody tr:last-child td,
 .equipment-table tbody tr:last-child td {
   border-bottom: 0;
@@ -1341,6 +1381,14 @@ button:disabled {
 
   .responsive-table thead {
     display: none;
+  }
+
+  .equipment-filters .sort-select-cards {
+    display: block;
+  }
+
+  .equipment-filters.sort-only-cards {
+    display: flex;
   }
 
   .responsive-table tbody {

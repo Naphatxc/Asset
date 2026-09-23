@@ -50,13 +50,14 @@ function serializePagination({ page, limit, total }) {
   return { page, limit, total, totalPages: Math.max(1, Math.ceil(total / limit)) };
 }
 
-export async function getMaterialList({ page = 1, limit = 20, search, categoryId } = {}) {
+export async function getMaterialList({ page = 1, limit = 20, search, categoryId, orderBy } = {}) {
   try {
     const { items, total } = await materialRepository.findManyActive({
       page,
       limit,
       search,
       categoryId,
+      orderBy,
     });
 
     return {
@@ -73,6 +74,7 @@ export async function getDeletedMaterialList({
   limit = 20,
   search,
   categoryId,
+  orderBy,
 } = {}) {
   try {
     const { items, total } = await materialRepository.findManyDeleted({
@@ -80,6 +82,7 @@ export async function getDeletedMaterialList({
       limit,
       search,
       categoryId,
+      orderBy,
     });
 
     return {
@@ -285,13 +288,14 @@ export async function withdrawMaterial(materialId, userId, quantity, remark) {
   }
 }
 
-export async function getWithdrawals({ page = 1, limit = 20, materialId, userId } = {}) {
+export async function getWithdrawals({ page = 1, limit = 20, materialId, userId, orderBy } = {}) {
   try {
     const { items, total } = await materialRepository.findWithdrawals({
       page,
       limit,
       materialId,
       userId,
+      orderBy,
     });
 
     return {

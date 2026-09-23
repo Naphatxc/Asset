@@ -1,9 +1,9 @@
 // รวมคำสั่งติดต่อ Equipment API ไว้ที่เดียว เพื่อไม่ให้แต่ละ Component เขียน fetch ซ้ำ
 import { request } from './http.js';
 
-// รองรับ 3000+ รายการ: page/limit/search/status/category_id/location_id ส่งเป็น query string
+// รองรับ 3000+ รายการ: page/limit/search/status/category_id/location_id/sort/dir ส่งเป็น query string
 // ไม่ส่ง key ที่ไม่มีค่าเพื่อให้ backend ใช้ default เอง
-function toListQueryString({ page, limit, search, status, categoryId, locationId } = {}) {
+function toListQueryString({ page, limit, search, status, categoryId, locationId, sort, dir } = {}) {
   const query = new URLSearchParams();
 
   if (page) query.set('page', page);
@@ -12,6 +12,9 @@ function toListQueryString({ page, limit, search, status, categoryId, locationId
   if (status) query.set('status', status);
   if (categoryId) query.set('category_id', categoryId);
   if (locationId) query.set('location_id', locationId);
+  // เรียงที่ server เพราะแบ่งหน้าที่ server (เรียงฝั่ง client จะได้แค่ในหน้าที่เห็น)
+  if (sort) query.set('sort', sort);
+  if (sort && dir) query.set('dir', dir);
 
   const qs = query.toString();
   return qs ? `?${qs}` : '';

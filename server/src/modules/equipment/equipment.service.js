@@ -83,6 +83,7 @@ export async function getEquipmentList({
   status,
   categoryId,
   locationId,
+  orderBy,
 } = {}) {
   try {
     const { items, total } = await equipmentRepository.findManyActive({
@@ -92,6 +93,7 @@ export async function getEquipmentList({
       status,
       categoryId,
       locationId,
+      orderBy,
     });
 
     return {
@@ -112,6 +114,7 @@ export async function getDeletedEquipmentList({
   status,
   categoryId,
   locationId,
+  orderBy,
 } = {}) {
   try {
     const { items, total } = await equipmentRepository.findManyDeleted({
@@ -121,6 +124,7 @@ export async function getDeletedEquipmentList({
       status,
       categoryId,
       locationId,
+      orderBy,
     });
 
     return {

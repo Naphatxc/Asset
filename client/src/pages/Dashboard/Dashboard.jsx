@@ -9,6 +9,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { getUsers, updateUserRole as updateUserRoleRequest } from '../../api/admin-users.js';
 import ChangePasswordDialog from '../../components/ChangePasswordDialog.jsx';
+import { SortSelect, sortRows } from '../../components/ListFilters.jsx';
 import PaginationBar, { paginateRows } from '../../components/PaginationBar.jsx';
 import { useToast } from '../../components/ToastProvider.jsx';
 import AuditManager from './components/AuditManager.jsx';
@@ -18,7 +19,7 @@ import EquipmentManager from './components/EquipmentManager.jsx';
 import MaterialManager from './components/MaterialManager.jsx';
 import MyBorrows from './components/MyBorrows.jsx';
 import RepairManager from './components/RepairManager.jsx';
-import UserTable from './components/UserTable.jsx';
+import UserTable, { userSortColumns } from './components/UserTable.jsx';
 
 const adminTabs = [
   { key: 'overview', label: 'ภาพรวม' },
@@ -57,6 +58,7 @@ export default function Dashboard({ user, onLogout }) {
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [userSearch, setUserSearch] = useState('');
   const [userPage, setUserPage] = useState(1);
+  const [userSort, setUserSort] = useState({ key: 'name', dir: 'asc' });
   const [changingPassword, setChangingPassword] = useState(false);
 
   // รายชื่อผู้ใช้เป็นข้อมูลเฉพาะ Admin จึงโหลดหลังทราบ role แล้วเท่านั้น
@@ -72,7 +74,15 @@ export default function Dashboard({ user, onLogout }) {
         item.name.toLowerCase().includes(userSearch.trim().toLowerCase()),
       )
     : users;
-  const { rows: pageUsers, pagination: userPagination } = paginateRows(filteredUsers, userPage);
+  const { rows: pageUsers, pagination: userPagination } = paginateRows(
+    sortRows(filteredUsers, userSortColumns, userSort),
+    userPage,
+  );
+
+  function changeUserSort(nextSort) {
+    setUserSort(nextSort);
+    setUserPage(1);
+  }
 
   const updateRoleMutation = useMutation({
     mutationFn: ({ userId, role }) => updateUserRoleRequest(userId, role),
@@ -164,6 +174,11 @@ export default function Dashboard({ user, onLogout }) {
                 }}
                 placeholder="ค้นหาชื่อผู้ใช้งาน"
               />
+              <SortSelect
+                sortColumns={userSortColumns}
+                sort={userSort}
+                onSortChange={changeUserSort}
+              />
             </div>
             {filteredUsers.length === 0 ? (
               <div className="empty-state">
@@ -175,6 +190,8 @@ export default function Dashboard({ user, onLogout }) {
                 currentUserId={user.user_id}
                 updatingUserId={updatingUserId}
                 onUpdateRole={updateUserRole}
+                sort={userSort}
+                onSortChange={changeUserSort}
               />
             )}
             <PaginationBar pagination={userPagination} onPageChange={setUserPage} />

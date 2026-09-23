@@ -6,6 +6,11 @@ import { useMemo, useState } from 'react';
 import { getAvailableEquipment } from '../../../api/equipment.js';
 import { getMyRepairs, getRepairs, reportRepair, startRepair } from '../../../api/repair.js';
 import FileDropInput from '../../../components/FileDropInput.jsx';
+import ListFilters, {
+  SortableTh,
+  matchesSearch,
+  sortRows,
+} from '../../../components/ListFilters.jsx';
 import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
 import SearchableSelect from '../../../components/SearchableSelect.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
@@ -18,13 +23,16 @@ const statusLabels = {
   cancelled: 'ยกเลิกแล้ว',
 };
 
-const statusOptions = [
-  { value: '', label: 'ทุกสถานะ' },
-  { value: 'pending_repair', label: 'รอซ่อม' },
-  { value: 'repairing', label: 'กำลังซ่อม' },
-  { value: 'completed', label: 'ซ่อมเสร็จแล้ว' },
-  { value: 'cancelled', label: 'ยกเลิกแล้ว' },
-];
+// คอลัมน์ที่คลิกเรียงได้ ผู้แจ้งมีเฉพาะ Admin (User เห็นแต่รายการของตัวเอง ตารางไม่มีคอลัมน์นี้)
+const mySortColumns = {
+  code: { label: 'รหัสครุภัณฑ์', type: 'text', get: (repair) => repair.equipment_code, dirLabels: { asc: 'A→Z', desc: 'Z→A' } },
+  repair_date: { label: 'วันที่แจ้ง', type: 'date', get: (repair) => repair.repair_date },
+};
+const adminSortColumns = {
+  code: mySortColumns.code,
+  reporter: { label: 'ผู้แจ้ง', type: 'text', get: (repair) => repair.reporter_name },
+  repair_date: mySortColumns.repair_date,
+};
 
 function formatDateTime(value) {
   if (!value) return '-';
@@ -43,14 +51,16 @@ export default function RepairManager({ mine = false }) {
   const [itemId, setItemId] = useState('');
   const [issue, setIssue] = useState('');
   const [files, setFiles] = useState([]);
+  const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [sort, setSort] = useState({ key: 'repair_date', dir: 'desc' });
   const [page, setPage] = useState(1);
   const [openRepairId, setOpenRepairId] = useState(null);
 
-  // รายการของตัวเองมีไม่มาก ดึงมาทั้งหมดแล้วกรองสถานะฝั่ง client ส่วนของ Admin กรองที่ server
+  // ดึงมาทั้งหมดแล้วกรองสถานะ/ค้นหาฝั่ง client (เหมือนแท็บยืม-คืน) ป้าย "รอซ่อม N" จึงนับจากทั้งหมดเสมอ
   const repairsQuery = useQuery({
-    queryKey: mine ? ['repairs', 'mine'] : ['repairs', statusFilter],
-    queryFn: () => (mine ? getMyRepairs() : getRepairs({ status: statusFilter || undefined })),
+    queryKey: ['repairs', mine ? 'mine' : 'all'],
+    queryFn: () => (mine ? getMyRepairs() : getRepairs()),
   });
   // ใช้ query key เดียวกับ BorrowManager (['equipment','available']) แชร์ cache กันได้เพราะเป็นเงื่อนไขเดียวกัน
   const equipmentQuery = useQuery({
@@ -59,12 +69,30 @@ export default function RepairManager({ mine = false }) {
   });
 
   const allRepairs = repairsQuery.data?.repairs ?? [];
-  const repairs =
-    mine && statusFilter
-      ? allRepairs.filter((repair) => repair.status === statusFilter)
-      : allRepairs;
+  const repairs = allRepairs.filter(
+    (repair) =>
+      (!statusFilter || repair.status === statusFilter) &&
+      matchesSearch(
+        search,
+        repair.equipment_code,
+        repair.equipment_name,
+        repair.reporter_name,
+        repair.issue,
+      ),
+  );
   // server ส่งมาทั้งหมด แบ่งหน้าฝั่ง client ให้หน้าตาเหมือนแท็บครุภัณฑ์/วัสดุ
-  const { rows: pageRepairs, pagination } = paginateRows(repairs, page);
+  const sortColumns = mine ? mySortColumns : adminSortColumns;
+  const { rows: pageRepairs, pagination } = paginateRows(
+    sortRows(repairs, sortColumns, sort),
+    page,
+  );
+
+  function changeSort(nextSortValue) {
+    setSort(nextSortValue);
+    setPage(1);
+  }
+  const sortProps = { sortColumns, sort, onSortChange: changeSort };
+
   const availableEquipment = equipmentQuery.data?.equipment ?? [];
 
   // แปลงเป็น { value, label } ให้ SearchableSelect ใช้ตรงกัน ค้นหาได้ทั้งรหัสและชื่อครุภัณฑ์
@@ -77,7 +105,7 @@ export default function RepairManager({ mine = false }) {
     [availableEquipment],
   );
 
-  const pendingCount = repairs.filter(
+  const pendingCount = allRepairs.filter(
     (repair) => repair.status === 'pending_repair',
   ).length;
 
@@ -140,19 +168,6 @@ export default function RepairManager({ mine = false }) {
         </div>
 
         <div className="toolbar-actions">
-          <select
-            value={statusFilter}
-            onChange={(event) => {
-              setStatusFilter(event.target.value);
-              setPage(1);
-            }}
-          >
-            {statusOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
           <span className="item-count">{repairs.length} รายการ</span>
           {!formOpen && (
             <button className="button-primary" type="button" onClick={openForm}>
@@ -225,20 +240,46 @@ export default function RepairManager({ mine = false }) {
         </form>
       )}
 
+      <ListFilters
+        search={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        searchPlaceholder={
+          mine ? 'ค้นหารหัส ชื่อครุภัณฑ์ หรืออาการ' : 'ค้นหารหัส ชื่อครุภัณฑ์ ผู้แจ้ง หรืออาการ'
+        }
+        status={statusFilter}
+        onStatusChange={(value) => {
+          setStatusFilter(value);
+          setPage(1);
+        }}
+        statusLabels={statusLabels}
+        sort={sort}
+        onSortChange={changeSort}
+        sortColumns={sortColumns}
+      />
+
       {loading ? (
         <p className="loading-message">กำลังโหลดรายการแจ้งซ่อม...</p>
       ) : repairs.length === 0 ? (
         <div className="empty-state">
-          <p>ยังไม่มีรายการแจ้งซ่อม</p>
+          <p>
+            {allRepairs.length === 0 ? 'ยังไม่มีรายการแจ้งซ่อม' : 'ไม่พบรายการที่ตรงกับตัวกรอง'}
+          </p>
         </div>
       ) : (
         <div className="table-wrap">
           <table className="equipment-table responsive-table">
             <thead>
               <tr>
-                <th>ครุภัณฑ์</th>
-                {!mine && <th>ผู้แจ้ง</th>}
-                <th>วันที่แจ้ง</th>
+                <SortableTh sortKey="code" {...sortProps}>ครุภัณฑ์</SortableTh>
+                {!mine && (
+                  <SortableTh sortKey="reporter" {...sortProps}>
+                    ผู้แจ้ง
+                  </SortableTh>
+                )}
+                <SortableTh sortKey="repair_date" {...sortProps}>วันที่แจ้ง</SortableTh>
                 <th>ปัญหา</th>
                 <th>สถานะ</th>
                 <th>การกระทำ</th>

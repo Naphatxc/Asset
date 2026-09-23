@@ -26,8 +26,9 @@ function buildListWhere({ deleted, search, categoryId }) {
   };
 }
 
+// orderBy มาจาก ?sort= (utils/sorting.js) ต่อท้ายด้วย id ให้ลำดับคงที่ ข้ามหน้าแล้วไม่มีแถวซ้ำ/หาย
 export async function findManyActive(
-  { page = 1, limit = 20, search, categoryId } = {},
+  { page = 1, limit = 20, search, categoryId, orderBy } = {},
   client = prisma,
 ) {
   const where = buildListWhere({ deleted: false, search, categoryId });
@@ -35,7 +36,7 @@ export async function findManyActive(
     client.materials.findMany({
       where,
       include: materialInclude,
-      orderBy: { material_id: 'desc' },
+      orderBy: orderBy ? [orderBy, { material_id: 'desc' }] : { material_id: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     }),
@@ -46,7 +47,7 @@ export async function findManyActive(
 }
 
 export async function findManyDeleted(
-  { page = 1, limit = 20, search, categoryId } = {},
+  { page = 1, limit = 20, search, categoryId, orderBy } = {},
   client = prisma,
 ) {
   const where = buildListWhere({ deleted: true, search, categoryId });
@@ -54,7 +55,7 @@ export async function findManyDeleted(
     client.materials.findMany({
       where,
       include: materialInclude,
-      orderBy: { material_id: 'desc' },
+      orderBy: orderBy ? [orderBy, { material_id: 'desc' }] : { material_id: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     }),
@@ -115,7 +116,7 @@ export async function createWithdrawal(data, client = prisma) {
 }
 
 export async function findWithdrawals(
-  { page = 1, limit = 20, materialId, userId } = {},
+  { page = 1, limit = 20, materialId, userId, orderBy } = {},
   client = prisma,
 ) {
   const where = {
@@ -126,7 +127,9 @@ export async function findWithdrawals(
     client.material_withdrawals.findMany({
       where,
       include: withdrawalInclude,
-      orderBy: { withdrawn_at: 'desc' },
+      orderBy: orderBy
+        ? [orderBy, { withdrawal_id: 'desc' }]
+        : { withdrawn_at: 'desc' },
       skip: (page - 1) * limit,
       take: limit,
     }),

@@ -29,11 +29,12 @@ import EquipmentForm, {
   categoryCreateFields,
   locationCreateFields,
 } from '../../../components/EquipmentForm.jsx';
+import { SortSelect } from '../../../components/ListFilters.jsx';
 import PaginationBar, { useClampPage } from '../../../components/PaginationBar.jsx';
 import SelectWithCreate from '../../../components/SelectWithCreate.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import EquipmentHistory from './EquipmentHistory.jsx';
-import EquipmentTable from './EquipmentTable.jsx';
+import EquipmentTable, { equipmentSortColumns } from './EquipmentTable.jsx';
 import QrCodeDialog from '../../../components/QrCodeDialog.jsx';
 import ImportEquipmentDialog from './ImportEquipmentDialog.jsx';
 
@@ -70,6 +71,13 @@ export default function EquipmentManager({ user }) {
   const [statusFilter, setStatusFilter] = useState(initialParams.get('status') ?? '');
   const [categoryFilter, setCategoryFilter] = useState(initialParams.get('category') ?? '');
   const [locationFilter, setLocationFilter] = useState(initialParams.get('location') ?? '');
+  // key เป็น null = ลำดับเริ่มต้นของ server (เพิ่มล่าสุดก่อน) เก็บใน URL เหมือนตัวกรองอื่น กลับจากหน้ารายละเอียดแล้วไม่หาย
+  const [sort, setSort] = useState(() => {
+    const key = initialParams.get('sort');
+    return equipmentSortColumns[key]
+      ? { key, dir: initialParams.get('dir') === 'desc' ? 'desc' : 'asc' }
+      : { key: null, dir: null };
+  });
   const [page, setPage] = useState(() => {
     const initialPage = Number(initialParams.get('page'));
     return Number.isInteger(initialPage) && initialPage > 0 ? initialPage : 1;
@@ -101,6 +109,8 @@ export default function EquipmentManager({ user }) {
     status: statusFilter,
     categoryId: categoryFilter,
     locationId: locationFilter,
+    sort: sort.key,
+    dir: sort.dir,
   };
 
   const equipmentQuery = useQuery({
@@ -274,6 +284,11 @@ export default function EquipmentManager({ user }) {
     setConfirmingDeleteId(null);
   }
 
+  function changeSort(nextSort) {
+    setSort(nextSort);
+    setPage(1);
+  }
+
   function changeStatusFilter(nextStatus) {
     setStatusFilter(nextStatus);
     setPage(1);
@@ -297,6 +312,10 @@ export default function EquipmentManager({ user }) {
     if (statusFilter) params.set('status', statusFilter);
     if (categoryFilter) params.set('category', categoryFilter);
     if (locationFilter) params.set('location', locationFilter);
+    if (sort.key) {
+      params.set('sort', sort.key);
+      params.set('dir', sort.dir);
+    }
 
     return `/?${params.toString()}`;
   }
@@ -446,6 +465,12 @@ export default function EquipmentManager({ user }) {
           onCreate={(fields) => handleCreateLocation(fields)}
           popover
         />
+        <SortSelect
+          sortColumns={equipmentSortColumns}
+          sort={sort}
+          onSortChange={changeSort}
+          defaultLabel={view === 'deleted' ? 'ลบล่าสุดก่อน' : 'เพิ่มล่าสุดก่อน'}
+        />
       </div>
 
       {displayError && <p className="error-message">{displayError}</p>}
@@ -518,6 +543,8 @@ export default function EquipmentManager({ user }) {
             onDelete={removeItem}
             onCancelDelete={() => setConfirmingDeleteId(null)}
             onRestore={restoreItem}
+            sort={sort}
+            onSortChange={changeSort}
           />
 
           <PaginationBar pagination={pagination} onPageChange={setPage} />

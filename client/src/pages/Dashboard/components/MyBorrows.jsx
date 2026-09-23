@@ -10,6 +10,11 @@ import {
 import { getAvailableEquipment } from '../../../api/equipment.js';
 import CharCount from '../../../components/CharCount.jsx';
 import EquipmentPicker from '../../../components/EquipmentPicker.jsx';
+import ListFilters, {
+  SortableTh,
+  matchesSearch,
+  sortRows,
+} from '../../../components/ListFilters.jsx';
 import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 
@@ -22,6 +27,13 @@ const statusLabels = {
   overdue: 'เลยกำหนด',
   pending_return: 'รอยืนยันการคืน',
   returned: 'คืนแล้ว',
+};
+
+// คอลัมน์ที่คลิกเรียงได้ แถวคือ { borrow, detail } (1 แถว = 1 ชิ้น) สถานะไม่ต้องเรียงเพราะมีตัวกรองแล้ว
+const sortColumns = {
+  code: { label: 'รหัสครุภัณฑ์', type: 'text', get: ({ detail }) => detail.equipment_code, dirLabels: { asc: 'A→Z', desc: 'Z→A' } },
+  borrow_date: { label: 'วันที่ยืม', type: 'date', get: ({ borrow }) => borrow.borrow_date },
+  return_date: { label: 'กำหนดคืน', type: 'date', get: ({ detail }) => detail.return_date, dirLabels: { asc: 'ใกล้→ไกล', desc: 'ไกล→ใกล้' }, firstDir: 'asc' },
 };
 
 function formatDateTime(value) {
@@ -54,6 +66,9 @@ export default function MyBorrows() {
   const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [remark, setRemark] = useState('');
   const [page, setPage] = useState(1);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sort, setSort] = useState({ key: 'borrow_date', dir: 'desc' });
 
   const borrowsQuery = useQuery({
     queryKey: ['borrows', 'mine'],
@@ -68,10 +83,22 @@ export default function MyBorrows() {
 
   const borrows = borrowsQuery.data?.borrows ?? [];
   const availableEquipment = equipmentQuery.data?.equipment ?? [];
-  const rows = borrows.flatMap((borrow) =>
+  const allRows = borrows.flatMap((borrow) =>
     borrow.details.map((detail) => ({ borrow, detail })),
   );
-  const { rows: pageRows, pagination } = paginateRows(rows, page);
+  const rows = allRows.filter(
+    ({ borrow, detail }) =>
+      (!statusFilter || detail.status === statusFilter) &&
+      matchesSearch(search, detail.equipment_code, detail.equipment_name, borrow.remark),
+  );
+  const { rows: pageRows, pagination } = paginateRows(sortRows(rows, sortColumns, sort), page);
+
+  function changeSort(nextSortValue) {
+    setSort(nextSortValue);
+    setPage(1);
+  }
+  const sortProps = { sortColumns, sort, onSortChange: changeSort };
+
 
   function openForm() {
     setReturnDate(tomorrowDateInput());
@@ -207,20 +234,38 @@ export default function MyBorrows() {
         </form>
       )}
 
+      <ListFilters
+        search={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        searchPlaceholder="ค้นหารหัสหรือชื่อครุภัณฑ์"
+        status={statusFilter}
+        onStatusChange={(value) => {
+          setStatusFilter(value);
+          setPage(1);
+        }}
+        statusLabels={statusLabels}
+        sort={sort}
+        onSortChange={changeSort}
+        sortColumns={sortColumns}
+      />
+
       {loading ? (
         <p className="loading-message">กำลังโหลดรายการยืม...</p>
       ) : rows.length === 0 ? (
         <div className="empty-state">
-          <p>คุณยังไม่มีรายการยืม</p>
+          <p>{allRows.length === 0 ? 'คุณยังไม่มีรายการยืม' : 'ไม่พบรายการที่ตรงกับตัวกรอง'}</p>
         </div>
       ) : (
         <div className="table-wrap">
           <table className="equipment-table responsive-table">
             <thead>
               <tr>
-                <th>ครุภัณฑ์</th>
-                <th>วันที่ยืม</th>
-                <th>กำหนดคืน</th>
+                <SortableTh sortKey="code" {...sortProps}>ครุภัณฑ์</SortableTh>
+                <SortableTh sortKey="borrow_date" {...sortProps}>วันที่ยืม</SortableTh>
+                <SortableTh sortKey="return_date" {...sortProps}>กำหนดคืน</SortableTh>
                 <th>หมายเหตุ</th>
                 <th>สถานะ</th>
                 <th>การกระทำ</th>

@@ -2,13 +2,16 @@
 // equipment.js เพราะ categories table ใช้ร่วมกันทั้งครุภัณฑ์และวัสดุ ไม่ต้องมี endpoint แยก
 import { request } from './http.js';
 
-function toListQueryString({ page, limit, search, categoryId } = {}) {
+function toListQueryString({ page, limit, search, categoryId, sort, dir } = {}) {
   const query = new URLSearchParams();
 
   if (page) query.set('page', page);
   if (limit) query.set('limit', limit);
   if (search) query.set('search', search);
   if (categoryId) query.set('category_id', categoryId);
+  // เรียงที่ server เพราะแบ่งหน้าที่ server (เรียงฝั่ง client จะได้แค่ในหน้าที่เห็น)
+  if (sort) query.set('sort', sort);
+  if (sort && dir) query.set('dir', dir);
 
   const qs = query.toString();
   return qs ? `?${qs}` : '';

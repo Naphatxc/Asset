@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 
 import { getAuditRound } from '../../../api/audit.js';
 import { getLocations } from '../../../api/equipment.js';
+import { SortableTh, SortSelect, sortRows } from '../../../components/ListFilters.jsx';
 import {
   classifyRecord,
   downloadAuditCsv,
@@ -32,6 +33,8 @@ const filterLabels = { all: 'ทั้งหมด', moved: 'ย้ายห้�
 export default function AuditSummary({ roundId }) {
   const [filter, setFilter] = useState('all');
   const [limit, setLimit] = useState(PAGE_SIZE);
+  // key เป็น null = ลำดับที่ server ส่งมา
+  const [sort, setSort] = useState({ key: null, dir: null });
 
   const roundQuery = useQuery({
     queryKey: ['audit', roundId],
@@ -66,9 +69,34 @@ export default function AuditSummary({ roundId }) {
     return result;
   }, [classified]);
 
-  const visible = classified.filter(({ record, outcome }) =>
+  // ห้องเรียงตามชื่อที่แสดง ไล่ตรวจทีละห้องได้ ผลตรวจ/สถานะมีตัวกรอง (chip) อยู่แล้วไม่ต้องเรียง
+  const sortColumns = {
+    code: {
+      label: 'รหัสครุภัณฑ์',
+      type: 'text',
+      get: ({ record }) => record.equipment_code,
+      dirLabels: { asc: 'A→Z', desc: 'Z→A' },
+    },
+    room: {
+      label: 'ห้อง',
+      type: 'text',
+      get: ({ record }) => locationLabel(locationsById.get(record.current_location_id)),
+    },
+    checked_at: { label: 'เวลาตรวจ', type: 'date', get: ({ record }) => record.checked_at },
+  };
+  const sortProps = {
+    sortColumns,
+    sort,
+    onSortChange: (nextSort) => {
+      setSort(nextSort);
+      setLimit(PAGE_SIZE);
+    },
+  };
+
+  const filtered = classified.filter(({ record, outcome }) =>
     filter === 'all' ? true : filter === 'moved' ? record.location_moved : outcome === filter,
   );
+  const visible = sortRows(filtered, sortColumns, sort);
 
   if (roundQuery.isLoading) {
     return <p className="loading-message">กำลังโหลดผลการตรวจ...</p>;
@@ -117,6 +145,10 @@ export default function AuditSummary({ roundId }) {
           ))}
       </div>
 
+      <div className="equipment-filters sort-only-cards">
+        <SortSelect {...sortProps} defaultLabel="ลำดับเดิม" />
+      </div>
+
       {visible.length === 0 ? (
         <div className="empty-state">
           <p>ไม่มีรายการในกลุ่มนี้</p>
@@ -126,11 +158,11 @@ export default function AuditSummary({ roundId }) {
           <table className="equipment-table responsive-table">
             <thead>
               <tr>
-                <th>ครุภัณฑ์</th>
+                <SortableTh sortKey="code" {...sortProps}>ครุภัณฑ์</SortableTh>
                 <th>ผลตรวจ</th>
-                <th>ห้อง</th>
+                <SortableTh sortKey="room" {...sortProps}>ห้อง</SortableTh>
                 <th>สถานะปัจจุบัน</th>
-                <th>ผู้ตรวจ</th>
+                <SortableTh sortKey="checked_at" {...sortProps}>ผู้ตรวจ</SortableTh>
                 <th>หมายเหตุ</th>
               </tr>
             </thead>

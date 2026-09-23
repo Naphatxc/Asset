@@ -1,3 +1,13 @@
+import { SortableTh } from '../../../components/ListFilters.jsx';
+
+// คอลัมน์ที่คลิกเรียงได้ key ต้องตรงกับ sortColumns ใน equipment.controller.js (เรียงที่ server)
+// หมวดหมู่/สถานที่/สถานะมีตัวกรองอยู่แล้ว ไม่ต้องเรียง
+export const equipmentSortColumns = {
+  code: { label: 'รหัส', type: 'text', dirLabels: { asc: 'A→Z', desc: 'Z→A' } },
+  name: { label: 'ชื่อครุภัณฑ์', type: 'text' },
+  price: { label: 'ราคา', type: 'number' },
+};
+
 // ค่าฝั่ง API คงเป็นภาษาอังกฤษ ส่วนข้อความบน UI แปลที่จุดเดียวตรงนี้
 const statusLabels = {
   available: 'พร้อมใช้งาน',
@@ -43,6 +53,8 @@ export default function EquipmentTable({
   onDelete,
   onCancelDelete,
   onRestore,
+  sort,
+  onSortChange,
 }) {
   // Component นี้รองรับทั้งรายการปัจจุบันและรายการที่ถูก Soft Delete
   if (equipment.length === 0) {
@@ -57,16 +69,18 @@ export default function EquipmentTable({
     );
   }
 
+  const sortProps = { sortColumns: equipmentSortColumns, sort, onSortChange };
+
   return (
     <div className="table-wrap">
       <table className="equipment-table responsive-table">
         <thead>
           <tr>
-            <th>รหัส</th>
-            <th>ชื่อครุภัณฑ์</th>
+            <SortableTh sortKey="code" {...sortProps}>รหัส</SortableTh>
+            <SortableTh sortKey="name" {...sortProps}>ชื่อครุภัณฑ์</SortableTh>
             <th>หมวดหมู่</th>
             <th>สถานที่</th>
-            <th>ราคา</th>
+            <SortableTh sortKey="price" {...sortProps}>ราคา</SortableTh>
             <th>สถานะ</th>
             {mode === 'active' && <th>ข้อมูลและ QR</th>}
             {admin && <th>จัดการ</th>}

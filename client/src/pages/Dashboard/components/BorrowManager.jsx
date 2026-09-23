@@ -15,6 +15,11 @@ import {
 import { getAvailableEquipment } from '../../../api/equipment.js';
 import CharCount from '../../../components/CharCount.jsx';
 import EquipmentPicker from '../../../components/EquipmentPicker.jsx';
+import ListFilters, {
+  SortableTh,
+  matchesSearch,
+  sortRows,
+} from '../../../components/ListFilters.jsx';
 import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
 import SearchableSelect from '../../../components/SearchableSelect.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
@@ -28,6 +33,14 @@ const statusLabels = {
   overdue: 'เลยกำหนด',
   pending_return: 'รอยืนยันการคืน',
   returned: 'คืนแล้ว',
+};
+
+// คอลัมน์ที่คลิกเรียงได้ แถวคือ { borrow, detail } (1 แถว = 1 ชิ้น) สถานะไม่ต้องเรียงเพราะมีตัวกรองแล้ว
+const sortColumns = {
+  user: { label: 'ผู้ยืม', type: 'text', get: ({ borrow }) => borrow.user_name },
+  code: { label: 'รหัสครุภัณฑ์', type: 'text', get: ({ detail }) => detail.equipment_code, dirLabels: { asc: 'A→Z', desc: 'Z→A' } },
+  borrow_date: { label: 'วันที่ยืม', type: 'date', get: ({ borrow }) => borrow.borrow_date },
+  return_date: { label: 'กำหนดคืน', type: 'date', get: ({ detail }) => detail.return_date, dirLabels: { asc: 'ใกล้→ไกล', desc: 'ไกล→ใกล้' }, firstDir: 'asc' },
 };
 
 function formatDateTime(value) {
@@ -60,7 +73,9 @@ export default function BorrowManager() {
   const [returnDate, setReturnDate] = useState(tomorrowDateInput);
   const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [remark, setRemark] = useState('');
-  const [pendingOnly, setPendingOnly] = useState(false);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [sort, setSort] = useState({ key: 'borrow_date', dir: 'desc' });
   const [page, setPage] = useState(1);
 
   const borrowsQuery = useQuery({ queryKey: ['borrows'], queryFn: getBorrows });
@@ -91,11 +106,31 @@ export default function BorrowManager() {
   ).length;
 
   // แตก borrow แต่ละใบเป็นแถวต่อรายการ (1 รายการ = 1 ชิ้น) ให้แสดงในตารางเดียวได้ตรงไปตรงมา
-  const rows = borrows
-    .filter((borrow) => !pendingOnly || borrow.status === 'pending')
-    .flatMap((borrow) => borrow.details.map((detail) => ({ borrow, detail })));
+  // กรองตามสถานะของแต่ละชิ้น (ใบเดียวอาจคืนแล้วบางชิ้น) ค้นหาได้ทั้งผู้ยืมและครุภัณฑ์
+  const allRows = borrows.flatMap((borrow) =>
+    borrow.details.map((detail) => ({ borrow, detail })),
+  );
+  const rows = allRows.filter(
+    ({ borrow, detail }) =>
+      (!statusFilter || detail.status === statusFilter) &&
+      matchesSearch(
+        search,
+        borrow.user_name,
+        borrow.user_email,
+        detail.equipment_code,
+        detail.equipment_name,
+        borrow.remark,
+      ),
+  );
   // server ส่งมาทั้งหมด แบ่งหน้าฝั่ง client ให้หน้าตาเหมือนแท็บครุภัณฑ์/วัสดุ
-  const { rows: pageRows, pagination } = paginateRows(rows, page);
+  const { rows: pageRows, pagination } = paginateRows(sortRows(rows, sortColumns, sort), page);
+
+  function changeSort(nextSortValue) {
+    setSort(nextSortValue);
+    setPage(1);
+  }
+  const sortProps = { sortColumns, sort, onSortChange: changeSort };
+
 
   function openForm() {
     setUserId('');
@@ -194,17 +229,6 @@ export default function BorrowManager() {
         </div>
 
         <div className="toolbar-actions">
-          <label style={{ fontWeight: 400, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <input
-              type="checkbox"
-              checked={pendingOnly}
-              onChange={(event) => {
-                setPendingOnly(event.target.checked);
-                setPage(1);
-              }}
-            />
-            แสดงเฉพาะรออนุมัติ
-          </label>
           <span className="item-count">{rows.length} รายการ</span>
           {!formOpen && (
             <button className="button-primary" type="button" onClick={openForm}>
@@ -296,21 +320,39 @@ export default function BorrowManager() {
         </form>
       )}
 
+      <ListFilters
+        search={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        searchPlaceholder="ค้นหาผู้ยืม อีเมล รหัสหรือชื่อครุภัณฑ์"
+        status={statusFilter}
+        onStatusChange={(value) => {
+          setStatusFilter(value);
+          setPage(1);
+        }}
+        statusLabels={statusLabels}
+        sort={sort}
+        onSortChange={changeSort}
+        sortColumns={sortColumns}
+      />
+
       {loading ? (
         <p className="loading-message">กำลังโหลดรายการยืม...</p>
       ) : rows.length === 0 ? (
         <div className="empty-state">
-          <p>{pendingOnly ? 'ไม่มีคำขอที่รออนุมัติ' : 'ยังไม่มีรายการยืม'}</p>
+          <p>{allRows.length === 0 ? 'ยังไม่มีรายการยืม' : 'ไม่พบรายการที่ตรงกับตัวกรอง'}</p>
         </div>
       ) : (
         <div className="table-wrap">
           <table className="equipment-table responsive-table">
             <thead>
               <tr>
-                <th>ผู้ยืม</th>
-                <th>ครุภัณฑ์</th>
-                <th>วันที่ยืม</th>
-                <th>กำหนดคืน</th>
+                <SortableTh sortKey="user" {...sortProps}>ผู้ยืม</SortableTh>
+                <SortableTh sortKey="code" {...sortProps}>ครุภัณฑ์</SortableTh>
+                <SortableTh sortKey="borrow_date" {...sortProps}>วันที่ยืม</SortableTh>
+                <SortableTh sortKey="return_date" {...sortProps}>กำหนดคืน</SortableTh>
                 <th>หมายเหตุ</th>
                 <th>สถานะ</th>
                 <th>การกระทำ</th>

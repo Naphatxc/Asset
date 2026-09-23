@@ -22,6 +22,7 @@ import {
   withdrawMaterial,
 } from '../../../api/materials.js';
 import { categoryCreateFields } from '../../../components/EquipmentForm.jsx';
+import { SortableTh, SortSelect } from '../../../components/ListFilters.jsx';
 import MaterialForm from '../../../components/MaterialForm.jsx';
 import PaginationBar, { useClampPage } from '../../../components/PaginationBar.jsx';
 import SelectWithCreate from '../../../components/SelectWithCreate.jsx';
@@ -57,6 +58,24 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+// คอลัมน์ที่คลิกเรียงได้ key ต้องตรงกับ sortColumns ใน material.controller.js (เรียงที่ server เพราะแบ่งหน้าที่ server)
+const materialSortColumns = {
+  code: { label: 'รหัส', type: 'text', dirLabels: { asc: 'A→Z', desc: 'Z→A' } },
+  name: { label: 'ชื่อวัสดุ', type: 'text' },
+  quantity: { label: 'คงเหลือ', type: 'number' },
+  unit_price: { label: 'ราคา/หน่วย', type: 'number' },
+  expire_date: { label: 'วันหมดอายุ', type: 'date', dirLabels: { asc: 'ใกล้→ไกล', desc: 'ไกล→ใกล้' }, firstDir: 'asc' },
+};
+
+const withdrawalSortColumns = {
+  material: { label: 'วัสดุ', type: 'text' },
+  user: { label: 'ผู้เบิก', type: 'text' },
+  quantity: { label: 'จำนวน', type: 'number' },
+  date: { label: 'วันที่เบิก', type: 'date' },
+};
+
+const DEFAULT_SORT = { key: null, dir: null };
+
 export default function MaterialManager({ user }) {
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
@@ -73,6 +92,9 @@ export default function MaterialManager({ user }) {
   const [searchInput, setSearchInput] = useState(initialParams.get('search') ?? '');
   const [search, setSearch] = useState(initialParams.get('search') ?? '');
   const [categoryFilter, setCategoryFilter] = useState(initialParams.get('category') ?? '');
+  // แยก sort ของรายการวัสดุกับประวัติการเบิก เพราะคอลัมน์ไม่เหมือนกัน key เป็น null = ลำดับเริ่มต้นของ server
+  const [materialSort, setMaterialSort] = useState(DEFAULT_SORT);
+  const [withdrawalSort, setWithdrawalSort] = useState(DEFAULT_SORT);
   const [page, setPage] = useState(() => {
     const initialPage = Number(initialParams.get('page'));
     return Number.isInteger(initialPage) && initialPage > 0 ? initialPage : 1;
@@ -94,7 +116,20 @@ export default function MaterialManager({ user }) {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const listParams = { page, limit: PAGE_SIZE, search, categoryId: categoryFilter };
+  const listParams = {
+    page,
+    limit: PAGE_SIZE,
+    search,
+    categoryId: categoryFilter,
+    sort: materialSort.key,
+    dir: materialSort.dir,
+  };
+  const withdrawalParams = {
+    page,
+    limit: PAGE_SIZE,
+    sort: withdrawalSort.key,
+    dir: withdrawalSort.dir,
+  };
 
   const materialsQuery = useQuery({
     queryKey: ['materials', 'active', listParams],
@@ -109,8 +144,8 @@ export default function MaterialManager({ user }) {
     placeholderData: keepPreviousData,
   });
   const withdrawalsQuery = useQuery({
-    queryKey: ['materials', 'withdrawals', page],
-    queryFn: () => getMaterialWithdrawals({ page, limit: PAGE_SIZE }),
+    queryKey: ['materials', 'withdrawals', withdrawalParams],
+    queryFn: () => getMaterialWithdrawals(withdrawalParams),
     enabled: admin && view === 'withdrawals',
     placeholderData: keepPreviousData,
   });
@@ -207,6 +242,27 @@ export default function MaterialManager({ user }) {
     setFormMode(null);
     setConfirmingDeleteId(null);
   }
+
+  function changeMaterialSort(nextSort) {
+    setMaterialSort(nextSort);
+    setPage(1);
+  }
+
+  function changeWithdrawalSort(nextSort) {
+    setWithdrawalSort(nextSort);
+    setPage(1);
+  }
+
+  const materialSortProps = {
+    sortColumns: materialSortColumns,
+    sort: materialSort,
+    onSortChange: changeMaterialSort,
+  };
+  const withdrawalSortProps = {
+    sortColumns: withdrawalSortColumns,
+    sort: withdrawalSort,
+    onSortChange: changeWithdrawalSort,
+  };
 
   function changeCategoryFilter(nextCategory) {
     setCategoryFilter(nextCategory);
@@ -317,6 +373,14 @@ export default function MaterialManager({ user }) {
             onCreate={(fields) => handleCreateCategory(fields.name, fields.code_prefix)}
             popover
           />
+          <SortSelect {...materialSortProps} defaultLabel="เพิ่มล่าสุดก่อน" />
+        </div>
+      )}
+
+      {/* ประวัติการเบิกไม่มีตัวกรอง แถวนี้มีแค่ช่องเรียงลำดับ จึงแสดงเฉพาะโหมดการ์ด (หัวตารางถูกซ่อน) */}
+      {view === 'withdrawals' && (
+        <div className="equipment-filters sort-only-cards">
+          <SortSelect {...withdrawalSortProps} defaultLabel="เบิกล่าสุดก่อน" />
         </div>
       )}
 
@@ -358,11 +422,11 @@ export default function MaterialManager({ user }) {
               <table className="equipment-table responsive-table">
                 <thead>
                   <tr>
-                    <th>วัสดุ</th>
-                    <th>ผู้เบิก</th>
-                    <th>จำนวน</th>
+                    <SortableTh sortKey="material" {...withdrawalSortProps}>วัสดุ</SortableTh>
+                    <SortableTh sortKey="user" {...withdrawalSortProps}>ผู้เบิก</SortableTh>
+                    <SortableTh sortKey="quantity" {...withdrawalSortProps}>จำนวน</SortableTh>
                     <th>หมายเหตุ</th>
-                    <th>วันที่เบิก</th>
+                    <SortableTh sortKey="date" {...withdrawalSortProps}>วันที่เบิก</SortableTh>
                   </tr>
                 </thead>
                 <tbody>
@@ -406,12 +470,12 @@ export default function MaterialManager({ user }) {
             <table className="equipment-table responsive-table">
               <thead>
                 <tr>
-                  <th>รหัส</th>
-                  <th>ชื่อวัสดุ</th>
+                  <SortableTh sortKey="code" {...materialSortProps}>รหัส</SortableTh>
+                  <SortableTh sortKey="name" {...materialSortProps}>ชื่อวัสดุ</SortableTh>
                   <th>หมวดหมู่</th>
-                  <th>คงเหลือ</th>
-                  <th>ราคา/หน่วย</th>
-                  <th>วันหมดอายุ</th>
+                  <SortableTh sortKey="quantity" {...materialSortProps}>คงเหลือ</SortableTh>
+                  <SortableTh sortKey="unit_price" {...materialSortProps}>ราคา/หน่วย</SortableTh>
+                  <SortableTh sortKey="expire_date" {...materialSortProps}>วันหมดอายุ</SortableTh>
                   <th>จัดการ</th>
                 </tr>
               </thead>

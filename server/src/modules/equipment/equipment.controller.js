@@ -1,6 +1,14 @@
 import * as equipmentImportService from './equipment-import.service.js';
 import * as equipmentService from './equipment.service.js';
 import { allowedStatuses } from './equipment.validator.js';
+import { nullsLast, parseSort, plain } from '../../utils/sorting.js';
+
+// คอลัมน์ที่เรียงได้จากหัวตาราง (ดู EquipmentTable.jsx) ไม่ระบุ = ลำดับเริ่มต้นของ repository
+const sortColumns = {
+  code: plain('equipment_code'),
+  name: plain('equipment_name'),
+  price: nullsLast('price'),
+};
 
 // page/limit กันค่าแปลกจาก query string (NaN, ติดลบ, limit ใหญ่เกินไป) และ status ต้องอยู่ใน allowedStatuses เท่านั้น
 // ไม่งั้น Prisma throw เพราะ status เป็น enum ฝั่ง DB
@@ -22,6 +30,7 @@ function parseListQuery(query) {
     status,
     categoryId: Number.isInteger(categoryId) && categoryId > 0 ? categoryId : undefined,
     locationId: Number.isInteger(locationId) && locationId > 0 ? locationId : undefined,
+    orderBy: parseSort(query, sortColumns),
   };
 }
 

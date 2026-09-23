@@ -1,4 +1,21 @@
 import * as materialService from './material.service.js';
+import { nullsLast, parseSort, plain } from '../../utils/sorting.js';
+
+// คอลัมน์ที่เรียงได้จากหัวตาราง (ดู MaterialManager.jsx) ไม่ระบุ = ลำดับเริ่มต้นของ repository
+const sortColumns = {
+  code: plain('material_code'),
+  name: plain('material_name'),
+  quantity: plain('quantity'),
+  unit_price: nullsLast('unit_price'),
+  expire_date: nullsLast('expire_date'),
+};
+
+const withdrawalSortColumns = {
+  date: plain('withdrawn_at'),
+  material: (dir) => ({ materials: { material_name: dir } }),
+  user: (dir) => ({ users: { name: dir } }),
+  quantity: plain('quantity'),
+};
 
 // page/limit กันค่าแปลกจาก query string (NaN, ติดลบ) เหมือน equipment.controller.js
 function parseListQuery(query) {
@@ -11,7 +28,7 @@ function parseListQuery(query) {
       ? categoryIdValue
       : undefined;
 
-  return { page, limit, search, categoryId };
+  return { page, limit, search, categoryId, orderBy: parseSort(query, sortColumns) };
 }
 
 export async function getMaterialList(request, response, next) {
@@ -105,7 +122,11 @@ export async function getWithdrawals(request, response, next) {
       500,
       Math.max(1, Math.trunc(Number(request.query.limit)) || 20),
     );
-    const result = await materialService.getWithdrawals({ page, limit });
+    const result = await materialService.getWithdrawals({
+      page,
+      limit,
+      orderBy: parseSort(request.query, withdrawalSortColumns),
+    });
 
     response.status(200).json(result);
   } catch (error) {
