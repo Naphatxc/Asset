@@ -3,7 +3,7 @@ const actionLabels = {
   created: 'เพิ่มครุภัณฑ์',
   updated: 'แก้ไขข้อมูล',
   status_changed: 'เปลี่ยนสถานะ',
-  deleted: 'ลบครุภัณฑ์',
+  deleted: 'จำหน่ายออก',
   restored: 'กู้คืนครุภัณฑ์',
 };
 

@@ -51,7 +51,7 @@ adminEquipmentRouter.post(
   equipmentController.createEquipment,
 );
 
-// GET /api/admin/equipment-items/deleted - รายการ Soft Delete
+// GET /api/admin/equipment-items/deleted - รายการที่จำหน่ายออกแล้ว (Soft Delete)
 adminEquipmentRouter.get(
   '/deleted',
   equipmentController.getDeletedEquipmentList,
@@ -78,7 +78,7 @@ adminEquipmentRouter.patch(
   equipmentController.updateEquipmentStatus,
 );
 
-// PATCH /api/admin/equipment-items/:id/restore - ทำให้ deleted_at กลับเป็น NULL
+// PATCH /api/admin/equipment-items/:id/restore - กู้คืนของที่จำหน่ายออก (deleted_at กลับเป็น NULL + สถานะเดิม)
 adminEquipmentRouter.patch(
   '/:id/restore',
   validateItemIdParam,
@@ -100,7 +100,7 @@ adminEquipmentRouter.delete(
   equipmentController.deleteEquipmentImage,
 );
 
-// DELETE /api/admin/equipment-items/:id - Soft Delete
+// DELETE /api/admin/equipment-items/:id - จำหน่ายออก (Soft Delete + สถานะ disposed)
 adminEquipmentRouter.delete(
   '/:id',
   validateItemIdParam,

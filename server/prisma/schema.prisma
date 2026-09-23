@@ -277,11 +277,14 @@ enum equipment_history_action {
   restored
 }
 
+// disposed = จำหน่ายออก ตั้งพร้อม deleted_at ตอนกด "จำหน่ายออก" เท่านั้น (ดู equipment.service.js deleteEquipment)
+// เปลี่ยนเป็นสถานะนี้ตรงๆ ผ่าน PATCH /status ไม่ได้ เพราะต้องไปพร้อม deleted_at เสมอ ของที่จำหน่ายแล้วจึงหลุดจากทุกรายการ
 enum equipment_items_status {
   available
   borrowed
   pending_repair
   repairing
+  disposed
 }
 
 enum users_role {

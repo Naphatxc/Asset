@@ -433,7 +433,7 @@ export default function AuditScanPage({ user }) {
           )}
 
           {selectedRecord.deleted ? (
-            <p className="error-message">ครุภัณฑ์ชิ้นนี้ถูกลบออกจากระบบแล้ว</p>
+            <p className="error-message">ครุภัณฑ์ชิ้นนี้จำหน่ายออกแล้ว</p>
           ) : roundOpen ? (
             <>
               {roomMismatch && (

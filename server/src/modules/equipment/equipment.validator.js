@@ -3,6 +3,8 @@
 import { AppError } from '../../utils/AppError.js';
 import { hasOwn, toDate } from '../../utils/parsing.js';
 
+// สถานะที่ตั้งเองได้ (สร้างใหม่/เปลี่ยนสถานะ/ตัวกรอง) ไม่มี disposed เพราะจำหน่ายออกต้องไปพร้อม deleted_at
+// ผ่าน DELETE /api/admin/equipment-items/:id เท่านั้น
 export const allowedStatuses = [
   'available',
   'borrowed',

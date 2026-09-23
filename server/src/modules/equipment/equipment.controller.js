@@ -159,7 +159,7 @@ export async function deleteEquipment(request, response, next) {
     );
 
     response.status(200).json({
-      message: 'ลบครุภัณฑ์สำเร็จ',
+      message: 'จำหน่ายออกครุภัณฑ์สำเร็จ',
       equipment,
     });
   } catch (error) {

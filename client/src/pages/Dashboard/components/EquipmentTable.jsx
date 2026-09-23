@@ -15,7 +15,11 @@ const statusLabels = {
   borrowed: 'ถูกยืม',
   pending_repair: 'รอซ่อม',
   repairing: 'กำลังซ่อม',
+  disposed: 'จำหน่ายออก',
 };
+
+// dropdown เปลี่ยนสถานะไม่มี "จำหน่ายออก" — ต้องกดปุ่มจำหน่ายออกเท่านั้น (server ตั้ง deleted_at ไปพร้อมกัน)
+const editableStatuses = Object.entries(statusLabels).filter(([value]) => value !== 'disposed');
 
 // MySQL ส่ง DECIMAL เป็น string จึงแปลงเป็น number ก่อนจัดรูปแบบเงินบาท
 function formatPrice(price) {
@@ -63,7 +67,7 @@ export default function EquipmentTable({
       <div className="empty-state">
         <p>
           {mode === 'deleted'
-            ? 'ไม่มีครุภัณฑ์ที่ถูกลบ'
+            ? 'ไม่มีครุภัณฑ์ที่จำหน่ายออก'
             : 'ยังไม่มีรายการครุภัณฑ์'}
         </p>
       </div>
@@ -140,7 +144,7 @@ export default function EquipmentTable({
                         onStatusChange(item, event.target.value)
                       }
                     >
-                      {Object.entries(statusLabels).map(
+                      {editableStatuses.map(
                         ([value, label]) => (
                           <option key={value} value={value}>
                             {label}
@@ -205,8 +209,8 @@ export default function EquipmentTable({
                             onClick={() => onDelete(item)}
                             disabled={busy}
                           >
-                            {/* ต้องกดลบสองครั้ง จึงลดโอกาสกดพลาด */}
-                            {confirming ? 'ยืนยันลบ' : 'ลบ'}
+                            {/* ต้องกดสองครั้ง จึงลดโอกาสกดพลาด */}
+                            {confirming ? 'ยืนยันจำหน่ายออก' : 'จำหน่ายออก'}
                           </button>
                           {confirming && (
                             <button

@@ -38,6 +38,14 @@ export async function createMany(records, client = prisma) {
   });
 }
 
+// ใช้หาสถานะก่อนจำหน่ายออก (old_data ของ action 'deleted' ครั้งล่าสุด) ตอนกู้คืน
+export async function findLatestByAction(itemId, action, client = prisma) {
+  return client.equipment_history.findFirst({
+    where: { item_id: itemId, action },
+    orderBy: { history_id: 'desc' },
+  });
+}
+
 export async function findByItemId(itemId, client = prisma) {
   return client.equipment_history.findMany({
     where: { item_id: itemId },

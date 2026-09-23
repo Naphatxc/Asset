@@ -11,6 +11,7 @@ import * as borrowRepository from '../borrow/borrow.repository.js';
 import * as categoryRepository from '../options/category.repository.js';
 import * as repairRepository from '../repair/repair.repository.js';
 import {
+  allowedStatuses,
   MAX_EQUIPMENT_NAME_LENGTH,
   MAX_LONG_TEXT_LENGTH,
 } from './equipment.validator.js';
@@ -343,7 +344,13 @@ export async function restoreEquipment(itemId, actorId) {
       if (!deleted) return { type: 'not_found' };
       if (deleted.deleted_at === null) return { type: 'not_deleted' };
 
-      await equipmentRepository.restore(itemId, tx);
+      // คืนสถานะก่อนจำหน่ายออกจากประวัติ (ของที่จำหน่ายก่อนมีสถานะ disposed ก็มีประวัตินี้เหมือนกัน)
+      // หาไม่เจอหรือค่าแปลกๆ ถือว่าพร้อมใช้งาน
+      const disposal = await equipmentHistoryRepository.findLatestByAction(itemId, 'deleted', tx);
+      const previousStatus = disposal?.old_data?.status;
+      const status = allowedStatuses.includes(previousStatus) ? previousStatus : 'available';
+
+      await equipmentRepository.restore(itemId, status, tx);
       const restored = await getSerializedByItemId(itemId, { client: tx });
 
       await equipmentHistoryRepository.create(
@@ -364,7 +371,7 @@ export async function restoreEquipment(itemId, actorId) {
       throw new AppError(404, 'ไม่พบครุภัณฑ์');
     }
     if (result.type === 'not_deleted') {
-      throw new AppError(400, 'ครุภัณฑ์นี้ยังไม่ได้ถูกลบ');
+      throw new AppError(400, 'ครุภัณฑ์นี้ยังไม่ได้จำหน่ายออก');
     }
 
     return result.equipment;
@@ -381,7 +388,7 @@ export async function deleteEquipment(itemId, actorId) {
       const current = await getSerializedByItemId(itemId, { client: tx });
       if (!current) return { type: 'not_found' };
 
-      const conflict = await checkNoActiveBorrowOrRepair(itemId, 'ลบ', tx);
+      const conflict = await checkNoActiveBorrowOrRepair(itemId, 'จำหน่ายออก', tx);
       if (conflict) return { type: 'conflict', error: conflict };
 
       await equipmentRepository.softDelete(itemId, tx);
@@ -415,7 +422,7 @@ export async function deleteEquipment(itemId, actorId) {
   } catch (error) {
     if (error instanceof AppError) throw error;
 
-    throw new AppError(500, 'ไม่สามารถลบครุภัณฑ์ได้', { cause: error });
+    throw new AppError(500, 'ไม่สามารถจำหน่ายออกครุภัณฑ์ได้', { cause: error });
   }
 }
 

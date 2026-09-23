@@ -5,6 +5,7 @@ export const equipmentStatusLabels = {
   borrowed: 'ถูกยืม',
   pending_repair: 'รอซ่อม',
   repairing: 'กำลังซ่อม',
+  disposed: 'จำหน่ายออก',
 };
 
 // ผลของแต่ละชิ้นในรอบ — normal/damaged คือ admin กดเอง ชิ้นที่ไม่ได้ตรวจแต่ถูกยืม/ซ่อมอยู่แยกออกมา
@@ -14,7 +15,7 @@ export const outcomeLabels = {
   damaged: 'ชำรุด',
   borrowed: 'อยู่กับผู้ยืม',
   in_repair: 'อยู่ระหว่างซ่อม',
-  deleted: 'ถูกลบระหว่างรอบ',
+  deleted: 'จำหน่ายออกระหว่างรอบ',
   unchecked: 'ยังไม่ตรวจ',
   missing: 'ไม่พบ',
 };

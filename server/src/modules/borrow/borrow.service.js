@@ -99,7 +99,7 @@ async function checkItemsAvailable(itemIds, tx) {
     // ลบครุภัณฑ์ไม่ได้เช็คคำขอยืมที่ยังรออนุมัติ คำขอจึงค้างอยู่ได้ ต้องกันตอนอนุมัติ ไม่งั้นของที่ลบไปแล้วจะถูกยืมออกไป
     if (item.deleted_at) {
       return {
-        error: `ครุภัณฑ์ ${item.equipment_name} ถูกลบออกจากระบบแล้ว`,
+        error: `ครุภัณฑ์ ${item.equipment_name} จำหน่ายออกแล้ว`,
         status: 409,
       };
     }

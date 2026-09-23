@@ -107,7 +107,8 @@ export default function EquipmentManager({ user }) {
     page,
     limit: PAGE_SIZE,
     search,
-    status: statusFilter,
+    // ของที่จำหน่ายออกสถานะเป็น disposed ทุกชิ้น กรองสถานะในมุมมองนั้นไม่มีความหมาย (ช่องกรองถูกซ่อนด้วย)
+    status: view === 'deleted' ? '' : statusFilter,
     categoryId: categoryFilter,
     locationId: locationFilter,
     sort: sort.key,
@@ -120,7 +121,7 @@ export default function EquipmentManager({ user }) {
     enabled: view === 'active',
     placeholderData: keepPreviousData,
   });
-  // เฉพาะ Admin เท่านั้นที่มีปุ่มดูรายการที่ถูกลบ จึงโหลดเมื่อจำเป็นจริงๆ
+  // เฉพาะ Admin เท่านั้นที่มีปุ่มดูรายการที่จำหน่ายออก จึงโหลดเมื่อจำเป็นจริงๆ
   const deletedEquipmentQuery = useQuery({
     queryKey: ['equipment', 'deleted', listParams],
     queryFn: () => getDeletedEquipment(listParams),
@@ -266,7 +267,7 @@ export default function EquipmentManager({ user }) {
     mutationFn: (item) => deleteEquipment(item.item_id),
     onSuccess: (_data, item) => {
       invalidateEquipmentLists();
-      showSuccess(`ลบ ${item.equipment_code} แล้ว สามารถกู้คืนได้`);
+      showSuccess(`จำหน่ายออก ${item.equipment_code} แล้ว สามารถกู้คืนได้`);
       setConfirmingDeleteId(null);
     },
     onError: (mutationError) => showError(mutationError.message),
@@ -373,7 +374,7 @@ export default function EquipmentManager({ user }) {
   function removeItem(item) {
     if (confirmingDeleteId !== item.item_id) {
       setConfirmingDeleteId(item.item_id);
-      showSuccess('กด “ยืนยันลบ” อีกครั้งเพื่อลบแบบ Soft Delete');
+      showSuccess('กด “ยืนยันจำหน่ายออก” อีกครั้งเพื่อจำหน่ายออก');
       return;
     }
 
@@ -398,7 +399,7 @@ export default function EquipmentManager({ user }) {
           <h2>
             {view === 'active'
               ? 'รายการครุภัณฑ์'
-              : 'ครุภัณฑ์ที่ถูกลบ'}
+              : 'ครุภัณฑ์ที่จำหน่ายออก'}
           </h2>
         </div>
 
@@ -419,7 +420,7 @@ export default function EquipmentManager({ user }) {
                 }
               >
                 {view === 'active'
-                  ? 'รายการที่ลบ'
+                  ? 'รายการที่จำหน่ายออก'
                   : 'รายการปัจจุบัน'}
               </button>
 
@@ -453,16 +454,18 @@ export default function EquipmentManager({ user }) {
           onChange={(event) => setSearchInput(event.target.value)}
           placeholder="ค้นหารหัสหรือชื่อครุภัณฑ์"
         />
-        <select
-          value={statusFilter}
-          onChange={(event) => changeStatusFilter(event.target.value)}
-        >
-          {statusFilterOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
+        {view === 'active' && (
+          <select
+            value={statusFilter}
+            onChange={(event) => changeStatusFilter(event.target.value)}
+          >
+            {statusFilterOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        )}
         <SelectWithCreate
           name="categoryFilter"
           value={categoryFilter}
@@ -489,7 +492,7 @@ export default function EquipmentManager({ user }) {
           sortColumns={equipmentSortColumns}
           sort={sort}
           onSortChange={changeSort}
-          defaultLabel={view === 'deleted' ? 'ลบล่าสุดก่อน' : 'เพิ่มล่าสุดก่อน'}
+          defaultLabel={view === 'deleted' ? 'จำหน่ายล่าสุดก่อน' : 'เพิ่มล่าสุดก่อน'}
         />
       </div>
 

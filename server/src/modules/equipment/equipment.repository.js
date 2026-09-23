@@ -171,16 +171,17 @@ export async function updateEquipmentItem(itemId, data, client = prisma) {
   });
 }
 
+// จำหน่ายออก = soft delete + สถานะ disposed ไปพร้อมกันเสมอ (deleted_at คือตัวที่ทุกโมดูลใช้คัดของที่จำหน่ายแล้วออก)
 export async function softDelete(itemId, client = prisma) {
   return client.equipment_items.update({
     where: { item_id: itemId },
-    data: { deleted_at: new Date() },
+    data: { deleted_at: new Date(), status: 'disposed' },
   });
 }
 
-export async function restore(itemId, client = prisma) {
+export async function restore(itemId, status, client = prisma) {
   return client.equipment_items.update({
     where: { item_id: itemId },
-    data: { deleted_at: null },
+    data: { deleted_at: null, status },
   });
 }
