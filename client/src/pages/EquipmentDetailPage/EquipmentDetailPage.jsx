@@ -180,7 +180,8 @@ export default function EquipmentDetailPage({ user }) {
             </div>
             <div>
               <dt>ปีงบประมาณ</dt>
-              <dd>{equipment.fiscal_year ?? '-'}</dd>
+              {/* DB เก็บ ค.ศ. แสดงเป็น พ.ศ. */}
+              <dd>{equipment.fiscal_year ? equipment.fiscal_year + 543 : '-'}</dd>
             </div>
             <div>
               <dt>วันที่รับ</dt>

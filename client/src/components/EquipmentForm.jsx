@@ -55,6 +55,9 @@ const emptyForm = {
   warranty_expire: '',
 };
 
+// ปีงบประมาณเก็บใน DB เป็น ค.ศ. (คอลัมน์ MySQL YEAR รับได้แค่ 1901–2155) แต่ผู้ใช้กรอก/เห็นเป็น พ.ศ.
+const BUDDHIST_ERA_OFFSET = 543;
+
 // input type="date" ต้องการ YYYY-MM-DD จึงตัดส่วนเวลาออก
 function toDateInput(value) {
   return value ? String(value).slice(0, 10) : '';
@@ -69,7 +72,9 @@ function createInitialForm(equipment) {
     equipment_code: equipment.equipment_code ?? '',
     category_id: String(equipment.category_id ?? ''),
     location_id: String(equipment.location_id ?? ''),
-    fiscal_year: String(equipment.fiscal_year ?? ''),
+    fiscal_year: equipment.fiscal_year
+      ? String(equipment.fiscal_year + BUDDHIST_ERA_OFFSET)
+      : '',
     description: equipment.description ?? '',
     receive_date: toDateInput(equipment.receive_date),
     remark: equipment.remark ?? '',
@@ -193,7 +198,7 @@ export default function EquipmentForm({
         ? Number(form.location_id)
         : null,
       fiscal_year: form.fiscal_year
-        ? Number(form.fiscal_year)
+        ? Number(form.fiscal_year) - BUDDHIST_ERA_OFFSET
         : null,
       description: form.description.trim() || null,
       receive_date: form.receive_date || null,
@@ -323,13 +328,13 @@ export default function EquipmentForm({
         )}
 
         <label>
-          ปีงบประมาณ (ค.ศ.)
+          ปีงบประมาณ (พ.ศ.)
           <input
             name="fiscal_year"
             type="number"
-            min="1901"
-            max="2155"
-            placeholder="เช่น 2026"
+            min="2444"
+            max="2698"
+            placeholder="เช่น 2569"
             value={form.fiscal_year}
             onChange={updateField}
           />
