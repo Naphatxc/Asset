@@ -1,7 +1,7 @@
 import * as equipmentImportService from './equipment-import.service.js';
 import * as equipmentService from './equipment.service.js';
 import { allowedStatuses } from './equipment.validator.js';
-import { equipmentImageDir } from '../../middlewares/upload.middleware.js';
+import { equipmentImageDir, uploadedImageFiles } from '../../middlewares/upload.middleware.js';
 import { AppError } from '../../utils/AppError.js';
 import { nullsLast, parseSort, plain } from '../../utils/sorting.js';
 import { removeStoredFile, sendStoredImage } from '../../utils/storedImage.js';
@@ -212,15 +212,17 @@ export async function getEquipmentImage(request, response, next) {
     const { itemId } = request.validated;
     const fileName = await equipmentService.getEquipmentImageFile(itemId);
 
-    sendStoredImage(response, next, equipmentImageDir, fileName);
+    await sendStoredImage(response, next, equipmentImageDir, fileName, {
+      thumbnail: request.query.size === 'thumb',
+    });
   } catch (error) {
     next(error);
   }
 }
 
-// multipart field "image" (ดู uploadEquipmentImage) แทนที่รูปเดิมถ้ามี
+// multipart field "image" + "thumbnail" ไม่บังคับ (ดู uploadEquipmentImage) แทนที่รูปเดิมถ้ามี
 export async function uploadEquipmentImage(request, response, next) {
-  const file = request.file;
+  const { image: file, thumbnail } = uploadedImageFiles(request);
 
   try {
     if (!file) {
@@ -236,7 +238,9 @@ export async function uploadEquipmentImage(request, response, next) {
 
     response.status(200).json({ message: 'บันทึกรูปครุภัณฑ์สำเร็จ', equipment });
   } catch (error) {
-    if (file) await removeStoredFile(equipmentImageDir, file.filename);
+    await Promise.all(
+      [file, thumbnail].map((uploaded) => removeStoredFile(equipmentImageDir, uploaded?.filename)),
+    );
     next(error);
   }
 }

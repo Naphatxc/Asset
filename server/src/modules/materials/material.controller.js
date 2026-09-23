@@ -1,5 +1,5 @@
 import * as materialService from './material.service.js';
-import { materialImageDir } from '../../middlewares/upload.middleware.js';
+import { materialImageDir, uploadedImageFiles } from '../../middlewares/upload.middleware.js';
 import { AppError } from '../../utils/AppError.js';
 import { nullsLast, parseSort, plain } from '../../utils/sorting.js';
 import { removeStoredFile, sendStoredImage } from '../../utils/storedImage.js';
@@ -142,15 +142,17 @@ export async function getMaterialImage(request, response, next) {
     const { materialId } = request.validated;
     const fileName = await materialService.getMaterialImageFile(materialId);
 
-    sendStoredImage(response, next, materialImageDir, fileName);
+    await sendStoredImage(response, next, materialImageDir, fileName, {
+      thumbnail: request.query.size === 'thumb',
+    });
   } catch (error) {
     next(error);
   }
 }
 
-// multipart field "image" (ดู uploadMaterialImage) แทนที่รูปเดิมถ้ามี
+// multipart field "image" + "thumbnail" ไม่บังคับ (ดู uploadMaterialImage) แทนที่รูปเดิมถ้ามี
 export async function uploadMaterialImage(request, response, next) {
-  const file = request.file;
+  const { image: file, thumbnail } = uploadedImageFiles(request);
 
   try {
     if (!file) {
@@ -162,7 +164,9 @@ export async function uploadMaterialImage(request, response, next) {
 
     response.status(200).json({ message: 'บันทึกรูปวัสดุสำเร็จ', material });
   } catch (error) {
-    if (file) await removeStoredFile(materialImageDir, file.filename);
+    await Promise.all(
+      [file, thumbnail].map((uploaded) => removeStoredFile(materialImageDir, uploaded?.filename)),
+    );
     next(error);
   }
 }

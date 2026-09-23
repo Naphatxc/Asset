@@ -4,7 +4,7 @@ import * as materialRepository from './material.repository.js';
 import { AppError } from '../../utils/AppError.js';
 import { materialImageDir } from '../../middlewares/upload.middleware.js';
 import { hasOwn, toDate } from '../../utils/parsing.js';
-import { removeStoredFile } from '../../utils/storedImage.js';
+import { removeStoredImage } from '../../utils/storedImage.js';
 import { runSerializableTransaction } from '../../utils/transaction.js';
 import {
   MAX_LONG_TEXT_LENGTH,
@@ -331,7 +331,7 @@ export async function setMaterialImage(materialId, imagePath) {
     if (!current) throw new AppError(404, 'ไม่พบวัสดุ');
 
     const updated = await materialRepository.update(materialId, { image_path: imagePath });
-    await removeStoredFile(materialImageDir, current.image_path);
+    await removeStoredImage(materialImageDir, current.image_path);
 
     return serializeMaterial(updated);
   } catch (error) {

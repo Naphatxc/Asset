@@ -113,10 +113,12 @@ export function getEquipmentHistory(itemId) {
   return request(`/api/admin/equipment-items/${itemId}/history`);
 }
 
-// file มาจาก ImageInput.jsx (ย่อขนาดแล้ว) ส่งเป็น multipart/form-data field "image" แทนที่รูปเดิม
-export function uploadEquipmentImage(itemId, file) {
+// file/thumbnail มาจาก ImageInput.jsx (ย่อขนาดแล้ว) ส่งเป็น multipart/form-data แทนที่รูปเดิม
+// thumbnail ไม่บังคับ (browser ถอดรหัสรูปไม่ได้จะไม่มี) ไม่มีแล้วตารางจะใช้รูปเต็มแทน
+export function uploadEquipmentImage(itemId, file, thumbnail) {
   const formData = new FormData();
   formData.append('image', file);
+  if (thumbnail) formData.append('thumbnail', thumbnail);
 
   return request(`/api/admin/equipment-items/${itemId}/image`, {
     method: 'PUT',
@@ -130,9 +132,11 @@ export function deleteEquipmentImage(itemId) {
   });
 }
 
-// imageChange จาก EquipmentForm: null = ไม่แตะรูป, { file } = อัปโหลดใหม่, { remove: true } = ลบรูป
+// imageChange จาก EquipmentForm: null = ไม่แตะรูป, { file, thumbnail } = อัปโหลดใหม่, { remove: true } = ลบรูป
 export function applyEquipmentImageChange(itemId, imageChange) {
-  if (imageChange?.file) return uploadEquipmentImage(itemId, imageChange.file);
+  if (imageChange?.file) {
+    return uploadEquipmentImage(itemId, imageChange.file, imageChange.thumbnail);
+  }
   if (imageChange?.remove) return deleteEquipmentImage(itemId);
 
   return Promise.resolve(null);

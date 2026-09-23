@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import multer from 'multer';
 
 import { AppError } from '../utils/AppError.js';
+import { thumbnailNameFor } from '../utils/storedImage.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadRoot = path.join(__dirname, '..', '..', 'uploads');
@@ -34,16 +35,31 @@ const extensionByMimeType = {
 const imageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const repairMimeTypes = new Set([...imageMimeTypes, 'application/pdf']);
 
-function createStorage(directory) {
+function uniqueName() {
+  return `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`;
+}
+
+// multer เรียก fileFilter ก่อน filename เสมอ mimetype ตรงนี้จึงอยู่ใน extensionByMimeType แน่นอน
+function uniqueFileName(_request, file) {
+  return `${uniqueName()}${extensionByMimeType[file.mimetype] ?? ''}`;
+}
+
+// รูปกับรูปจิ๋วใน request เดียวกันใช้ชื่อฐานเดียวกัน หารูปจิ๋วของรูปไหนก็ได้จากชื่อรูปเลย (thumbnailNameFor)
+// ไม่ต้องมีคอลัมน์เก็บชื่อรูปจิ๋วแยก ใช้ได้ไม่ว่า field ไหนจะมาถึงก่อน
+function imageFileName(request, file) {
+  request.uploadBaseName ??= uniqueName();
+  const imageName = `${request.uploadBaseName}${extensionByMimeType[file.mimetype] ?? ''}`;
+
+  return file.fieldname === 'thumbnail' ? thumbnailNameFor(imageName) : imageName;
+}
+
+function createStorage(directory, nameFor = uniqueFileName) {
   return multer.diskStorage({
     destination: (_request, _file, callback) => {
       callback(null, directory);
     },
-    // multer เรียก fileFilter ก่อน filename เสมอ mimetype ตรงนี้จึงอยู่ใน extensionByMimeType แน่นอน
-    filename: (_request, file, callback) => {
-      const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`;
-
-      callback(null, `${uniqueSuffix}${extensionByMimeType[file.mimetype] ?? ''}`);
+    filename: (request, file, callback) => {
+      callback(null, nameFor(request, file));
     },
   });
 }
@@ -52,6 +68,11 @@ function createFileFilter(allowedMimeTypes, message) {
   return (_request, file, callback) => {
     if (!allowedMimeTypes.has(file.mimetype)) {
       callback(new AppError(400, message));
+      return;
+    }
+    // รูปจิ๋วต้องเป็น JPEG เท่านั้น ชื่อไฟล์รูปจิ๋วตายตัวเป็น .thumb.jpg (ดู thumbnailNameFor)
+    if (file.fieldname === 'thumbnail' && file.mimetype !== 'image/jpeg') {
+      callback(new AppError(400, 'รูปจิ๋วต้องเป็นไฟล์ JPEG'));
       return;
     }
 
@@ -91,19 +112,31 @@ export const uploadRepairFiles = wrapMulter(
   '10MB',
 );
 
-// รับไฟล์เดียวจาก field "image" — client ย่อรูปก่อนส่งอยู่แล้ว (ดู ImageInput.jsx) เพดานนี้กันกรณีหลุดมาเท่านั้น
+// field "image" (บังคับ ตรวจที่ controller) + "thumbnail" (ไม่บังคับ รูปจิ๋ว JPEG สำหรับตาราง) อย่างละไฟล์
+// client ย่อรูปก่อนส่งอยู่แล้ว (ดู ImageInput.jsx) เพดานขนาดนี้กันกรณีหลุดมาเท่านั้น
 function createImageUpload(directory) {
   return wrapMulter(
     multer({
-      storage: createStorage(directory),
-      limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+      storage: createStorage(directory, imageFileName),
+      limits: { fileSize: 10 * 1024 * 1024, files: 2 },
       fileFilter: createFileFilter(
         imageMimeTypes,
         'รองรับเฉพาะไฟล์รูปภาพ (jpg, png, webp)',
       ),
-    }).single('image'),
+    }).fields([
+      { name: 'image', maxCount: 1 },
+      { name: 'thumbnail', maxCount: 1 },
+    ]),
     '10MB',
   );
+}
+
+// ไฟล์ที่ multer เขียนลง disk แล้วของ request รูปนี้ ไว้ให้ controller ลบทิ้งถ้าบันทึกไม่สำเร็จ
+export function uploadedImageFiles(request) {
+  return {
+    image: request.files?.image?.[0] ?? null,
+    thumbnail: request.files?.thumbnail?.[0] ?? null,
+  };
 }
 
 export const uploadEquipmentImage = createImageUpload(equipmentImageDir);

@@ -66,9 +66,10 @@ export function restoreMaterial(materialId) {
 }
 
 // เหมือนรูปครุภัณฑ์ (ดู equipment.js) field "image" แทนที่รูปเดิม
-export function uploadMaterialImage(materialId, file) {
+export function uploadMaterialImage(materialId, file, thumbnail) {
   const formData = new FormData();
   formData.append('image', file);
+  if (thumbnail) formData.append('thumbnail', thumbnail);
 
   return request(`/api/admin/materials/${materialId}/image`, {
     method: 'PUT',
@@ -82,9 +83,11 @@ export function deleteMaterialImage(materialId) {
   });
 }
 
-// imageChange จาก MaterialForm: null = ไม่แตะรูป, { file } = อัปโหลดใหม่, { remove: true } = ลบรูป
+// imageChange จาก MaterialForm: null = ไม่แตะรูป, { file, thumbnail } = อัปโหลดใหม่, { remove: true } = ลบรูป
 export function applyMaterialImageChange(materialId, imageChange) {
-  if (imageChange?.file) return uploadMaterialImage(materialId, imageChange.file);
+  if (imageChange?.file) {
+    return uploadMaterialImage(materialId, imageChange.file, imageChange.thumbnail);
+  }
   if (imageChange?.remove) return deleteMaterialImage(materialId);
 
   return Promise.resolve(null);

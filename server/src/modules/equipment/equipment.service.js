@@ -5,7 +5,7 @@ import * as equipmentRepository from './equipment.repository.js';
 import { equipmentImageDir } from '../../middlewares/upload.middleware.js';
 import { AppError } from '../../utils/AppError.js';
 import { hasOwn, toDate } from '../../utils/parsing.js';
-import { removeStoredFile } from '../../utils/storedImage.js';
+import { removeStoredImage } from '../../utils/storedImage.js';
 import { runSerializableTransaction } from '../../utils/transaction.js';
 import * as borrowRepository from '../borrow/borrow.repository.js';
 import * as categoryRepository from '../options/category.repository.js';
@@ -613,7 +613,7 @@ export async function setEquipmentImage(itemId, imagePath, actorId) {
       throw new AppError(404, 'ไม่พบครุภัณฑ์');
     }
 
-    await removeStoredFile(equipmentImageDir, result.previousImage);
+    await removeStoredImage(equipmentImageDir, result.previousImage);
 
     return result.equipment;
   } catch (error) {

@@ -1,6 +1,7 @@
 // ช่องเลือกรูปครุภัณฑ์/วัสดุในฟอร์ม (รูปเดียวต่อรายการ) — บนมือถือ accept="image/*" ให้เลือกถ่ายรูปจากกล้องได้เลย
 // ไม่ได้อัปโหลดทันที แค่ส่ง imageChange ขึ้นไปให้ฟอร์ม แล้ว Manager ค่อยอัปโหลดหลังบันทึกข้อมูลสำเร็จ
-// (ตอนสร้างใหม่ยังไม่มี id ให้อัปโหลดเข้าไป) imageChange: null = ไม่แตะรูป, { file } = รูปใหม่, { remove: true } = ลบรูป
+// (ตอนสร้างใหม่ยังไม่มี id ให้อัปโหลดเข้าไป)
+// imageChange: null = ไม่แตะรูป, { file, thumbnail } = รูปใหม่ (thumbnail อาจเป็น null), { remove: true } = ลบรูป
 import { useEffect, useRef, useState } from 'react';
 
 import { toApiUrl } from '../api/http.js';
@@ -9,28 +10,43 @@ import { toApiUrl } from '../api/http.js';
 // แปลงเป็น JPEG ยังช่วยให้ไฟล์ HEIC (ถ้า browser ถอดรหัสได้) ผ่านเงื่อนไขชนิดไฟล์ของ server ด้วย
 const MAX_IMAGE_DIMENSION = 1600;
 const JPEG_QUALITY = 0.85;
+// รูปจิ๋วสำหรับตาราง (กล่อง 48px บนจอ 3x) ย่อให้ด้านสั้นเหลือ 160px เพราะ CSS ครอปแบบ cover ด้วยด้านสั้น
+// ไฟล์ละไม่กี่ KB ตารางหน้าหนึ่งไม่ต้องโหลดรูปเต็มทีละหลายร้อย KB (server ต้องการเป็น JPEG เท่านั้น)
+const THUMBNAIL_SHORT_SIDE = 160;
+const THUMBNAIL_QUALITY = 0.8;
 
-async function downscaleImage(file) {
+async function renderJpeg(bitmap, scale, quality) {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+
+  return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+}
+
+// คืน { file, thumbnail } — ถอดรหัสไม่ได้คืนไฟล์เดิมโดยไม่มีรูปจิ๋ว (server จะใช้รูปเต็มแทนในตาราง)
+async function prepareImage(file) {
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-    const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.round(bitmap.width * scale);
-    canvas.height = Math.round(bitmap.height * scale);
-    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const longSide = Math.max(bitmap.width, bitmap.height);
+    const shortSide = Math.min(bitmap.width, bitmap.height);
+    const [blob, thumbBlob] = await Promise.all([
+      renderJpeg(bitmap, Math.min(1, MAX_IMAGE_DIMENSION / longSide), JPEG_QUALITY),
+      renderJpeg(bitmap, Math.min(1, THUMBNAIL_SHORT_SIDE / shortSide), THUMBNAIL_QUALITY),
+    ]);
     bitmap.close();
 
-    const blob = await new Promise((resolve) =>
-      canvas.toBlob(resolve, 'image/jpeg', JPEG_QUALITY),
-    );
-    // ย่อแล้วใหญ่กว่าเดิม (เช่น PNG ภาพเล็กๆ) ใช้ไฟล์เดิมดีกว่า
-    if (!blob || blob.size >= file.size) return file;
-
     const baseName = file.name.replace(/\.[^.]+$/, '') || 'image';
-    return new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' });
+    const thumbnail = thumbBlob
+      ? new File([thumbBlob], `${baseName}-thumb.jpg`, { type: 'image/jpeg' })
+      : null;
+    // ย่อแล้วใหญ่กว่าเดิม (เช่น PNG ภาพเล็กๆ) ใช้ไฟล์เดิมดีกว่า
+    if (!blob || blob.size >= file.size) return { file, thumbnail };
+
+    return { file: new File([blob], `${baseName}.jpg`, { type: 'image/jpeg' }), thumbnail };
   } catch {
     // browser ถอดรหัสไม่ได้ ส่งไฟล์เดิมไปให้ server ตัดสินเอง (จะได้ข้อความ error ชนิดไฟล์ที่ชัดเจน)
-    return file;
+    return { file, thumbnail: null };
   }
 }
 
@@ -68,7 +84,7 @@ export default function ImageInput({
     setProcessing(true);
     onProcessingChange?.(true);
     try {
-      onChange({ file: await downscaleImage(file) });
+      onChange(await prepareImage(file));
     } finally {
       setProcessing(false);
       onProcessingChange?.(false);
