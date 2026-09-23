@@ -560,6 +560,11 @@ button:disabled {
   background: #eaf4ff;
 }
 
+.status-damaged {
+  color: #5b3f99;
+  background: #f1ebff;
+}
+
 .status-disposed {
   color: #4b5563;
   background: #eef0f2;

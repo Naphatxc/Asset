@@ -245,8 +245,11 @@ model audit_records {
   // true = การตรวจนี้ย้ายห้องของครุภัณฑ์ไปแล้ว moved_from คือห้องเดิมไว้ย้ายคืน (ห้องเดิมอาจเป็น null ได้)
   location_moved         Boolean                @default(false)
   moved_from_location_id Int?                   @db.UnsignedInt
-  // ใบแจ้งซ่อมที่การตรวจนี้สร้างให้อัตโนมัติ (ผลชำรุด) ไว้ยกเลิกคืนถ้าแก้ผลกลับเป็นปกติ
+  // ใบแจ้งซ่อมที่การตรวจนี้สร้างให้อัตโนมัติ (ผลชำรุด) ไว้ยกเลิกคืนถ้าแก้ผลกลับเป็นปกติ — ใช้กับรอบเก่าเท่านั้น
+  // ตอนนี้ผลชำรุดเปลี่ยนสถานะเป็น damaged แทนการเปิดใบซ่อม (ดู marked_damaged)
   repair_id              Int?                   @db.UnsignedInt
+  // true = การตรวจนี้เปลี่ยนสถานะครุภัณฑ์จากพร้อมใช้งานเป็นชำรุด ไว้เปลี่ยนกลับถ้าแก้ผล/ล้างผล/ยกเลิกรอบ
+  marked_damaged         Boolean                @default(false)
   checked_by             Int?                   @db.UnsignedInt
   checked_at             DateTime?              @db.DateTime(0)
   // ชิ้นที่ไม่ได้ตรวจ ตัดสินตอนปิดรอบว่าไม่พบ/ถูกยืม/ซ่อม/ถูกลบ แล้วเก็บตายตัวไว้ ถ้าคิดสดจากสถานะปัจจุบัน
@@ -279,12 +282,15 @@ enum equipment_history_action {
 
 // disposed = จำหน่ายออก ตั้งพร้อม deleted_at ตอนกด "จำหน่ายออก" เท่านั้น (ดู equipment.service.js deleteEquipment)
 // เปลี่ยนเป็นสถานะนี้ตรงๆ ผ่าน PATCH /status ไม่ได้ เพราะต้องไปพร้อม deleted_at เสมอ ของที่จำหน่ายแล้วจึงหลุดจากทุกรายการ
+// damaged = ชำรุด ตั้งจากผลตรวจนับ "ชำรุด" หรือ Admin ตั้งเองจาก dropdown ไม่เปิดใบซ่อมให้ เพราะของชำรุดบางชิ้น
+// จำหน่ายออกเลยไม่ซ่อม ยืม/แจ้งซ่อมไม่ได้ (ตัวเลือกในฟอร์มมีแค่ของพร้อมใช้งาน) ถ้าจะซ่อมให้ Admin เปลี่ยนสถานะก่อน
 enum equipment_items_status {
   available
   borrowed
   pending_repair
   repairing
   disposed
+  damaged
 }
 
 enum users_role {

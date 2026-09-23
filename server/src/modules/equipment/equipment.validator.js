@@ -10,6 +10,7 @@ export const allowedStatuses = [
   'borrowed',
   'pending_repair',
   'repairing',
+  'damaged',
 ];
 
 // อิงจากข้อมูลครุภัณฑ์จริงที่ยังไม่ได้ migrate เข้าระบบนี้ (ชื่อยาวสุด 194 ตัวอักษร, คุณสมบัติ/รายละเอียด

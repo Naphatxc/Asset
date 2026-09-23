@@ -35,7 +35,7 @@ adminAuditRouter.patch(
   auditController.closeRound,
 );
 
-// DELETE /api/admin/audits/:id - ลบรอบ ถ้ายังเปิดอยู่จะย้อนห้อง/ใบซ่อมที่รอบนี้เปลี่ยนไว้ก่อนลบ
+// DELETE /api/admin/audits/:id - ลบรอบ ถ้ายังเปิดอยู่จะย้อนห้อง/สถานะชำรุด/ใบซ่อมที่รอบนี้เปลี่ยนไว้ก่อนลบ
 adminAuditRouter.delete('/:id', validateRoundIdParam, auditController.deleteRound);
 
 // PUT /api/admin/audits/:id/records/:itemId - บันทึก/แก้ผลตรวจหนึ่งชิ้น
@@ -48,7 +48,7 @@ adminAuditRouter.put(
   auditController.checkItem,
 );
 
-// DELETE /api/admin/audits/:id/records/:itemId - ล้างผลกลับเป็นยังไม่ตรวจ (ย้ายห้องคืน/ยกเลิกใบซ่อมให้)
+// DELETE /api/admin/audits/:id/records/:itemId - ล้างผลกลับเป็นยังไม่ตรวจ (ย้ายห้องคืน/เปลี่ยนสถานะชำรุดกลับให้)
 adminAuditRouter.delete(
   '/:id/records/:itemId',
   validateRoundIdParam,

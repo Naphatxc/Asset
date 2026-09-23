@@ -7,6 +7,7 @@ const EMPTY_STATUS_COUNTS = {
   borrowed: 0,
   pending_repair: 0,
   repairing: 0,
+  damaged: 0,
 };
 
 // รวม 3 แหล่ง (ยืมใหม่/คืนแล้ว/แจ้งซ่อม) เป็น Feed เดียว เรียงตามเวลาล่าสุดก่อน — แต่ละ query ดึงมาเกินจำนวน

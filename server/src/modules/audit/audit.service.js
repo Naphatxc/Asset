@@ -3,8 +3,9 @@
 // Flow: เปิดรอบ (openRound) -> ระบบสร้าง audit_records ครบทุกชิ้นที่ยังไม่ถูกลบ ผลเป็น null (ยังไม่ตรวจ) ->
 // admin เดินสแกนทีละชิ้น (checkItem) ผลมีผลกับข้อมูลจริงทันที ไม่ต้องกดยืนยันซ้ำตอนท้าย:
 //   - เลือกห้องไว้แล้วครุภัณฑ์อยู่ห้องอื่น/ยังไม่มีห้อง -> ย้ายห้องให้เลย
-//   - ผลชำรุด -> เปิดใบแจ้งซ่อมให้ (ถ้าครุภัณฑ์ว่างอยู่) ตาม flow เดียวกับ repair.service.js
-// กดผิดแก้ได้ด้วยการตรวจซ้ำ หรือล้างผล (resetRecord) ซึ่งย้ายห้องคืน/ยกเลิกใบซ่อมที่รอบนี้เปิดไว้ให้
+//   - ผลชำรุด -> เปลี่ยนสถานะเป็นชำรุด (ถ้าครุภัณฑ์พร้อมใช้งานอยู่) ไม่เปิดใบซ่อม ให้ Admin เลือกเองว่าจะซ่อมหรือจำหน่ายออก
+// กดผิดแก้ได้ด้วยการตรวจซ้ำ หรือล้างผล (resetRecord) ซึ่งย้ายห้องคืน/เปลี่ยนสถานะชำรุดกลับให้
+// (รอบเก่าที่ผลชำรุดยังเปิดใบซ่อมให้ ล้างผลแล้วยังยกเลิกใบซ่อมนั้นให้เหมือนเดิม)
 // ปิดรอบ (closeRound) -> ชิ้นที่ยังไม่ได้ตรวจนับเป็น "ไม่พบ" และแก้ผลไม่ได้อีก
 import * as auditRepository from './audit.repository.js';
 import { AppError } from '../../utils/AppError.js';
@@ -178,7 +179,7 @@ export async function closeRound(roundId, actorId) {
 }
 
 // ยกเลิกรอบที่ยังเปิดอยู่ = ย้อนทุกอย่างที่รอบนี้ทำไว้แล้วลบทิ้ง (เหมือนกดล้างผลทุกชิ้น) ใช้ลบรอบทดสอบได้สะอาด
-// ส่วนรอบที่ปิดแล้วถือว่าผลเป็นข้อสรุปจริงไปแล้ว ลบแค่รายงาน ไม่ย้อนห้อง/ใบซ่อม
+// ส่วนรอบที่ปิดแล้วถือว่าผลเป็นข้อสรุปจริงไปแล้ว ลบแค่รายงาน ไม่ย้อนห้อง/สถานะชำรุด/ใบซ่อม
 // ย้อนแบบ bulk ไม่วนทีละชิ้นแบบ resetRecord เพราะรอบจริงอาจย้ายห้องไปหลายร้อยชิ้น ทำทีละชิ้นใน transaction
 // เดียวจะเกิน timeout ของ runSerializableTransaction
 export async function deleteRound(roundId, actorId) {
@@ -187,7 +188,13 @@ export async function deleteRound(roundId, actorId) {
       const round = await auditRepository.findRoundById(roundId, tx);
       if (!round) return { error: 'ไม่พบรอบตรวจนับ', status: 404 };
 
-      const summary = { reverted: round.status === 'open', moved_back: 0, repairs_cancelled: 0, repairs_kept: 0 };
+      const summary = {
+        reverted: round.status === 'open',
+        moved_back: 0,
+        damaged_reverted: 0,
+        repairs_cancelled: 0,
+        repairs_kept: 0,
+      };
 
       if (round.status === 'open') {
         const records = await auditRepository.findRecordsWithEffects(roundId, tx);
@@ -216,6 +223,31 @@ export async function deleteRound(roundId, actorId) {
             });
           }
           summary.repairs_cancelled = pendingRepairs.length;
+        }
+
+        // ชิ้นที่รอบนี้เปลี่ยนเป็นชำรุดและยังชำรุดอยู่ เปลี่ยนกลับเป็นพร้อมใช้งาน (ที่ถูกแจ้งซ่อม/จำหน่ายไปแล้วไม่แตะ)
+        const damagedMarks = records.filter(
+          (record) =>
+            record.marked_damaged &&
+            record.equipment_items.status === 'damaged' &&
+            record.equipment_items.deleted_at === null,
+        );
+        if (damagedMarks.length > 0) {
+          await equipmentRepository.updateManyStatus(
+            damagedMarks.map((record) => record.item_id),
+            'available',
+            tx,
+          );
+          for (const record of damagedMarks) {
+            history.push({
+              itemId: record.item_id,
+              action: 'status_changed',
+              oldData: { status: 'damaged' },
+              newData: { status: 'available', audit_round_id: roundId },
+              changedBy: actorId,
+            });
+          }
+          summary.damaged_reverted = damagedMarks.length;
         }
 
         const moves = records.filter(
@@ -286,38 +318,32 @@ async function moveLocation(itemId, equipmentId, locationId, roundId, actorId, t
   );
 }
 
-// เหมือน repair.service.js reportRepair แต่ทำใน transaction ของการตรวจ ให้บันทึกผลกับเปิดใบซ่อมสำเร็จ/ล้มพร้อมกัน
-async function openRepair(itemId, issue, roundId, actorId, tx) {
-  const repair = await repairRepository.create(
-    { item_id: itemId, reported_by: actorId, issue, status: 'pending_repair' },
-    tx,
-  );
-
-  await equipmentRepository.updateEquipmentItem(
-    itemId,
-    { status: 'pending_repair' },
-    tx,
-  );
-
+// ผลชำรุดเปลี่ยนสถานะเป็น damaged เฉยๆ ไม่เปิดใบซ่อมให้ เพราะของชำรุดบางชิ้นจะจำหน่ายออกเลยไม่ซ่อม
+// Admin ค่อยเลือกเองว่าจะแจ้งซ่อมหรือจำหน่ายออก
+async function setItemStatusFromAudit(itemId, from, to, roundId, actorId, tx) {
+  await equipmentRepository.updateEquipmentItem(itemId, { status: to }, tx);
   await equipmentHistoryRepository.create(
     {
       itemId,
       action: 'status_changed',
-      oldData: { status: 'available' },
-      newData: {
-        status: 'pending_repair',
-        repair_id: repair.repair_id,
-        audit_round_id: roundId,
-      },
+      oldData: { status: from },
+      newData: { status: to, audit_round_id: roundId },
       changedBy: actorId,
     },
     tx,
   );
-
-  return repair.repair_id;
 }
 
-// ยกเลิกใบซ่อมที่การตรวจเปิดไว้เอง ทำได้เฉพาะตอนยังไม่เริ่มซ่อม
+// เปลี่ยนกลับเฉพาะตอนยังเป็นชำรุดอยู่ ถ้าระหว่างนั้นถูกแจ้งซ่อม/จำหน่ายออกไปแล้วถือว่ามีคนตัดสินใจต่อแล้ว ไม่ไปทับ
+// คืน true ถ้าเปลี่ยนกลับจริง
+async function revertAuditDamaged(item, roundId, actorId, tx) {
+  if (!item || item.deleted_at !== null || item.status !== 'damaged') return false;
+
+  await setItemStatusFromAudit(item.item_id, 'damaged', 'available', roundId, actorId, tx);
+  return true;
+}
+
+// ยกเลิกใบซ่อมที่การตรวจเปิดไว้เอง (รอบเก่าเท่านั้น) ทำได้เฉพาะตอนยังไม่เริ่มซ่อม
 // คืน 'cancelled' | 'started' (เริ่มซ่อมแล้ว ยกเลิกไม่ได้) | 'closed' (ปิดงานไปแล้ว ไม่ต้องทำอะไร)
 async function cancelAuditRepair(repairId, roundId, actorId, tx) {
   const repair = await repairRepository.findById(repairId, tx);
@@ -408,36 +434,31 @@ export async function checkItem(
       }
 
       let repairId = record.repair_id;
+      let markedDamaged = record.marked_damaged;
 
       if (result === 'damaged') {
-        const linkedRepair = repairId
-          ? await repairRepository.findById(repairId, tx)
-          : null;
-        const hasOpenAuditRepair =
-          linkedRepair &&
-          (linkedRepair.status === 'pending_repair' ||
-            linkedRepair.status === 'repairing');
-
-        if (!hasOpenAuditRepair) {
-          if (item.status === 'available') {
-            repairId = await openRepair(
-              itemId,
-              note || `พบชำรุดจากการตรวจนับ (${round.title})`,
-              roundId,
-              actorId,
-              tx,
-            );
-            notices.push('เปิดใบแจ้งซ่อมให้แล้ว');
-          } else if (item.status === 'borrowed') {
-            notices.push('ครุภัณฑ์ถูกยืมอยู่ จึงยังเปิดใบแจ้งซ่อมไม่ได้');
-          } else {
-            notices.push('ครุภัณฑ์มีใบแจ้งซ่อมค้างอยู่แล้ว');
-          }
+        if (item.status === 'available') {
+          await setItemStatusFromAudit(itemId, 'available', 'damaged', roundId, actorId, tx);
+          markedDamaged = true;
+          notices.push('เปลี่ยนสถานะเป็นชำรุดแล้ว');
+        } else if (item.status === 'borrowed') {
+          notices.push('ครุภัณฑ์ถูกยืมอยู่ จึงยังเปลี่ยนสถานะเป็นชำรุดไม่ได้');
+        } else if (item.status === 'pending_repair' || item.status === 'repairing') {
+          notices.push('ครุภัณฑ์มีใบแจ้งซ่อมค้างอยู่แล้ว สถานะจึงไม่เปลี่ยน');
         }
-      } else if (repairId) {
-        const repairOutcome = await cancelAuditRepair(repairId, roundId, actorId, tx);
-        if (repairOutcome === 'cancelled') repairId = null;
-        if (repairNotices[repairOutcome]) notices.push(repairNotices[repairOutcome]);
+      } else {
+        if (markedDamaged) {
+          if (await revertAuditDamaged(item, roundId, actorId, tx)) {
+            notices.push('เปลี่ยนสถานะกลับเป็นพร้อมใช้งานแล้ว');
+          }
+          markedDamaged = false;
+        }
+        // รอบเก่าที่ผลชำรุดยังเปิดใบซ่อมให้อัตโนมัติ
+        if (repairId) {
+          const repairOutcome = await cancelAuditRepair(repairId, roundId, actorId, tx);
+          if (repairOutcome === 'cancelled') repairId = null;
+          if (repairNotices[repairOutcome]) notices.push(repairNotices[repairOutcome]);
+        }
       }
 
       await auditRepository.updateRecord(
@@ -450,6 +471,7 @@ export async function checkItem(
           location_moved: locationMoved,
           moved_from_location_id: movedFrom,
           repair_id: repairId,
+          marked_damaged: markedDamaged,
           checked_by: actorId,
           checked_at: new Date(),
         },
@@ -488,6 +510,13 @@ export async function resetRecord(roundId, itemId, actorId) {
 
       const notices = [];
 
+      if (record.marked_damaged) {
+        const item = await equipmentRepository.findByItemId(itemId, { includeDeleted: true, client: tx });
+        if (await revertAuditDamaged(item, roundId, actorId, tx)) {
+          notices.push('เปลี่ยนสถานะกลับเป็นพร้อมใช้งานแล้ว');
+        }
+      }
+
       if (record.repair_id) {
         const repairOutcome = await cancelAuditRepair(
           record.repair_id,
@@ -523,6 +552,7 @@ export async function resetRecord(roundId, itemId, actorId) {
           location_moved: false,
           moved_from_location_id: null,
           repair_id: null,
+          marked_damaged: false,
           checked_by: null,
           checked_at: null,
         },

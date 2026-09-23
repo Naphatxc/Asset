@@ -48,6 +48,7 @@ const statusMeta = [
   { key: 'borrowed', label: 'ถูกยืม', color: '#ffbf02' },
   { key: 'pending_repair', label: 'รอซ่อม', color: '#e2574c' },
   { key: 'repairing', label: 'กำลังซ่อม', color: '#3b82c4' },
+  { key: 'damaged', label: 'ชำรุด', color: '#7c5cbf' },
 ];
 
 function MonthlyBarChart({ data }) {

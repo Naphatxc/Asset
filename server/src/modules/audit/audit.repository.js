@@ -93,21 +93,26 @@ export async function settleUncheckedRecords(roundId, client = prisma) {
   }
 }
 
-// แถวที่การตรวจไปเปลี่ยนข้อมูลจริงไว้ (ย้ายห้อง/เปิดใบซ่อม) ใช้ย้อนคืนตอนยกเลิกทั้งรอบ
+// แถวที่การตรวจไปเปลี่ยนข้อมูลจริงไว้ (ย้ายห้อง/เปลี่ยนเป็นชำรุด/เปิดใบซ่อมของรอบเก่า) ใช้ย้อนคืนตอนยกเลิกทั้งรอบ
 export async function findRecordsWithEffects(roundId, client = prisma) {
   return client.audit_records.findMany({
     where: {
       round_id: roundId,
-      OR: [{ location_moved: true }, { repair_id: { not: null } }],
+      OR: [{ location_moved: true }, { marked_damaged: true }, { repair_id: { not: null } }],
     },
     select: {
       item_id: true,
       location_moved: true,
       moved_from_location_id: true,
       repair_id: true,
+      marked_damaged: true,
       repairs: { select: { status: true } },
       equipment_items: {
-        select: { equipment: { select: { equipment_id: true, location_id: true } } },
+        select: {
+          status: true,
+          deleted_at: true,
+          equipment: { select: { equipment_id: true, location_id: true } },
+        },
       },
     },
   });

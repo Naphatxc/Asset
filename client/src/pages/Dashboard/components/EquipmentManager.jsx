@@ -46,6 +46,7 @@ const statusFilterOptions = [
   { value: 'borrowed', label: 'ถูกยืม' },
   { value: 'pending_repair', label: 'รอซ่อม' },
   { value: 'repairing', label: 'กำลังซ่อม' },
+  { value: 'damaged', label: 'ชำรุด' },
 ];
 
 export default function EquipmentManager({ user }) {

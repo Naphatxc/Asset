@@ -19,6 +19,7 @@ const statusLabels = {
   borrowed: 'ถูกยืม',
   pending_repair: 'รอซ่อม',
   repairing: 'กำลังซ่อม',
+  damaged: 'ชำรุด',
   disposed: 'จำหน่ายออก',
 };
 

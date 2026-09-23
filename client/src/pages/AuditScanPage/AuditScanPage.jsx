@@ -1,5 +1,5 @@
 // หน้าเดินตรวจนับบนมือถือ (/audit/:roundId) — admin เลือกห้องที่ยืนอยู่ สแกน QR แล้วกดผลทีละชิ้น
-// กดผลแล้วมีผลกับข้อมูลจริงทันที (ย้ายห้อง/เปิดใบแจ้งซ่อม) ไม่มีขั้นยืนยันซ้ำตอนท้าย ถ้ากดผิดแก้จากการ์ดเดิมได้เลย
+// กดผลแล้วมีผลกับข้อมูลจริงทันที (ย้ายห้อง/เปลี่ยนสถานะเป็นชำรุด) ไม่มีขั้นยืนยันซ้ำตอนท้าย ถ้ากดผิดแก้จากการ์ดเดิมได้เลย
 // รายการของทั้งรอบโหลดมาครั้งเดียว (ไม่กี่ร้อยแถว) แล้วค้น/กรองตามห้องฝั่ง client สแกนแล้วจึงเจอการ์ดทันทีไม่ต้องรอ network
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useRef, useState } from 'react';
@@ -457,7 +457,7 @@ export default function AuditScanPage({ user }) {
                 rows={2}
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
-                placeholder="หมายเหตุ (ถ้าชำรุด ข้อความนี้จะเป็นอาการในใบแจ้งซ่อม)"
+                placeholder="หมายเหตุ (เช่น ชำรุดตรงไหน)"
               />
 
               <div className="audit-result-buttons">
