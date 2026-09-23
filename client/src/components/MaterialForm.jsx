@@ -63,6 +63,7 @@ export default function MaterialForm({
   const [form, setForm] = useState(() => createInitialForm(material));
   // รูปที่เลือกไว้แต่ยังไม่ได้อัปโหลด (ดู ImageInput.jsx) ส่งไปพร้อม payload ตอนกดบันทึก
   const [imageChange, setImageChange] = useState(null);
+  const [imageProcessing, setImageProcessing] = useState(false);
   const editing = Boolean(material);
 
   useEffect(() => {
@@ -98,6 +99,8 @@ export default function MaterialForm({
 
   function handleSubmit(event) {
     event.preventDefault();
+    // กด Enter ในช่องกรอกก็ submit ได้ ปุ่มที่ปิดไว้กันไม่ครบ ต้องเช็คตรงนี้ด้วย
+    if (imageProcessing) return;
 
     const requiredFieldError = findRequiredFieldError();
     if (requiredFieldError) {
@@ -289,6 +292,7 @@ export default function MaterialForm({
             currentUrl={material?.image_url}
             value={imageChange}
             onChange={setImageChange}
+            onProcessingChange={setImageProcessing}
             disabled={submitting}
           />
         </div>
@@ -297,8 +301,14 @@ export default function MaterialForm({
       {formError && <p className="error-message">{formError}</p>}
 
       <div className="form-actions">
-        <button className="button-primary" type="submit" disabled={submitting}>
-          {submitting ? 'กำลังบันทึก...' : editing ? 'บันทึกการแก้ไข' : 'เพิ่มวัสดุ'}
+        <button className="button-primary" type="submit" disabled={submitting || imageProcessing}>
+          {submitting
+            ? 'กำลังบันทึก...'
+            : imageProcessing
+              ? 'กำลังเตรียมรูป...'
+              : editing
+                ? 'บันทึกการแก้ไข'
+                : 'เพิ่มวัสดุ'}
         </button>
         <button className="button-secondary" type="button" onClick={onCancel}>
           ยกเลิก

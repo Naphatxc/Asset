@@ -34,7 +34,14 @@ async function downscaleImage(file) {
   }
 }
 
-export default function ImageInput({ currentUrl, value, onChange, disabled = false }) {
+// onProcessingChange: ฟอร์มใช้ปิดปุ่มบันทึกระหว่างย่อรูป ไม่งั้นกดบันทึกเร็วๆ ตอนรูปยังไม่เสร็จ รูปจะหายไปเงียบๆ
+export default function ImageInput({
+  currentUrl,
+  value,
+  onChange,
+  onProcessingChange,
+  disabled = false,
+}) {
   const inputRef = useRef(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [processing, setProcessing] = useState(false);
@@ -59,9 +66,13 @@ export default function ImageInput({ currentUrl, value, onChange, disabled = fal
     if (!file) return;
 
     setProcessing(true);
-    const resized = await downscaleImage(file);
-    setProcessing(false);
-    onChange({ file: resized });
+    onProcessingChange?.(true);
+    try {
+      onChange({ file: await downscaleImage(file) });
+    } finally {
+      setProcessing(false);
+      onProcessingChange?.(false);
+    }
   }
 
   const shownUrl = value?.remove ? null : previewUrl ?? toApiUrl(currentUrl);

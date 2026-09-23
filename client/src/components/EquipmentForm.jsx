@@ -101,6 +101,7 @@ export default function EquipmentForm({
   );
   // รูปที่เลือกไว้แต่ยังไม่ได้อัปโหลด (ดู ImageInput.jsx) ส่งไปพร้อม payload ตอนกดบันทึก
   const [imageChange, setImageChange] = useState(null);
+  const [imageProcessing, setImageProcessing] = useState(false);
   // true ทันทีที่ผู้ใช้พิมพ์รหัสเอง กันไม่ให้ auto-suggest ทับค่าที่พิมพ์เองทิ้งตอนเปลี่ยนหมวดหมู่
   const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
   const editing = Boolean(equipment);
@@ -186,6 +187,8 @@ export default function EquipmentForm({
   // ก่อนส่ง API แปลง id/ราคา/ปีจาก string ของ input กลับเป็น number หรือ null
   function handleSubmit(event) {
     event.preventDefault();
+    // กด Enter ในช่องกรอกก็ submit ได้ ปุ่มที่ปิดไว้กันไม่ครบ ต้องเช็คตรงนี้ด้วย
+    if (imageProcessing) return;
 
     const requiredFieldError = findRequiredFieldError();
     if (requiredFieldError) {
@@ -423,6 +426,7 @@ export default function EquipmentForm({
             currentUrl={equipment?.image_url}
             value={imageChange}
             onChange={setImageChange}
+            onProcessingChange={setImageProcessing}
             disabled={submitting}
           />
         </div>
@@ -434,11 +438,13 @@ export default function EquipmentForm({
         <button
           className="button-primary"
           type="submit"
-          disabled={submitting}
+          disabled={submitting || imageProcessing}
         >
           {submitting
             ? 'กำลังบันทึก...'
-            : editing
+            : imageProcessing
+              ? 'กำลังเตรียมรูป...'
+              : editing
               ? 'บันทึกการแก้ไข'
               : 'เพิ่มครุภัณฑ์'}
         </button>
