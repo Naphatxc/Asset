@@ -34,6 +34,16 @@ function formatPrice(price) {
   }).format(Number(price));
 }
 
+// เวลาที่กดจำหน่ายออก (deleted_at) — locale th-TH ใช้ปฏิทินพุทธ จึงได้ปี พ.ศ. เอง เช่น "24 ก.ย. 2569 14:30"
+function formatDisposedAt(value) {
+  if (!value) return '-';
+
+  return new Intl.DateTimeFormat('th-TH', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value));
+}
+
 // รวมชื่อสถานที่ อาคาร และห้องให้เป็นข้อความหนึ่งช่องในตาราง
 function formatLocation(item) {
   const room = item.room ? `ห้อง ${item.room}` : '';
@@ -88,6 +98,7 @@ export default function EquipmentTable({
             <th>สถานที่</th>
             <SortableTh sortKey="price" {...sortProps}>ราคา</SortableTh>
             <th>สถานะ</th>
+            {mode === 'deleted' && <th>จำหน่ายออกเมื่อ</th>}
             {mode === 'active' && <th>ข้อมูลและ QR</th>}
             {admin && <th>จัดการ</th>}
           </tr>
@@ -160,6 +171,9 @@ export default function EquipmentTable({
                     </span>
                   )}
                 </td>
+                {mode === 'deleted' && (
+                  <td data-label="จำหน่ายออกเมื่อ">{formatDisposedAt(item.deleted_at)}</td>
+                )}
 
                 {mode === 'active' && (
                   <td className="stack-actions">
