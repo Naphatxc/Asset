@@ -23,6 +23,14 @@ for (const directory of [repairUploadDir, equipmentImageDir, materialImageDir]) 
   fs.mkdirSync(directory, { recursive: true });
 }
 
+// นามสกุลไฟล์ที่เก็บจริงมาจากชนิดไฟล์ที่ผ่าน fileFilter แล้วเท่านั้น ห้ามเอามาจากชื่อไฟล์ที่ client ส่งมา ไม่งั้น
+// อัปโหลด "x.html" แต่อ้างว่าเป็น image/png ได้ แล้วตอนเสิร์ฟ Express เดา Content-Type จากนามสกุลเป็น text/html (XSS)
+const extensionByMimeType = {
+  'image/jpeg': '.jpg',
+  'image/png': '.png',
+  'image/webp': '.webp',
+  'application/pdf': '.pdf',
+};
 const imageMimeTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const repairMimeTypes = new Set([...imageMimeTypes, 'application/pdf']);
 
@@ -31,11 +39,11 @@ function createStorage(directory) {
     destination: (_request, _file, callback) => {
       callback(null, directory);
     },
+    // multer เรียก fileFilter ก่อน filename เสมอ mimetype ตรงนี้จึงอยู่ใน extensionByMimeType แน่นอน
     filename: (_request, file, callback) => {
       const uniqueSuffix = `${Date.now()}-${crypto.randomBytes(6).toString('hex')}`;
-      const extension = path.extname(file.originalname).slice(0, 10);
 
-      callback(null, `${uniqueSuffix}${extension}`);
+      callback(null, `${uniqueSuffix}${extensionByMimeType[file.mimetype] ?? ''}`);
     },
   });
 }
