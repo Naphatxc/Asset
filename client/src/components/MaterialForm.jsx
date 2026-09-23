@@ -2,6 +2,7 @@
 // ต่างจากครุภัณฑ์ตรงที่ไม่มีสถานที่/สถานะ/ QR แต่มีจำนวนคงเหลือ/ขั้นต่ำ/หน่วยนับ/วันหมดอายุแทน
 import { useEffect, useMemo, useState } from 'react';
 import CharCount from './CharCount.jsx';
+import ImageInput from './ImageInput.jsx';
 import SelectWithCreate from './SelectWithCreate.jsx';
 import { categoryCreateFields } from './EquipmentForm.jsx';
 
@@ -60,10 +61,13 @@ export default function MaterialForm({
   onCreateCategory,
 }) {
   const [form, setForm] = useState(() => createInitialForm(material));
+  // รูปที่เลือกไว้แต่ยังไม่ได้อัปโหลด (ดู ImageInput.jsx) ส่งไปพร้อม payload ตอนกดบันทึก
+  const [imageChange, setImageChange] = useState(null);
   const editing = Boolean(material);
 
   useEffect(() => {
     setForm(createInitialForm(material));
+    setImageChange(null);
   }, [material]);
 
   const categoryOptions = useMemo(
@@ -123,19 +127,19 @@ export default function MaterialForm({
         Object.entries(payload).filter(([field]) => form[field] !== initial[field]),
       );
 
-      if (Object.keys(changed).length === 0) {
+      if (Object.keys(changed).length === 0 && !imageChange) {
         onCancel();
         return;
       }
 
-      onSubmit(changed);
+      onSubmit(changed, imageChange);
       return;
     }
 
     // material_code กำหนดตอนสร้างเท่านั้น (เหมือน equipment_code) กันรหัสเปลี่ยนทั้งที่ของชิ้นเดิม
     payload.material_code = form.material_code.trim().toUpperCase();
 
-    onSubmit(payload);
+    onSubmit(payload, imageChange);
   }
 
   return (
@@ -278,6 +282,16 @@ export default function MaterialForm({
           />
           <CharCount length={form.remark.length} max={MAX_LONG_TEXT_LENGTH} />
         </label>
+
+        <div className="field-wide image-field">
+          <span>รูปวัสดุ</span>
+          <ImageInput
+            currentUrl={material?.image_url}
+            value={imageChange}
+            onChange={setImageChange}
+            disabled={submitting}
+          />
+        </div>
       </div>
 
       {formError && <p className="error-message">{formError}</p>}

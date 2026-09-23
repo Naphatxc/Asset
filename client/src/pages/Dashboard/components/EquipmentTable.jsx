@@ -1,3 +1,4 @@
+import ItemThumbnail from '../../../components/ItemThumbnail.jsx';
 import { SortableTh } from '../../../components/ListFilters.jsx';
 
 // คอลัมน์ที่คลิกเรียงได้ key ต้องตรงกับ sortColumns ใน equipment.controller.js (เรียงที่ server)
@@ -76,6 +77,7 @@ export default function EquipmentTable({
       <table className="equipment-table responsive-table">
         <thead>
           <tr>
+            <th>รูป</th>
             <SortableTh sortKey="code" {...sortProps}>รหัส</SortableTh>
             <SortableTh sortKey="name" {...sortProps}>ชื่อครุภัณฑ์</SortableTh>
             <th>หมวดหมู่</th>
@@ -94,6 +96,9 @@ export default function EquipmentTable({
 
             return (
               <tr key={item.item_id}>
+                <td className="cell-thumbnail" data-label="รูป">
+                  <ItemThumbnail imageUrl={item.image_url} alt={item.equipment_name} />
+                </td>
                 <td data-label="รหัส">
                   <span className="equipment-code">
                     {item.equipment_code}

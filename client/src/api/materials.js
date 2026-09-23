@@ -64,3 +64,28 @@ export function restoreMaterial(materialId) {
     method: 'PATCH',
   });
 }
+
+// เหมือนรูปครุภัณฑ์ (ดู equipment.js) field "image" แทนที่รูปเดิม
+export function uploadMaterialImage(materialId, file) {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  return request(`/api/admin/materials/${materialId}/image`, {
+    method: 'PUT',
+    body: formData,
+  });
+}
+
+export function deleteMaterialImage(materialId) {
+  return request(`/api/admin/materials/${materialId}/image`, {
+    method: 'DELETE',
+  });
+}
+
+// imageChange จาก MaterialForm: null = ไม่แตะรูป, { file } = อัปโหลดใหม่, { remove: true } = ลบรูป
+export function applyMaterialImageChange(materialId, imageChange) {
+  if (imageChange?.file) return uploadMaterialImage(materialId, imageChange.file);
+  if (imageChange?.remove) return deleteMaterialImage(materialId);
+
+  return Promise.resolve(null);
+}

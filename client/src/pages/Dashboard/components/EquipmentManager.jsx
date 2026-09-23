@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import {
+  applyEquipmentImageChange,
   createCategory,
   createEquipment,
   createLocation,
@@ -202,19 +203,38 @@ export default function EquipmentManager({ user }) {
     };
   }
 
-  // Form เดียวกันเลือก Create หรือ Edit จาก formMode
+  // Form เดียวกันเลือก Create หรือ Edit จาก formMode — รูปอัปโหลดแยกหลังบันทึกข้อมูลสำเร็จ (ตอนสร้างใหม่ต้องได้
+  // item_id ก่อน) ถ้ารูปพังแต่ข้อมูลบันทึกแล้ว ไม่ถือว่าทั้งหมดล้มเหลว แจ้งให้เปิดแก้ไขแล้วใส่รูปใหม่แทน
   const saveEquipmentMutation = useMutation({
-    mutationFn: (payload) =>
-      formMode === 'edit'
-        ? updateEquipment(editingEquipment.item_id, payload)
-        : createEquipment(payload),
-    onSuccess: () => {
+    // payload เป็น null = แก้แค่รูปอย่างเดียว (ดู EquipmentForm.jsx) ข้าม PATCH ไปเลย
+    mutationFn: async ({ payload, imageChange }) => {
+      let itemId = editingEquipment?.item_id;
+
+      if (formMode !== 'edit') {
+        const { equipment } = await createEquipment(payload);
+        itemId = equipment.item_id;
+      } else if (payload) {
+        await updateEquipment(itemId, payload);
+      }
+
+      try {
+        await applyEquipmentImageChange(itemId, imageChange);
+        return { imageError: null };
+      } catch (imageError) {
+        return { imageError: imageError.message };
+      }
+    },
+    onSuccess: ({ imageError }) => {
       invalidateEquipmentLists();
-      showSuccess(
-        formMode === 'edit'
-          ? 'แก้ไขข้อมูลครุภัณฑ์สำเร็จ'
-          : 'เพิ่มครุภัณฑ์สำเร็จ',
-      );
+      if (imageError) {
+        showError(`บันทึกข้อมูลครุภัณฑ์แล้ว แต่บันทึกรูปไม่สำเร็จ: ${imageError}`);
+      } else {
+        showSuccess(
+          formMode === 'edit'
+            ? 'แก้ไขข้อมูลครุภัณฑ์สำเร็จ'
+            : 'เพิ่มครุภัณฑ์สำเร็จ',
+        );
+      }
       closeForm();
     },
     onError: (mutationError) => showError(mutationError.message),
@@ -337,8 +357,8 @@ export default function EquipmentManager({ user }) {
     setEditingEquipment(null);
   }
 
-  function submitForm(payload) {
-    saveEquipmentMutation.mutate(payload);
+  function submitForm(payload, imageChange) {
+    saveEquipmentMutation.mutate({ payload, imageChange });
   }
 
   function changeStatus(item, status) {

@@ -67,3 +67,9 @@ export async function request(path, options = {}) {
     throw new ApiError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 0);
   }
 }
+
+// URL ของรูป/ไฟล์ที่ server ส่งมาเป็น path (/api/...) ต้องเติม origin ของ API ก่อนใส่ใน <img src> ตอน dev
+// (client :5173 กับ server :3000) ส่วน production apiUrl เป็น '' จึงได้ path เดิม ผ่าน proxy ของ client/server.js
+export function toApiUrl(path) {
+  return path ? `${apiUrl}${path}` : null;
+}

@@ -1,6 +1,7 @@
 // Form เดียวใช้ได้ทั้งเพิ่มและแก้ไข โดยดูจากว่ามี equipment ส่งเข้ามาหรือไม่
 import { useEffect, useMemo, useState } from 'react';
 import CharCount from './CharCount.jsx';
+import ImageInput from './ImageInput.jsx';
 import SelectWithCreate from './SelectWithCreate.jsx';
 
 // จำกัดความยาวแต่ละช่องกันพิมพ์ยาวเกินจริง (spam) ตัวเลขอิงจากข้อมูลครุภัณฑ์จริงที่ยังไม่ได้ migrate เข้าระบบนี้
@@ -98,6 +99,8 @@ export default function EquipmentForm({
   const [form, setForm] = useState(() =>
     createInitialForm(equipment),
   );
+  // รูปที่เลือกไว้แต่ยังไม่ได้อัปโหลด (ดู ImageInput.jsx) ส่งไปพร้อม payload ตอนกดบันทึก
+  const [imageChange, setImageChange] = useState(null);
   // true ทันทีที่ผู้ใช้พิมพ์รหัสเอง กันไม่ให้ auto-suggest ทับค่าที่พิมพ์เองทิ้งตอนเปลี่ยนหมวดหมู่
   const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
   const editing = Boolean(equipment);
@@ -106,6 +109,7 @@ export default function EquipmentForm({
   useEffect(() => {
     setForm(createInitialForm(equipment));
     setCodeManuallyEdited(false);
+    setImageChange(null);
   }, [equipment]);
 
   // ตอนสร้างครุภัณฑ์ใหม่ (ไม่ใช่แก้ไข) และยังไม่เคยพิมพ์รหัสเอง: รหัสต้องตามหมวดหมู่ที่เลือกเสมอ — เปลี่ยน
@@ -215,7 +219,20 @@ export default function EquipmentForm({
       payload.status = form.status;
     }
 
-    onSubmit(payload);
+    // ตอนแก้ไข ถ้าข้อมูลไม่เปลี่ยนเลยไม่ต้อง PATCH (ไม่งั้นได้ประวัติ "แก้ไขข้อมูล" ว่างๆ ทุกครั้งที่เปลี่ยนแค่รูป)
+    // ส่ง payload เป็น null ให้ Manager ข้ามไปบันทึกรูปอย่างเดียว ถ้าไม่เปลี่ยนอะไรเลยก็ปิดฟอร์มไป
+    if (editing) {
+      const initial = createInitialForm(equipment);
+      const unchanged = Object.keys(initial).every((field) => form[field] === initial[field]);
+
+      if (unchanged) {
+        if (imageChange) onSubmit(null, imageChange);
+        else onCancel();
+        return;
+      }
+    }
+
+    onSubmit(payload, imageChange);
   }
 
   return (
@@ -399,6 +416,16 @@ export default function EquipmentForm({
           />
           <CharCount length={form.remark.length} max={MAX_LONG_TEXT_LENGTH} />
         </label>
+
+        <div className="field-wide image-field">
+          <span>รูปครุภัณฑ์</span>
+          <ImageInput
+            currentUrl={equipment?.image_url}
+            value={imageChange}
+            onChange={setImageChange}
+            disabled={submitting}
+          />
+        </div>
       </div>
 
       {formError && <p className="error-message">{formError}</p>}

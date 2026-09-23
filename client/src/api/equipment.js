@@ -112,3 +112,28 @@ export function restoreEquipment(itemId) {
 export function getEquipmentHistory(itemId) {
   return request(`/api/admin/equipment-items/${itemId}/history`);
 }
+
+// file มาจาก ImageInput.jsx (ย่อขนาดแล้ว) ส่งเป็น multipart/form-data field "image" แทนที่รูปเดิม
+export function uploadEquipmentImage(itemId, file) {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  return request(`/api/admin/equipment-items/${itemId}/image`, {
+    method: 'PUT',
+    body: formData,
+  });
+}
+
+export function deleteEquipmentImage(itemId) {
+  return request(`/api/admin/equipment-items/${itemId}/image`, {
+    method: 'DELETE',
+  });
+}
+
+// imageChange จาก EquipmentForm: null = ไม่แตะรูป, { file } = อัปโหลดใหม่, { remove: true } = ลบรูป
+export function applyEquipmentImageChange(itemId, imageChange) {
+  if (imageChange?.file) return uploadEquipmentImage(itemId, imageChange.file);
+  if (imageChange?.remove) return deleteEquipmentImage(itemId);
+
+  return Promise.resolve(null);
+}

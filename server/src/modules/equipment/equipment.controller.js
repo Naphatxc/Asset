@@ -1,7 +1,10 @@
 import * as equipmentImportService from './equipment-import.service.js';
 import * as equipmentService from './equipment.service.js';
 import { allowedStatuses } from './equipment.validator.js';
+import { equipmentImageDir } from '../../middlewares/upload.middleware.js';
+import { AppError } from '../../utils/AppError.js';
 import { nullsLast, parseSort, plain } from '../../utils/sorting.js';
+import { removeStoredFile, sendStoredImage } from '../../utils/storedImage.js';
 
 // คอลัมน์ที่เรียงได้จากหัวตาราง (ดู EquipmentTable.jsx) ไม่ระบุ = ลำดับเริ่มต้นของ repository
 const sortColumns = {
@@ -199,6 +202,55 @@ export async function importEquipment(request, response, next) {
     const result = await equipmentImportService.importEquipment(rows, Number(request.user.sub));
 
     response.status(200).json({ message: `นำเข้าครุภัณฑ์ ${result.created} รายการ`, ...result });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getEquipmentImage(request, response, next) {
+  try {
+    const { itemId } = request.validated;
+    const fileName = await equipmentService.getEquipmentImageFile(itemId);
+
+    sendStoredImage(response, next, equipmentImageDir, fileName);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// multipart field "image" (ดู uploadEquipmentImage) แทนที่รูปเดิมถ้ามี
+export async function uploadEquipmentImage(request, response, next) {
+  const file = request.file;
+
+  try {
+    if (!file) {
+      throw new AppError(400, 'กรุณาเลือกไฟล์รูป');
+    }
+
+    const { itemId } = request.validated;
+    const equipment = await equipmentService.setEquipmentImage(
+      itemId,
+      file.filename,
+      Number(request.user.sub),
+    );
+
+    response.status(200).json({ message: 'บันทึกรูปครุภัณฑ์สำเร็จ', equipment });
+  } catch (error) {
+    if (file) await removeStoredFile(equipmentImageDir, file.filename);
+    next(error);
+  }
+}
+
+export async function deleteEquipmentImage(request, response, next) {
+  try {
+    const { itemId } = request.validated;
+    const equipment = await equipmentService.setEquipmentImage(
+      itemId,
+      null,
+      Number(request.user.sub),
+    );
+
+    response.status(200).json({ message: 'ลบรูปครุภัณฑ์สำเร็จ', equipment });
   } catch (error) {
     next(error);
   }

@@ -2,8 +2,10 @@
 // และแปลงข้อมูลจาก Prisma (nested include) ให้เป็นรูปแบบแบนตาม API เดิมก่อนส่งกลับ Controller
 import * as equipmentHistoryRepository from './equipment-history.repository.js';
 import * as equipmentRepository from './equipment.repository.js';
+import { equipmentImageDir } from '../../middlewares/upload.middleware.js';
 import { AppError } from '../../utils/AppError.js';
 import { hasOwn, toDate } from '../../utils/parsing.js';
+import { removeStoredFile } from '../../utils/storedImage.js';
 import { runSerializableTransaction } from '../../utils/transaction.js';
 import * as borrowRepository from '../borrow/borrow.repository.js';
 import * as categoryRepository from '../options/category.repository.js';
@@ -56,6 +58,10 @@ function serializeEquipment(item) {
     location_name: location?.location_name ?? null,
     building: location?.building ?? null,
     room: location?.room ?? null,
+    // ?v= เปลี่ยนตามชื่อไฟล์ เปลี่ยนรูปแล้ว browser โหลดใหม่เอง แม้รูปเดิมจะถูก cache ไว้ยาว (ดู storedImage.js)
+    image_url: item.image_path
+      ? `/api/equipment-items/${item.item_id}/image?v=${encodeURIComponent(item.image_path)}`
+      : null,
   };
 }
 
@@ -555,5 +561,57 @@ export async function updateEquipment(itemId, body, actorId) {
     }
 
     throw new AppError(500, 'ไม่สามารถแก้ไขครุภัณฑ์ได้', { cause: error });
+  }
+}
+
+// ดูรูปได้ทั้งของที่ถูกลบแล้ว (หน้ารายการที่ลบของ Admin ยังแสดงรูปอยู่)
+export async function getEquipmentImageFile(itemId) {
+  const item = await equipmentRepository.findByItemId(itemId, { includeDeleted: true });
+
+  if (!item?.image_path) {
+    throw new AppError(404, 'ครุภัณฑ์นี้ยังไม่มีรูป');
+  }
+
+  return item.image_path;
+}
+
+// imagePath = ชื่อไฟล์ใหม่ที่ multer เขียนลง disk แล้ว หรือ null เพื่อลบรูป ลงประวัติเหมือนการแก้ไขข้อมูลทั่วไป
+// ไฟล์เดิมลบหลัง transaction สำเร็จเท่านั้น ถ้า transaction ล้ม ไฟล์ใหม่ที่เพิ่งอัปโหลดเป็นหน้าที่ controller ลบทิ้ง
+export async function setEquipmentImage(itemId, imagePath, actorId) {
+  try {
+    const result = await runSerializableTransaction(async (tx) => {
+      const item = await equipmentRepository.findByItemId(itemId, { client: tx });
+      if (!item) return { type: 'not_found' };
+
+      const current = serializeEquipment(item);
+
+      await equipmentRepository.updateEquipmentItem(itemId, { image_path: imagePath }, tx);
+      const updated = await getSerializedByItemId(itemId, { client: tx });
+
+      await equipmentHistoryRepository.create(
+        {
+          itemId,
+          action: 'updated',
+          oldData: current,
+          newData: updated,
+          changedBy: actorId,
+        },
+        tx,
+      );
+
+      return { type: 'updated', equipment: updated, previousImage: item.image_path };
+    });
+
+    if (result.type === 'not_found') {
+      throw new AppError(404, 'ไม่พบครุภัณฑ์');
+    }
+
+    await removeStoredFile(equipmentImageDir, result.previousImage);
+
+    return result.equipment;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw new AppError(500, 'ไม่สามารถบันทึกรูปครุภัณฑ์ได้', { cause: error });
   }
 }

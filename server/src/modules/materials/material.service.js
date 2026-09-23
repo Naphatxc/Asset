@@ -2,7 +2,9 @@
 // หมดไป ไม่มีการคืน (ดู withdrawMaterial) ส่วน CRUD ทั่วไป (เพิ่ม/แก้ไข/ลบ/กู้คืน) เป็นสิทธิ์ Admin ล้วนๆ
 import * as materialRepository from './material.repository.js';
 import { AppError } from '../../utils/AppError.js';
+import { materialImageDir } from '../../middlewares/upload.middleware.js';
 import { hasOwn, toDate } from '../../utils/parsing.js';
+import { removeStoredFile } from '../../utils/storedImage.js';
 import { runSerializableTransaction } from '../../utils/transaction.js';
 import {
   MAX_LONG_TEXT_LENGTH,
@@ -27,6 +29,10 @@ function serializeMaterial(material) {
       material.unit_price === null ? null : material.unit_price.toString(),
     remark: material.remark,
     deleted_at: material.deleted_at,
+    // ?v= เปลี่ยนตามชื่อไฟล์ เหมือน image_url ของครุภัณฑ์ (ดู equipment.service.js)
+    image_url: material.image_path
+      ? `/api/materials/${material.material_id}/image?v=${encodeURIComponent(material.image_path)}`
+      : null,
   };
 }
 
@@ -304,5 +310,33 @@ export async function getWithdrawals({ page = 1, limit = 20, materialId, userId,
     };
   } catch (error) {
     throw new AppError(500, 'ไม่สามารถโหลดประวัติการเบิกได้', { cause: error });
+  }
+}
+
+// ดูรูปได้ทั้งของที่ถูกลบแล้ว (หน้ารายการที่ลบของ Admin ยังแสดงรูปอยู่)
+export async function getMaterialImageFile(materialId) {
+  const material = await materialRepository.findById(materialId, { includeDeleted: true });
+
+  if (!material?.image_path) {
+    throw new AppError(404, 'วัสดุนี้ยังไม่มีรูป');
+  }
+
+  return material.image_path;
+}
+
+// imagePath = ชื่อไฟล์ใหม่ที่ multer เขียนลง disk แล้ว หรือ null เพื่อลบรูป ไฟล์เดิมลบหลังอัปเดต DB สำเร็จเท่านั้น
+export async function setMaterialImage(materialId, imagePath) {
+  try {
+    const current = await materialRepository.findById(materialId);
+    if (!current) throw new AppError(404, 'ไม่พบวัสดุ');
+
+    const updated = await materialRepository.update(materialId, { image_path: imagePath });
+    await removeStoredFile(materialImageDir, current.image_path);
+
+    return serializeMaterial(updated);
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw new AppError(500, 'ไม่สามารถบันทึกรูปวัสดุได้', { cause: error });
   }
 }

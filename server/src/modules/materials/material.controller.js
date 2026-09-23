@@ -1,5 +1,8 @@
 import * as materialService from './material.service.js';
+import { materialImageDir } from '../../middlewares/upload.middleware.js';
+import { AppError } from '../../utils/AppError.js';
 import { nullsLast, parseSort, plain } from '../../utils/sorting.js';
+import { removeStoredFile, sendStoredImage } from '../../utils/storedImage.js';
 
 // คอลัมน์ที่เรียงได้จากหัวตาราง (ดู MaterialManager.jsx) ไม่ระบุ = ลำดับเริ่มต้นของ repository
 const sortColumns = {
@@ -129,6 +132,47 @@ export async function getWithdrawals(request, response, next) {
     });
 
     response.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function getMaterialImage(request, response, next) {
+  try {
+    const { materialId } = request.validated;
+    const fileName = await materialService.getMaterialImageFile(materialId);
+
+    sendStoredImage(response, next, materialImageDir, fileName);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// multipart field "image" (ดู uploadMaterialImage) แทนที่รูปเดิมถ้ามี
+export async function uploadMaterialImage(request, response, next) {
+  const file = request.file;
+
+  try {
+    if (!file) {
+      throw new AppError(400, 'กรุณาเลือกไฟล์รูป');
+    }
+
+    const { materialId } = request.validated;
+    const material = await materialService.setMaterialImage(materialId, file.filename);
+
+    response.status(200).json({ message: 'บันทึกรูปวัสดุสำเร็จ', material });
+  } catch (error) {
+    if (file) await removeStoredFile(materialImageDir, file.filename);
+    next(error);
+  }
+}
+
+export async function deleteMaterialImage(request, response, next) {
+  try {
+    const { materialId } = request.validated;
+    const material = await materialService.setMaterialImage(materialId, null);
+
+    response.status(200).json({ message: 'ลบรูปวัสดุสำเร็จ', material });
   } catch (error) {
     next(error);
   }

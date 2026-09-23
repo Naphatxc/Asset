@@ -14,6 +14,7 @@ import {
   requireAdmin,
 } from '../../middlewares/auth.middleware.js';
 import { verifyCsrfToken } from '../../middlewares/csrf.middleware.js';
+import { uploadMaterialImage } from '../../middlewares/upload.middleware.js';
 
 const materialRouter = express.Router();
 const adminMaterialRouter = express.Router();
@@ -24,6 +25,9 @@ adminMaterialRouter.use(authenticate, verifyCsrfToken, requireAdmin);
 
 // GET /api/materials - รายการวัสดุที่ยังไม่ถูกลบ ทุก role อ่านได้
 materialRouter.get('/', materialController.getMaterialList);
+
+// GET /api/materials/:id/image - รูปวัสดุ ทุก role เห็น
+materialRouter.get('/:id/image', validateMaterialIdParam, materialController.getMaterialImage);
 
 // POST /api/materials/:id/withdraw - เบิกวัสดุ ตัดยอดทันที ไม่มีขั้นตอนรออนุมัติ (ต่างจากยืมครุภัณฑ์)
 materialRouter.post(
@@ -52,6 +56,21 @@ adminMaterialRouter.patch(
   '/:id/restore',
   validateMaterialIdParam,
   materialController.restoreMaterial,
+);
+
+// PUT /api/admin/materials/:id/image - อัปโหลดรูป (multipart field "image") แทนที่รูปเดิม
+adminMaterialRouter.put(
+  '/:id/image',
+  validateMaterialIdParam,
+  uploadMaterialImage,
+  materialController.uploadMaterialImage,
+);
+
+// DELETE /api/admin/materials/:id/image - ลบรูป
+adminMaterialRouter.delete(
+  '/:id/image',
+  validateMaterialIdParam,
+  materialController.deleteMaterialImage,
 );
 
 // DELETE /api/admin/materials/:id - Soft Delete

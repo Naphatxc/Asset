@@ -12,6 +12,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { createCategory, getCategories } from '../../../api/equipment.js';
 import {
+  applyMaterialImageChange,
   createMaterial,
   deleteMaterial,
   getDeletedMaterials,
@@ -23,6 +24,7 @@ import {
 } from '../../../api/materials.js';
 import { categoryCreateFields } from '../../../components/EquipmentForm.jsx';
 import { SortableTh, SortSelect } from '../../../components/ListFilters.jsx';
+import ItemThumbnail from '../../../components/ItemThumbnail.jsx';
 import MaterialForm from '../../../components/MaterialForm.jsx';
 import PaginationBar, { useClampPage } from '../../../components/PaginationBar.jsx';
 import SelectWithCreate from '../../../components/SelectWithCreate.jsx';
@@ -184,14 +186,32 @@ export default function MaterialManager({ user }) {
     return { value: String(category.category_id), label: category.category_name };
   }
 
+  // รูปอัปโหลดแยกหลังบันทึกข้อมูลสำเร็จ (เหมือน EquipmentManager.jsx) payload ว่างได้ถ้าแก้แค่รูปอย่างเดียว
   const saveMaterialMutation = useMutation({
-    mutationFn: (payload) =>
-      formMode === 'edit'
-        ? updateMaterial(editingMaterial.material_id, payload)
-        : createMaterial(payload),
-    onSuccess: () => {
+    mutationFn: async ({ payload, imageChange }) => {
+      let materialId = editingMaterial?.material_id;
+
+      if (formMode !== 'edit') {
+        const { material } = await createMaterial(payload);
+        materialId = material.material_id;
+      } else if (Object.keys(payload).length > 0) {
+        await updateMaterial(materialId, payload);
+      }
+
+      try {
+        await applyMaterialImageChange(materialId, imageChange);
+        return { imageError: null };
+      } catch (imageError) {
+        return { imageError: imageError.message };
+      }
+    },
+    onSuccess: ({ imageError }) => {
       invalidateMaterialLists();
-      showSuccess(formMode === 'edit' ? 'แก้ไขข้อมูลวัสดุสำเร็จ' : 'เพิ่มวัสดุสำเร็จ');
+      if (imageError) {
+        showError(`บันทึกข้อมูลวัสดุแล้ว แต่บันทึกรูปไม่สำเร็จ: ${imageError}`);
+      } else {
+        showSuccess(formMode === 'edit' ? 'แก้ไขข้อมูลวัสดุสำเร็จ' : 'เพิ่มวัสดุสำเร็จ');
+      }
       closeForm();
     },
     onError: (mutationError) => showError(mutationError.message),
@@ -284,8 +304,8 @@ export default function MaterialManager({ user }) {
     setEditingMaterial(null);
   }
 
-  function submitForm(payload) {
-    saveMaterialMutation.mutate(payload);
+  function submitForm(payload, imageChange) {
+    saveMaterialMutation.mutate({ payload, imageChange });
   }
 
   // ครั้งแรกเป็นเพียงเปิดโหมดยืนยัน ครั้งที่สองจึงยิง DELETE API (เหมือน EquipmentManager.jsx)
@@ -470,6 +490,7 @@ export default function MaterialManager({ user }) {
             <table className="equipment-table responsive-table">
               <thead>
                 <tr>
+                  <th>รูป</th>
                   <SortableTh sortKey="code" {...materialSortProps}>รหัส</SortableTh>
                   <SortableTh sortKey="name" {...materialSortProps}>ชื่อวัสดุ</SortableTh>
                   <th>หมวดหมู่</th>
@@ -486,6 +507,9 @@ export default function MaterialManager({ user }) {
 
                   return (
                     <tr key={item.material_id}>
+                      <td className="cell-thumbnail" data-label="รูป">
+                        <ItemThumbnail imageUrl={item.image_url} alt={item.material_name} />
+                      </td>
                       <td data-label="รหัส">
                         <span className="equipment-code">{item.material_code}</span>
                       </td>

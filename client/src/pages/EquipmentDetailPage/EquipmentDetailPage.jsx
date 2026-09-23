@@ -3,11 +3,13 @@ import { useState } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 
 import {
+  applyEquipmentImageChange,
   getCategories,
   getEquipmentByCode,
   getLocations,
   updateEquipment,
 } from '../../api/equipment.js';
+import { toApiUrl } from '../../api/http.js';
 import EquipmentForm from '../../components/EquipmentForm.jsx';
 import QrCodeDialog from '../../components/QrCodeDialog.jsx';
 import { useToast } from '../../components/ToastProvider.jsx';
@@ -79,13 +81,28 @@ export default function EquipmentDetailPage({ user }) {
   const locations = locationsQuery.data?.locations ?? [];
   const optionsError = categoriesQuery.error?.message || locationsQuery.error?.message;
 
+  // รูปบันทึกแยกหลังข้อมูลสำเร็จ เหมือน EquipmentManager.jsx
   const updateMutation = useMutation({
-    mutationFn: (payload) => updateEquipment(equipment.item_id, payload),
-    onSuccess: () => {
+    mutationFn: async ({ payload, imageChange }) => {
+      // payload เป็น null = แก้แค่รูปอย่างเดียว (ดู EquipmentForm.jsx)
+      if (payload) await updateEquipment(equipment.item_id, payload);
+
+      try {
+        await applyEquipmentImageChange(equipment.item_id, imageChange);
+        return { imageError: null };
+      } catch (imageError) {
+        return { imageError: imageError.message };
+      }
+    },
+    onSuccess: ({ imageError }) => {
       queryClient.invalidateQueries({ queryKey: ['equipment', code] });
       queryClient.invalidateQueries({ queryKey: ['equipment'] });
       setEditing(false);
-      showSuccess('แก้ไขข้อมูลครุภัณฑ์สำเร็จ');
+      if (imageError) {
+        showError(`บันทึกข้อมูลครุภัณฑ์แล้ว แต่บันทึกรูปไม่สำเร็จ: ${imageError}`);
+      } else {
+        showSuccess('แก้ไขข้อมูลครุภัณฑ์สำเร็จ');
+      }
     },
     onError: (mutationError) => showError(mutationError.message),
   });
@@ -94,8 +111,8 @@ export default function EquipmentDetailPage({ user }) {
     setEditing(true);
   }
 
-  function submitEdit(payload) {
-    updateMutation.mutate(payload);
+  function submitEdit(payload, imageChange) {
+    updateMutation.mutate({ payload, imageChange });
   }
 
   if (equipmentQuery.isLoading) {
@@ -156,6 +173,16 @@ export default function EquipmentDetailPage({ user }) {
           </>
         ) : (
           <dl className="detail-grid">
+            {equipment.image_url && (
+              <div className="detail-wide detail-image">
+                <dt>รูปครุภัณฑ์</dt>
+                <dd>
+                  <a href={toApiUrl(equipment.image_url)} target="_blank" rel="noreferrer">
+                    <img src={toApiUrl(equipment.image_url)} alt={equipment.equipment_name} />
+                  </a>
+                </dd>
+              </div>
+            )}
             <div>
               <dt>สถานะ</dt>
               <dd>
