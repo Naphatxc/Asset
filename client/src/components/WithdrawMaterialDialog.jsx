@@ -42,9 +42,6 @@ export default function WithdrawMaterialDialog({
             <p className="section-kicker">Withdraw material</p>
             <h2 id="withdraw-dialog-title">เบิกวัสดุ</h2>
           </div>
-          <button className="button-secondary" type="button" onClick={onClose}>
-            ปิด
-          </button>
         </div>
 
         <p className="withdraw-dialog-material">
