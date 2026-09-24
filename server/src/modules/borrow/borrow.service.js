@@ -6,23 +6,11 @@
 // ส่วน Admin สร้างใบยืมเอง (createBorrow) ถือว่าอนุมัติทันที ข้าม pending ไปเลย
 import * as borrowRepository from './borrow.repository.js';
 import { AppError } from '../../utils/AppError.js';
+import { isPastDueDate } from '../../utils/dueDate.js';
 import { runSerializableTransaction } from '../../utils/transaction.js';
 import * as equipmentHistoryRepository from '../equipment/equipment-history.repository.js';
 import * as equipmentRepository from '../equipment/equipment.repository.js';
 import * as userRepository from '../users/user.repository.js';
-
-// return_date เก็บเป็น 00:00:00 UTC ของ "วันที่ครบกำหนด" (ดู utils/parsing.js: toDate ตัด T00:00:00.000Z ต่อท้าย)
-// แต่ผู้ใช้ทุกคนอยู่ที่ไทย (UTC+7) วันครบกำหนดจริงๆ จึงสิ้นสุดตอนเที่ยงคืนเวลาไทย = 17:00 UTC ของวันเดียวกัน
-// ถ้าเทียบกับ UTC midnight ตรงๆ จะกลายเป็นเกินกำหนดตั้งแต่ 07:00 เวลาไทยของวันครบกำหนดเอง (เร็วไป 17 ชม.)
-const THAILAND_UTC_OFFSET_HOURS = 7;
-
-function isPastDueDate(returnDate) {
-  const endOfDueDateUtc = new Date(
-    returnDate.getTime() + (24 - THAILAND_UTC_OFFSET_HOURS) * 60 * 60 * 1000,
-  );
-
-  return new Date() > endOfDueDateUtc;
-}
 
 // สถานะต่อชิ้นขึ้นกับสถานะใบยืมก่อน (pending/rejected ยังไม่มีอะไรให้ derive จาก return_date/returned_at)
 // approved แล้วค่อย derive จาก return_date/return_requested_at/returned_at ไม่เก็บเป็น column แยกกันข้อมูลไม่ตรงกัน

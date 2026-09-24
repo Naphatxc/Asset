@@ -20,6 +20,13 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+// due_date ของวัสดุเป็นวันล้วน (เที่ยงคืน UTC) แสดงเวลาจะกลายเป็น 07:00 ที่ไม่มีความหมาย
+function formatDate(value) {
+  if (!value) return '-';
+
+  return new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium' }).format(new Date(value));
+}
+
 // ข้อความ/ไอคอนของกิจกรรมแต่ละประเภท แยกจาก field ดิบที่ backend ส่งมา (ดู dashboard.service.js
 // buildRecentActivity) เพื่อให้แก้ข้อความฝั่งนี้ได้โดยไม่ต้องแตะ backend
 const activityMeta = {
@@ -251,15 +258,26 @@ export default function DashboardOverview() {
               <span className="attention-card-value">{summary.overdueCount}</span>
               <span className="attention-card-label">เลยกำหนดคืน</span>
             </Link>
+            <Link
+              to="/?tab=materials&view=withdrawals&outstanding=1"
+              className={`attention-card${
+                summary.overdueMaterialCount > 0 ? ' attention-card-overdue' : ''
+              }`}
+            >
+              <span className="attention-card-value">{summary.overdueMaterialCount}</span>
+              <span className="attention-card-label">วัสดุเลยกำหนดคืน</span>
+            </Link>
           </div>
 
           <div className="overview-panel">
             <h3>รายการเลยกำหนดคืน</h3>
-            {summary.overdueBorrows.length === 0 ? (
+            {summary.overdueBorrows.length === 0 && summary.overdueMaterials.length === 0 && (
               <div className="empty-state">
                 <p>ไม่มีรายการเลยกำหนดคืนตอนนี้</p>
               </div>
-            ) : (
+            )}
+
+            {summary.overdueBorrows.length > 0 && (
               <div className="table-wrap">
                 <table className="user-table responsive-table">
                   <thead>
@@ -289,6 +307,41 @@ export default function DashboardOverview() {
                     และอีก {summary.overdueCount - summary.overdueBorrows.length}{' '}
                     รายการ —{' '}
                     <Link to="/?tab=borrow">ดูทั้งหมดที่หน้ายืม-คืน</Link>
+                  </p>
+                )}
+              </div>
+            )}
+
+            {summary.overdueMaterials.length > 0 && (
+              <div className="table-wrap">
+                <table className="user-table responsive-table">
+                  <thead>
+                    <tr>
+                      <th>วัสดุ</th>
+                      <th>ผู้เบิก</th>
+                      <th>ครบกำหนดคืน</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {summary.overdueMaterials.map((item) => (
+                      <tr key={item.withdrawal_id}>
+                        <td data-label="วัสดุ">
+                          <span className="equipment-code">{item.material_code}</span>{' '}
+                          {item.material_name} ({item.outstanding_quantity} {item.unit_name})
+                        </td>
+                        <td data-label="ผู้เบิก">{item.borrower_name}</td>
+                        <td data-label="ครบกำหนดคืน">{formatDate(item.due_date)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {summary.overdueMaterialCount > summary.overdueMaterials.length && (
+                  <p className="loading-message">
+                    และอีก {summary.overdueMaterialCount - summary.overdueMaterials.length}{' '}
+                    รายการ —{' '}
+                    <Link to="/?tab=materials&view=withdrawals&outstanding=1">
+                      ดูทั้งหมดที่หน้าวัสดุ
+                    </Link>
                   </p>
                 )}
               </div>

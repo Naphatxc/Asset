@@ -1,4 +1,4 @@
-// Data Access Layer สำหรับ materials / material_withdrawals — ทุกฟังก์ชันรับ Prisma transaction client ได้ (default = prisma)
+// Data Access Layer สำหรับ materials / material_withdrawals / material_returns — ทุกฟังก์ชันรับ Prisma transaction client ได้ (default = prisma)
 import { prisma } from '../../config/prisma.js';
 
 export const materialInclude = {
@@ -111,17 +111,26 @@ export async function decrementQuantity(materialId, amount, client = prisma) {
   });
 }
 
+export async function incrementQuantity(materialId, amount, client = prisma) {
+  return client.materials.update({
+    where: { material_id: materialId },
+    data: { quantity: { increment: amount } },
+  });
+}
+
 export async function createWithdrawal(data, client = prisma) {
   return client.material_withdrawals.create({ data, include: withdrawalInclude });
 }
 
+// outstanding = เฉพาะใบที่ต้องคืนและยังคืนไม่ครบ (due_date มีค่า + returned_at ยังว่าง)
 export async function findWithdrawals(
-  { page = 1, limit = 20, materialId, userId, orderBy } = {},
+  { page = 1, limit = 20, materialId, userId, outstanding = false, orderBy } = {},
   client = prisma,
 ) {
   const where = {
     ...(materialId ? { material_id: materialId } : {}),
     ...(userId ? { user_id: userId } : {}),
+    ...(outstanding ? { due_date: { not: null }, returned_at: null } : {}),
   };
   const [items, total] = await Promise.all([
     client.material_withdrawals.findMany({
@@ -137,4 +146,23 @@ export async function findWithdrawals(
   ]);
 
   return { items, total };
+}
+
+export async function findWithdrawalById(withdrawalId, client = prisma) {
+  return client.material_withdrawals.findUnique({
+    where: { withdrawal_id: withdrawalId },
+    include: withdrawalInclude,
+  });
+}
+
+export async function updateWithdrawal(withdrawalId, data, client = prisma) {
+  return client.material_withdrawals.update({
+    where: { withdrawal_id: withdrawalId },
+    data,
+    include: withdrawalInclude,
+  });
+}
+
+export async function createReturn(data, client = prisma) {
+  return client.material_returns.create({ data });
 }

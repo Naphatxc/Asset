@@ -2,13 +2,15 @@
 // equipment.js เพราะ categories table ใช้ร่วมกันทั้งครุภัณฑ์และวัสดุ ไม่ต้องมี endpoint แยก
 import { request } from './http.js';
 
-function toListQueryString({ page, limit, search, categoryId, sort, dir } = {}) {
+function toListQueryString({ page, limit, search, categoryId, outstanding, sort, dir } = {}) {
   const query = new URLSearchParams();
 
   if (page) query.set('page', page);
   if (limit) query.set('limit', limit);
   if (search) query.set('search', search);
   if (categoryId) query.set('category_id', categoryId);
+  // ประวัติการเบิก: เฉพาะใบที่ต้องคืนและยังคืนไม่ครบ
+  if (outstanding) query.set('outstanding', '1');
   // เรียงที่ server เพราะแบ่งหน้าที่ server (เรียงฝั่ง client จะได้แค่ในหน้าที่เห็น)
   if (sort) query.set('sort', sort);
   if (sort && dir) query.set('dir', dir);
@@ -30,9 +32,23 @@ export function getMaterialWithdrawals(params) {
   return request(`/api/admin/materials/withdrawals${toListQueryString(params)}`);
 }
 
+// ประวัติการเบิกของตัวเอง — ทุก role
+export function getMyMaterialWithdrawals(params) {
+  return request(`/api/materials/my-withdrawals${toListQueryString(params)}`);
+}
+
 // เบิกวัสดุ — ทุก role ที่ login แล้วเรียกได้ ตัดยอดทันที ไม่ต้องรอ Admin อนุมัติ
-export function withdrawMaterial(materialId, { quantity, remark }) {
+// dueDate (YYYY-MM-DD) บังคับเฉพาะวัสดุที่ต้องคืน
+export function withdrawMaterial(materialId, { quantity, remark, dueDate }) {
   return request(`/api/materials/${materialId}/withdraw`, {
+    method: 'POST',
+    body: { quantity, remark, due_date: dueDate || null },
+  });
+}
+
+// Admin รับคืนวัสดุ คืนทีละส่วนได้
+export function returnMaterialWithdrawal(withdrawalId, { quantity, remark }) {
+  return request(`/api/admin/materials/withdrawals/${withdrawalId}/return`, {
     method: 'POST',
     body: { quantity, remark },
   });

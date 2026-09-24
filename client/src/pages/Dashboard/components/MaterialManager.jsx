@@ -1,6 +1,6 @@
 // Component หลักของโมดูลวัสดุ — โครงเดียวกับ EquipmentManager.jsx (TanStack Query ดูแล fetching/cache ทั้งหมด)
 // ต่างจากครุภัณฑ์ตรงที่ทุก role (ไม่ใช่แค่ Admin) เบิกวัสดุได้เอง ตัดยอดทันทีไม่ต้องรออนุมัติ ส่วนเพิ่ม/แก้ไข/ลบ/
-// กู้คืน/ดูประวัติการเบิกทั้งหมด ยังสงวนให้ Admin เหมือนเดิม
+// กู้คืน/ดูประวัติการเบิกทั้งหมด/รับคืนวัสดุที่ต้องคืน ยังสงวนให้ Admin เหมือนเดิม ทุกคนดูประวัติการเบิกของตัวเองได้
 import {
   keepPreviousData,
   useMutation,
@@ -18,7 +18,9 @@ import {
   getDeletedMaterials,
   getMaterialWithdrawals,
   getMaterials,
+  getMyMaterialWithdrawals,
   restoreMaterial,
+  returnMaterialWithdrawal,
   updateMaterial,
   withdrawMaterial,
 } from '../../../api/materials.js';
@@ -27,6 +29,7 @@ import { SortableTh, SortSelect } from '../../../components/ListFilters.jsx';
 import ItemThumbnail from '../../../components/ItemThumbnail.jsx';
 import MaterialForm from '../../../components/MaterialForm.jsx';
 import PaginationBar, { useClampPage } from '../../../components/PaginationBar.jsx';
+import ReturnMaterialDialog from '../../../components/ReturnMaterialDialog.jsx';
 import SelectWithCreate from '../../../components/SelectWithCreate.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import WithdrawMaterialDialog from '../../../components/WithdrawMaterialDialog.jsx';
@@ -75,9 +78,25 @@ const withdrawalSortColumns = {
   user: { label: 'ผู้เบิก', type: 'text' },
   quantity: { label: 'จำนวน', type: 'number' },
   date: { label: 'วันที่เบิก', type: 'date' },
+  due_date: { label: 'กำหนดคืน', type: 'date', dirLabels: { asc: 'ใกล้→ไกล', desc: 'ไกล→ใกล้' }, firstDir: 'asc' },
+};
+
+// ประวัติการเบิกของตัวเองไม่มีคอลัมน์ผู้เบิก
+const myWithdrawalSortColumns = Object.fromEntries(
+  Object.entries(withdrawalSortColumns).filter(([key]) => key !== 'user'),
+);
+
+// สถานะใบเบิกจาก server (material.service.js withdrawalStatus) consumed = วัสดุสิ้นเปลือง ไม่แสดงป้าย
+const withdrawalStatusLabels = {
+  borrowed: 'ค้างคืน',
+  overdue: 'เลยกำหนด',
+  returned: 'คืนแล้ว',
 };
 
 const DEFAULT_SORT = { key: null, dir: null };
+
+// view ที่เปิดตรงจาก URL ได้ (ลิงก์จากหน้าภาพรวม) ส่วน deleted ต้องกดเข้าเอง
+const LINKABLE_VIEWS = ['withdrawals', 'mine'];
 
 export default function MaterialManager({ user }) {
   const queryClient = useQueryClient();
@@ -86,8 +105,17 @@ export default function MaterialManager({ user }) {
 
   const [initialParams] = useSearchParams();
 
-  // view: 'active' (ทุกคนเห็น) / 'deleted' | 'withdrawals' (เฉพาะ Admin — เหมือน view toggle ของครุภัณฑ์)
-  const [view, setView] = useState('active');
+  // view: 'active' | 'mine' (ทุกคนเห็น) / 'deleted' | 'withdrawals' (เฉพาะ Admin — เหมือน view toggle ของครุภัณฑ์)
+  const [view, setView] = useState(() => {
+    const initialView = initialParams.get('view');
+    if (!LINKABLE_VIEWS.includes(initialView)) return 'active';
+    return initialView === 'withdrawals' && !admin ? 'active' : initialView;
+  });
+  // กรองประวัติการเบิกให้เหลือเฉพาะที่ยังค้างคืน (ใช้ทั้ง withdrawals และ mine)
+  const [outstandingOnly, setOutstandingOnly] = useState(
+    initialParams.get('outstanding') === '1',
+  );
+  const [returningWithdrawal, setReturningWithdrawal] = useState(null);
   const [formMode, setFormMode] = useState(null);
   const [editingMaterial, setEditingMaterial] = useState(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
@@ -131,9 +159,11 @@ export default function MaterialManager({ user }) {
   const withdrawalParams = {
     page,
     limit: PAGE_SIZE,
+    outstanding: outstandingOnly,
     sort: withdrawalSort.key,
     dir: withdrawalSort.dir,
   };
+  const isWithdrawalView = view === 'withdrawals' || view === 'mine';
 
   const materialsQuery = useQuery({
     queryKey: ['materials', 'active', listParams],
@@ -153,22 +183,26 @@ export default function MaterialManager({ user }) {
     enabled: admin && view === 'withdrawals',
     placeholderData: keepPreviousData,
   });
+  const myWithdrawalsQuery = useQuery({
+    queryKey: ['materials', 'my-withdrawals', withdrawalParams],
+    queryFn: () => getMyMaterialWithdrawals(withdrawalParams),
+    enabled: view === 'mine',
+    placeholderData: keepPreviousData,
+  });
   // ใช้ categories ร่วมกับครุภัณฑ์ (ตารางเดียวกัน) ทั้ง dropdown กรองรายการและฟอร์มเพิ่ม/แก้ไข
   const categoriesQuery = useQuery({
     queryKey: ['categories'],
     queryFn: getCategories,
   });
 
-  const activeListQuery =
-    view === 'active'
-      ? materialsQuery
-      : view === 'deleted'
-        ? deletedMaterialsQuery
-        : withdrawalsQuery;
-  const materials =
-    view === 'withdrawals' ? [] : activeListQuery.data?.materials ?? [];
-  const withdrawals =
-    view === 'withdrawals' ? activeListQuery.data?.withdrawals ?? [] : [];
+  const activeListQuery = {
+    active: materialsQuery,
+    deleted: deletedMaterialsQuery,
+    withdrawals: withdrawalsQuery,
+    mine: myWithdrawalsQuery,
+  }[view];
+  const materials = isWithdrawalView ? [] : activeListQuery.data?.materials ?? [];
+  const withdrawals = isWithdrawalView ? activeListQuery.data?.withdrawals ?? [] : [];
   const pagination = activeListQuery.data?.pagination;
   useClampPage(pagination, setPage);
   const categories = categoriesQuery.data?.categories ?? [];
@@ -239,12 +273,31 @@ export default function MaterialManager({ user }) {
   });
 
   const withdrawMutation = useMutation({
-    mutationFn: ({ item, quantity, remark }) =>
-      withdrawMaterial(item.material_id, { quantity, remark }),
+    mutationFn: ({ item, quantity, remark, dueDate }) =>
+      withdrawMaterial(item.material_id, { quantity, remark, dueDate }),
     onSuccess: (data, { item }) => {
       invalidateMaterialLists();
-      showSuccess(`เบิก ${item.material_code} จำนวน ${data.withdrawal.quantity} ${item.unit_name} สำเร็จ`);
+      showSuccess(
+        `${item.is_returnable ? 'ยืม' : 'เบิก'} ${item.material_code} จำนวน ${data.withdrawal.quantity} ${item.unit_name} สำเร็จ`,
+      );
       setWithdrawingMaterial(null);
+    },
+    onError: (mutationError) => showError(mutationError.message),
+  });
+
+  const returnMutation = useMutation({
+    mutationFn: ({ row, quantity, remark }) =>
+      returnMaterialWithdrawal(row.withdrawal_id, { quantity, remark }),
+    onSuccess: (data, { row, quantity }) => {
+      invalidateMaterialLists();
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      const left = data.withdrawal.outstanding_quantity;
+      showSuccess(
+        left > 0
+          ? `รับคืน ${row.material_code} ${quantity} ${row.unit_name} แล้ว ยังค้างอีก ${left}`
+          : `รับคืน ${row.material_code} ครบแล้ว`,
+      );
+      setReturningWithdrawal(null);
     },
     onError: (mutationError) => showError(mutationError.message),
   });
@@ -281,10 +334,15 @@ export default function MaterialManager({ user }) {
     onSortChange: changeMaterialSort,
   };
   const withdrawalSortProps = {
-    sortColumns: withdrawalSortColumns,
+    sortColumns: view === 'mine' ? myWithdrawalSortColumns : withdrawalSortColumns,
     sort: withdrawalSort,
     onSortChange: changeWithdrawalSort,
   };
+
+  function changeOutstandingOnly(nextValue) {
+    setOutstandingOnly(nextValue);
+    setPage(1);
+  }
 
   function changeCategoryFilter(nextCategory) {
     setCategoryFilter(nextCategory);
@@ -325,8 +383,12 @@ export default function MaterialManager({ user }) {
     restoreMutation.mutate(item);
   }
 
-  function submitWithdraw({ quantity, remark }) {
-    withdrawMutation.mutate({ item: withdrawingMaterial, quantity, remark });
+  function submitWithdraw({ quantity, remark, dueDate }) {
+    withdrawMutation.mutate({ item: withdrawingMaterial, quantity, remark, dueDate });
+  }
+
+  function submitReturn({ quantity, remark }) {
+    returnMutation.mutate({ row: returningWithdrawal, quantity, remark });
   }
 
   return (
@@ -335,19 +397,30 @@ export default function MaterialManager({ user }) {
         <div>
           <p className="section-kicker">Materials</p>
           <h2>
-            {view === 'active'
-              ? 'รายการวัสดุ'
-              : view === 'deleted'
-                ? 'วัสดุที่ถูกลบ'
-                : 'ประวัติการเบิกวัสดุ'}
+            {
+              {
+                active: 'รายการวัสดุ',
+                deleted: 'วัสดุที่ถูกลบ',
+                withdrawals: 'ประวัติการเบิกวัสดุ',
+                mine: 'การเบิกของฉัน',
+              }[view]
+            }
           </h2>
         </div>
 
         <div className="toolbar-actions">
           <span className="item-count">
-            {pagination?.total ?? (view === 'withdrawals' ? withdrawals.length : materials.length)}{' '}
+            {pagination?.total ?? (isWithdrawalView ? withdrawals.length : materials.length)}{' '}
             รายการ
           </span>
+
+          <button
+            className="button-secondary"
+            type="button"
+            onClick={() => switchView(view === 'mine' ? 'active' : 'mine')}
+          >
+            {view === 'mine' ? 'รายการวัสดุ' : 'การเบิกของฉัน'}
+          </button>
 
           {admin && (
             <>
@@ -385,7 +458,7 @@ export default function MaterialManager({ user }) {
         </div>
       </div>
 
-      {view !== 'withdrawals' && (
+      {!isWithdrawalView && (
         <div className="equipment-filters">
           <input
             type="search"
@@ -408,9 +481,16 @@ export default function MaterialManager({ user }) {
         </div>
       )}
 
-      {/* ประวัติการเบิกไม่มีตัวกรอง แถวนี้มีแค่ช่องเรียงลำดับ จึงแสดงเฉพาะโหมดการ์ด (หัวตารางถูกซ่อน) */}
-      {view === 'withdrawals' && (
-        <div className="equipment-filters sort-only-cards">
+      {isWithdrawalView && (
+        <div className="equipment-filters">
+          <select
+            aria-label="กรองประวัติการเบิก"
+            value={outstandingOnly ? 'outstanding' : 'all'}
+            onChange={(event) => changeOutstandingOnly(event.target.value === 'outstanding')}
+          >
+            <option value="all">ทั้งหมด</option>
+            <option value="outstanding">เฉพาะที่ยังค้างคืน</option>
+          </select>
           <SortSelect {...withdrawalSortProps} defaultLabel="เบิกล่าสุดก่อน" />
         </div>
       )}
@@ -442,12 +522,21 @@ export default function MaterialManager({ user }) {
         />
       )}
 
+      {returningWithdrawal && (
+        <ReturnMaterialDialog
+          withdrawal={returningWithdrawal}
+          submitting={returnMutation.isPending}
+          onSubmit={submitReturn}
+          onClose={() => setReturningWithdrawal(null)}
+        />
+      )}
+
       {loading ? (
         <p className="loading-message">กำลังโหลดข้อมูล...</p>
-      ) : view === 'withdrawals' ? (
+      ) : isWithdrawalView ? (
         withdrawals.length === 0 ? (
           <div className="empty-state">
-            <p>ยังไม่มีประวัติการเบิก</p>
+            <p>{outstandingOnly ? 'ไม่มีรายการที่ค้างคืน' : 'ยังไม่มีประวัติการเบิก'}</p>
           </div>
         ) : (
           <>
@@ -456,10 +545,14 @@ export default function MaterialManager({ user }) {
                 <thead>
                   <tr>
                     <SortableTh sortKey="material" {...withdrawalSortProps}>วัสดุ</SortableTh>
-                    <SortableTh sortKey="user" {...withdrawalSortProps}>ผู้เบิก</SortableTh>
+                    {view === 'withdrawals' && (
+                      <SortableTh sortKey="user" {...withdrawalSortProps}>ผู้เบิก</SortableTh>
+                    )}
                     <SortableTh sortKey="quantity" {...withdrawalSortProps}>จำนวน</SortableTh>
                     <th>หมายเหตุ</th>
                     <SortableTh sortKey="date" {...withdrawalSortProps}>วันที่เบิก</SortableTh>
+                    <SortableTh sortKey="due_date" {...withdrawalSortProps}>การคืน</SortableTh>
+                    {view === 'withdrawals' && <th>จัดการ</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -470,16 +563,50 @@ export default function MaterialManager({ user }) {
                         <br />
                         {row.material_name}
                       </td>
-                      <td data-label="ผู้เบิก">
-                        {row.user_name}
-                        <br />
-                        {row.user_email}
-                      </td>
+                      {view === 'withdrawals' && (
+                        <td data-label="ผู้เบิก">
+                          {row.user_name}
+                          <br />
+                          {row.user_email}
+                        </td>
+                      )}
                       <td data-label="จำนวน">
                         {row.quantity} {row.unit_name}
                       </td>
                       <td data-label="หมายเหตุ">{row.remark || '-'}</td>
                       <td data-label="วันที่เบิก">{formatDateTime(row.withdrawn_at)}</td>
+                      <td data-label="การคืน">
+                        {row.status === 'consumed' ? (
+                          'ไม่ต้องคืน'
+                        ) : (
+                          <>
+                            <span className={`status-badge status-${row.status}`}>
+                              {withdrawalStatusLabels[row.status]}
+                              {row.status !== 'returned' &&
+                                ` ${row.outstanding_quantity} ${row.unit_name}`}
+                            </span>
+                            <br />
+                            {row.status === 'returned'
+                              ? formatDateTime(row.returned_at)
+                              : `กำหนดคืน ${formatDate(row.due_date)}`}
+                          </>
+                        )}
+                      </td>
+                      {view === 'withdrawals' && (
+                        <td className="stack-actions">
+                          {row.outstanding_quantity > 0 && (
+                            <div className="row-actions">
+                              <button
+                                className="button-restore"
+                                type="button"
+                                onClick={() => setReturningWithdrawal(row)}
+                              >
+                                รับคืน
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -526,7 +653,15 @@ export default function MaterialManager({ user }) {
                       <td data-label="รหัส">
                         <span className="equipment-code">{item.material_code}</span>
                       </td>
-                      <td data-label="ชื่อวัสดุ">{item.material_name}</td>
+                      <td data-label="ชื่อวัสดุ">
+                        {item.material_name}
+                        {item.is_returnable && (
+                          <>
+                            {' '}
+                            <span className="status-badge status-borrowed">ต้องคืน</span>
+                          </>
+                        )}
+                      </td>
                       <td data-label="หมวดหมู่">{item.category_name}</td>
                       <td data-label="คงเหลือ">
                         {item.quantity} {item.unit_name}
@@ -550,7 +685,7 @@ export default function MaterialManager({ user }) {
                               disabled={item.quantity <= 0}
                               onClick={() => setWithdrawingMaterial(item)}
                             >
-                              เบิก
+                              {item.is_returnable ? 'ยืม' : 'เบิก'}
                             </button>
                           )}
                           {admin && view === 'active' && (

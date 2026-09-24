@@ -1,5 +1,6 @@
 // ตรวจรูปแบบ input สำหรับ endpoint ยืม-คืนครุภัณฑ์
 import { AppError } from '../../utils/AppError.js';
+import { isFutureDueDate } from '../../utils/dueDate.js';
 import { toDate } from '../../utils/parsing.js';
 
 // เหตุผล/หมายเหตุการยืม เป็น TEXT ไม่จำกัดจาก DB จึงกันความยาวไว้ฝั่งนี้เอง (เทียบเท่า equipment.validator.js)
@@ -18,19 +19,13 @@ function parseReturnDateAndItemIds(body) {
   return { returnDate, itemIds, remark };
 }
 
-// วันนี้ตามเวลาไทย (YYYY-MM-DD) server รันเป็น UTC ถ้าใช้ new Date() ตรงๆ ช่วงตี 0-7 จะได้วันของเมื่อวาน
-function todayInBangkok() {
-  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-
 function validateReturnDateAndItemIds({ returnDate, itemIds }, next) {
   if (!returnDate) {
     next(new AppError(400, 'กรุณาระบุวันครบกำหนดคืน'));
     return false;
   }
 
-  // ตรงกับ min={tomorrowDateInput()} ฝั่ง client — กันคนยิง API ตรงสร้างใบยืมที่เลยกำหนดตั้งแต่เกิด
-  if (returnDate.toISOString().slice(0, 10) <= todayInBangkok()) {
+  if (!isFutureDueDate(returnDate)) {
     next(new AppError(400, 'วันครบกำหนดคืนต้องเป็นวันพรุ่งนี้หรือหลังจากนั้น'));
     return false;
   }

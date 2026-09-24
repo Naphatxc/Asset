@@ -31,6 +31,7 @@ const emptyForm = {
   unit_price: '',
   expire_date: '',
   remark: '',
+  is_returnable: false,
 };
 
 function toDateInput(value) {
@@ -50,6 +51,7 @@ function createInitialForm(material) {
     unit_price: material.unit_price ?? '' ? String(material.unit_price) : '',
     expire_date: toDateInput(material.expire_date),
     remark: material.remark ?? '',
+    is_returnable: Boolean(material.is_returnable),
   };
 }
 
@@ -84,8 +86,8 @@ export default function MaterialForm({
   const [formError, setFormError] = useState('');
 
   function updateField(event) {
-    const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    const { name, type, value, checked } = event.target;
+    setForm((current) => ({ ...current, [name]: type === 'checkbox' ? checked : value }));
     if (formError) setFormError('');
   }
 
@@ -121,6 +123,7 @@ export default function MaterialForm({
       unit_price: form.unit_price === '' ? null : Number(form.unit_price),
       expire_date: form.expire_date || null,
       remark: form.remark.trim() || null,
+      is_returnable: form.is_returnable,
     };
 
     if (editing) {
@@ -273,6 +276,21 @@ export default function MaterialForm({
             onChange={updateField}
           />
         </label>
+
+        <div className="field-wide">
+          <label className="checkbox-list-item">
+            <input
+              name="is_returnable"
+              type="checkbox"
+              checked={form.is_returnable}
+              onChange={updateField}
+            />
+            ต้องนำมาคืน (เช่น สาย HDMI) — ผู้เบิกต้องระบุวันครบกำหนดคืน
+          </label>
+          {editing && material.is_returnable && !form.is_returnable && (
+            <p className="field-hint">รายการที่เบิกไปแล้วยังต้องคืนตามกำหนดเดิม มีผลเฉพาะการเบิกครั้งถัดไป</p>
+          )}
+        </div>
 
         <label className="field-wide">
           หมายเหตุ

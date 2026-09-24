@@ -54,6 +54,8 @@ export async function getDashboardSummary() {
       pendingRepairCount,
       overdueCount,
       overdueRows,
+      overdueMaterialCount,
+      overdueMaterialRows,
       recentBorrows,
       recentReturns,
       recentRepairs,
@@ -65,6 +67,8 @@ export async function getDashboardSummary() {
       dashboardRepository.countPendingRepairs(),
       dashboardRepository.countOverdueBorrows(),
       dashboardRepository.findOverdueBorrows(5),
+      dashboardRepository.countOverdueMaterialWithdrawals(),
+      dashboardRepository.findOverdueMaterialWithdrawals(5),
       dashboardRepository.findRecentBorrows(5),
       dashboardRepository.findRecentReturns(5),
       dashboardRepository.findRecentRepairs(5),
@@ -92,6 +96,17 @@ export async function getDashboardSummary() {
       return_date: row.return_date,
     }));
 
+    // $queryRaw คืน COUNT/ผลลบของ INT UNSIGNED เป็น BigInt แปลงเป็น Number ก่อนส่ง JSON
+    const overdueMaterials = overdueMaterialRows.map((row) => ({
+      withdrawal_id: Number(row.withdrawal_id),
+      material_code: row.material_code,
+      material_name: row.material_name,
+      unit_name: row.unit_name,
+      outstanding_quantity: Number(row.outstanding_quantity),
+      borrower_name: row.borrower_name,
+      due_date: row.due_date,
+    }));
+
     const recentActivity = buildRecentActivity(
       { recentBorrows, recentReturns, recentRepairs },
       8,
@@ -106,6 +121,8 @@ export async function getDashboardSummary() {
       pendingRepairCount,
       overdueCount,
       overdueBorrows,
+      overdueMaterialCount,
+      overdueMaterials,
       recentActivity,
     };
   } catch (error) {

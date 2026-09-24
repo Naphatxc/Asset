@@ -19,6 +19,7 @@ const withdrawalSortColumns = {
   material: (dir) => ({ materials: { material_name: dir } }),
   user: (dir) => ({ users: { name: dir } }),
   quantity: plain('quantity'),
+  due_date: nullsLast('due_date'),
 };
 
 // page/limit กันค่าแปลกจาก query string (NaN, ติดลบ) เหมือน equipment.controller.js
@@ -125,13 +126,14 @@ export async function restoreMaterial(request, response, next) {
 
 export async function withdrawMaterial(request, response, next) {
   try {
-    const { materialId, quantity, remark } = request.validated;
+    const { materialId, quantity, remark, dueDate } = request.validated;
     const userId = Number(request.user.sub);
     const result = await materialService.withdrawMaterial(
       materialId,
       userId,
       quantity,
       remark,
+      dueDate,
     );
 
     response.status(200).json({ message: 'เบิกวัสดุสำเร็จ', ...result });
@@ -140,20 +142,54 @@ export async function withdrawMaterial(request, response, next) {
   }
 }
 
+// ?outstanding=1 = เฉพาะใบที่ต้องคืนและยังคืนไม่ครบ
+function parseWithdrawalQuery(query) {
+  const page = Math.max(1, Math.trunc(Number(query.page)) || 1);
+  const limit = Math.min(500, Math.max(1, Math.trunc(Number(query.limit)) || 20));
+
+  return {
+    page,
+    limit,
+    outstanding: query.outstanding === '1' || query.outstanding === 'true',
+    orderBy: parseSort(query, withdrawalSortColumns),
+  };
+}
+
 export async function getWithdrawals(request, response, next) {
   try {
-    const page = Math.max(1, Math.trunc(Number(request.query.page)) || 1);
-    const limit = Math.min(
-      500,
-      Math.max(1, Math.trunc(Number(request.query.limit)) || 20),
-    );
+    const result = await materialService.getWithdrawals(parseWithdrawalQuery(request.query));
+
+    response.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+// ประวัติการเบิกของผู้ใช้ที่ login อยู่เอง (ทุก role) ไว้ดูว่ายังค้างคืนอะไรอยู่
+export async function getMyWithdrawals(request, response, next) {
+  try {
     const result = await materialService.getWithdrawals({
-      page,
-      limit,
-      orderBy: parseSort(request.query, withdrawalSortColumns),
+      ...parseWithdrawalQuery(request.query),
+      userId: Number(request.user.sub),
     });
 
     response.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function returnWithdrawal(request, response, next) {
+  try {
+    const { withdrawalId, quantity, remark } = request.validated;
+    const withdrawal = await materialService.returnWithdrawal(
+      withdrawalId,
+      Number(request.user.sub),
+      quantity,
+      remark,
+    );
+
+    response.status(200).json({ message: 'รับคืนวัสดุสำเร็จ', withdrawal });
   } catch (error) {
     next(error);
   }

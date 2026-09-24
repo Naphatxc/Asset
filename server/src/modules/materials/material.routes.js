@@ -7,8 +7,10 @@ import {
   validateCreateMaterial,
   validateImportMaterials,
   validateMaterialIdParam,
+  validateReturnWithdrawal,
   validateUpdateMaterial,
   validateWithdrawMaterial,
+  validateWithdrawalIdParam,
 } from './material.validator.js';
 import {
   authenticate,
@@ -27,6 +29,9 @@ adminMaterialRouter.use(authenticate, verifyCsrfToken, requireAdmin);
 // GET /api/materials - รายการวัสดุที่ยังไม่ถูกลบ ทุก role อ่านได้
 materialRouter.get('/', materialController.getMaterialList);
 
+// GET /api/materials/my-withdrawals - ประวัติการเบิกของตัวเอง (?outstanding=1 = เฉพาะที่ยังค้างคืน)
+materialRouter.get('/my-withdrawals', materialController.getMyWithdrawals);
+
 // GET /api/materials/:id/image - รูปวัสดุ ทุก role เห็น
 materialRouter.get('/:id/image', validateMaterialIdParam, materialController.getMaterialImage);
 
@@ -42,8 +47,16 @@ materialRouter.post(
 // GET /api/admin/materials/deleted - รายการ Soft Delete (ต้องอยู่ก่อน /:id กันชนกัน)
 adminMaterialRouter.get('/deleted', materialController.getDeletedMaterialList);
 
-// GET /api/admin/materials/withdrawals - ประวัติการเบิกทั้งหมด (ทุกวัสดุ ทุกคน)
+// GET /api/admin/materials/withdrawals - ประวัติการเบิกทั้งหมด (ทุกวัสดุ ทุกคน, ?outstanding=1 = เฉพาะที่ยังค้างคืน)
 adminMaterialRouter.get('/withdrawals', materialController.getWithdrawals);
+
+// POST /api/admin/materials/withdrawals/:withdrawalId/return - รับคืนวัสดุ { quantity, remark } คืนทีละส่วนได้
+adminMaterialRouter.post(
+  '/withdrawals/:withdrawalId/return',
+  validateWithdrawalIdParam,
+  validateReturnWithdrawal,
+  materialController.returnWithdrawal,
+);
 
 // POST /api/admin/materials - เพิ่มวัสดุใหม่
 adminMaterialRouter.post(

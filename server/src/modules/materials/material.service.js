@@ -1,7 +1,9 @@
-// Business Logic สำหรับวัสดุ — ต่างจากครุภัณฑ์ตรงที่ "เบิก" ตัดยอดทันที ไม่มีขั้นตอนรออนุมัติ เพราะวัสดุใช้แล้ว
-// หมดไป ไม่มีการคืน (ดู withdrawMaterial) ส่วน CRUD ทั่วไป (เพิ่ม/แก้ไข/ลบ/กู้คืน) เป็นสิทธิ์ Admin ล้วนๆ
+// Business Logic สำหรับวัสดุ — ต่างจากครุภัณฑ์ตรงที่ "เบิก" ตัดยอดทันที ไม่มีขั้นตอนรออนุมัติ (ดู withdrawMaterial)
+// วัสดุสิ้นเปลืองเบิกแล้วจบ ส่วนวัสดุที่ต้องคืน (is_returnable) ต้องระบุวันครบกำหนดคืน และ Admin รับคืนเข้าสต๊อก
+// (ดู returnWithdrawal) ส่วน CRUD ทั่วไป (เพิ่ม/แก้ไข/ลบ/กู้คืน) เป็นสิทธิ์ Admin ล้วนๆ
 import * as materialRepository from './material.repository.js';
 import { AppError } from '../../utils/AppError.js';
+import { isPastDueDate } from '../../utils/dueDate.js';
 import { materialImageDir } from '../../middlewares/upload.middleware.js';
 import { hasOwn, toDate } from '../../utils/parsing.js';
 import { removeStoredImage } from '../../utils/storedImage.js';
@@ -28,12 +30,21 @@ function serializeMaterial(material) {
     unit_price:
       material.unit_price === null ? null : material.unit_price.toString(),
     remark: material.remark,
+    is_returnable: material.is_returnable,
     deleted_at: material.deleted_at,
     // ?v= เปลี่ยนตามชื่อไฟล์ เหมือน image_url ของครุภัณฑ์ (ดู equipment.service.js)
     image_url: material.image_path
       ? `/api/materials/${material.material_id}/image?v=${encodeURIComponent(material.image_path)}`
       : null,
   };
+}
+
+// consumed = วัสดุสิ้นเปลือง (ไม่ต้องคืน) ส่วนใบที่ต้องคืน derive จาก due_date/returned_at แบบเดียวกับ
+// สถานะครุภัณฑ์ที่ยืม (borrow.service.js) ไม่เก็บเป็น column แยก กันข้อมูลไม่ตรงกัน
+function withdrawalStatus(row) {
+  if (!row.due_date) return 'consumed';
+  if (row.returned_at) return 'returned';
+  return isPastDueDate(row.due_date) ? 'overdue' : 'borrowed';
 }
 
 function serializeWithdrawal(row) {
@@ -49,6 +60,11 @@ function serializeWithdrawal(row) {
     quantity: row.quantity,
     remark: row.remark,
     withdrawn_at: row.withdrawn_at,
+    due_date: row.due_date,
+    returned_quantity: row.returned_quantity,
+    outstanding_quantity: row.due_date ? row.quantity - row.returned_quantity : 0,
+    returned_at: row.returned_at,
+    status: withdrawalStatus(row),
   };
 }
 
@@ -114,6 +130,7 @@ export async function createMaterial(payload) {
       unit_name: payload.unitName,
       unit_price: payload.unitPrice,
       remark: payload.remark,
+      is_returnable: payload.isReturnable,
     });
 
     return serializeMaterial(material);
@@ -162,6 +179,10 @@ export async function updateMaterial(materialId, body) {
     const remark = hasOwn(body, 'remark')
       ? String(body.remark ?? '').trim() || null
       : current.remark;
+    // เปลี่ยนธงแล้วมีผลกับการเบิกครั้งถัดไปเท่านั้น ใบเบิกเก่าที่ยังค้างคืนยังต้องคืนตาม due_date ของใบนั้น
+    const isReturnable = hasOwn(body, 'is_returnable')
+      ? body.is_returnable === true
+      : current.is_returnable;
 
     if (!materialName) {
       throw new AppError(400, 'กรุณากรอกชื่อวัสดุ');
@@ -197,6 +218,7 @@ export async function updateMaterial(materialId, body) {
       unit_name: unitName,
       unit_price: unitPrice,
       remark,
+      is_returnable: isReturnable,
     };
     // ตรวจจากค่าที่ merge แล้ว แต่เขียนลง DB เฉพาะ field ที่ส่งมาจริง โดยเฉพาะ quantity: ถ้าเขียนค่าที่อ่านไว้
     // กลับไปทุกครั้ง การเบิกที่เกิดขึ้นระหว่างนั้นจะถูกทับหาย ยอดคงเหลือไม่ตรงกับประวัติการเบิก
@@ -253,20 +275,29 @@ export async function restoreMaterial(materialId) {
 
 // เบิกแล้วตัดยอดทันที ไม่มีขั้นตอนรออนุมัติ (ต่างจากยืมครุภัณฑ์) — เช็คจำนวนคงเหลือใน Transaction เดียวกัน
 // กับตอนตัดยอด (Serializable) กันกรณีเบิกพร้อมกันหลายคนจนยอดติดลบ
-export async function withdrawMaterial(materialId, userId, quantity, remark) {
+// dueDate (ผ่าน validator แล้วว่าเป็นวันในอนาคต) บังคับเฉพาะวัสดุที่ต้องคืน วัสดุสิ้นเปลืองไม่เก็บแม้ส่งมา
+// เพราะ due_date ที่มีค่าคือเครื่องหมายว่าใบนี้ต้องคืน
+export async function withdrawMaterial(materialId, userId, quantity, remark, dueDate) {
   try {
     const result = await runSerializableTransaction(async (tx) => {
       const current = await materialRepository.findById(materialId, {
         client: tx,
       });
       if (!current) return { type: 'not_found' };
+      if (current.is_returnable && !dueDate) return { type: 'due_date_required' };
       if (current.quantity < quantity) {
-        return { type: 'insufficient', available: current.quantity };
+        return { type: 'insufficient', available: current.quantity, unitName: current.unit_name };
       }
 
       await materialRepository.decrementQuantity(materialId, quantity, tx);
       const withdrawal = await materialRepository.createWithdrawal(
-        { material_id: materialId, user_id: userId, quantity, remark },
+        {
+          material_id: materialId,
+          user_id: userId,
+          quantity,
+          remark,
+          due_date: current.is_returnable ? dueDate : null,
+        },
         tx,
       );
       const updated = await materialRepository.findById(materialId, {
@@ -279,8 +310,11 @@ export async function withdrawMaterial(materialId, userId, quantity, remark) {
     if (result.type === 'not_found') {
       throw new AppError(404, 'ไม่พบวัสดุ');
     }
+    if (result.type === 'due_date_required') {
+      throw new AppError(400, 'วัสดุนี้ต้องนำมาคืน กรุณาระบุวันครบกำหนดคืน');
+    }
     if (result.type === 'insufficient') {
-      throw new AppError(409, `วัสดุคงเหลือไม่พอ (เหลือ ${result.available} ชิ้น)`);
+      throw new AppError(409, `วัสดุคงเหลือไม่พอ (เหลือ ${result.available} ${result.unitName})`);
     }
 
     return {
@@ -294,13 +328,21 @@ export async function withdrawMaterial(materialId, userId, quantity, remark) {
   }
 }
 
-export async function getWithdrawals({ page = 1, limit = 20, materialId, userId, orderBy } = {}) {
+export async function getWithdrawals({
+  page = 1,
+  limit = 20,
+  materialId,
+  userId,
+  outstanding,
+  orderBy,
+} = {}) {
   try {
     const { items, total } = await materialRepository.findWithdrawals({
       page,
       limit,
       materialId,
       userId,
+      outstanding,
       orderBy,
     });
 
@@ -310,6 +352,58 @@ export async function getWithdrawals({ page = 1, limit = 20, materialId, userId,
     };
   } catch (error) {
     throw new AppError(500, 'ไม่สามารถโหลดประวัติการเบิกได้', { cause: error });
+  }
+}
+
+// Admin รับคืนวัสดุ คืนทีละส่วนได้ (quantity ไม่เกินยอดที่ยังค้าง) บวกยอดกลับเข้าสต๊อกใน Transaction เดียวกับ
+// ที่บันทึกการคืน คืนครบแล้วตั้ง returned_at ปิดใบ รับคืนได้แม้วัสดุถูกลบไปแล้ว (ของยังอยู่กับผู้เบิก ต้องคืนได้)
+// ของเสีย/หายไม่มีขั้นตอนพิเศษ Admin ปรับยอดคงเหลือที่ตัววัสดุเอง
+export async function returnWithdrawal(withdrawalId, adminId, quantity, remark) {
+  try {
+    const result = await runSerializableTransaction(async (tx) => {
+      const current = await materialRepository.findWithdrawalById(withdrawalId, tx);
+      if (!current) return { type: 'not_found' };
+      if (!current.due_date) return { type: 'not_returnable' };
+      if (current.returned_at) return { type: 'already_returned' };
+
+      const outstanding = current.quantity - current.returned_quantity;
+      if (quantity > outstanding) return { type: 'too_many', outstanding };
+
+      await materialRepository.createReturn(
+        { withdrawal_id: withdrawalId, quantity, remark, received_by: adminId },
+        tx,
+      );
+      await materialRepository.incrementQuantity(current.material_id, quantity, tx);
+      const withdrawal = await materialRepository.updateWithdrawal(
+        withdrawalId,
+        {
+          returned_quantity: { increment: quantity },
+          ...(quantity === outstanding ? { returned_at: new Date() } : {}),
+        },
+        tx,
+      );
+
+      return { type: 'ok', withdrawal };
+    });
+
+    if (result.type === 'not_found') {
+      throw new AppError(404, 'ไม่พบรายการเบิก');
+    }
+    if (result.type === 'not_returnable') {
+      throw new AppError(400, 'รายการนี้เป็นวัสดุสิ้นเปลือง ไม่ต้องคืน');
+    }
+    if (result.type === 'already_returned') {
+      throw new AppError(409, 'รายการนี้คืนครบแล้ว');
+    }
+    if (result.type === 'too_many') {
+      throw new AppError(400, `คืนได้ไม่เกินจำนวนที่ยังค้าง (${result.outstanding})`);
+    }
+
+    return serializeWithdrawal(result.withdrawal);
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw new AppError(500, 'ไม่สามารถบันทึกการรับคืนได้', { cause: error });
   }
 }
 

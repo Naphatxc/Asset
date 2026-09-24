@@ -101,6 +101,9 @@ model materials {
   unit_name            String                 @db.VarChar(50)
   unit_price           Decimal?               @db.Decimal(10, 2)
   remark               String?                @db.Text
+  // วัสดุที่เบิกไปแล้วต้องนำมาคืน (เช่น สาย HDMI) ใบเบิกต้องมีวันครบกำหนดคืนและ Admin รับคืนเข้าสต๊อก
+  // false = วัสดุสิ้นเปลือง เบิกแล้วหมดไป (พฤติกรรมเดิม)
+  is_returnable        Boolean                @default(false)
   // ชื่อไฟล์รูปใน uploads/materials (เหมือน equipment_items.image_path)
   image_path           String?                @db.VarChar(255)
   // Soft delete เหมือน equipment_items — กันลบแล้วประวัติการเบิกใน material_withdrawals อ้างอิงไม่ได้
@@ -111,20 +114,44 @@ model materials {
   @@index([category_id], map: "fk_material_category")
 }
 
-// ประวัติการเบิกวัสดุ — ตัดยอด quantity ทันทีตอนเบิก ไม่มีขั้นตอนรออนุมัติแบบใบยืมครุภัณฑ์ เพราะวัสดุใช้แล้วหมดไป
-// ไม่มีการคืน (ต่างจาก borrows/borrow_details ที่ต้อง track คืนของ)
+// ประวัติการเบิกวัสดุ — ตัดยอด quantity ทันทีตอนเบิก ไม่มีขั้นตอนรออนุมัติแบบใบยืมครุภัณฑ์
+// วัสดุสิ้นเปลืองเบิกแล้วจบ ส่วนวัสดุที่ต้องคืน (materials.is_returnable) มี due_date และรับคืนผ่าน material_returns
 model material_withdrawals {
-  withdrawal_id Int       @id @default(autoincrement()) @db.UnsignedInt
-  material_id   Int       @db.UnsignedInt
-  user_id       Int       @db.UnsignedInt
-  quantity      Int
-  remark        String?   @db.Text
-  withdrawn_at  DateTime  @default(now()) @db.DateTime(0)
-  materials     materials @relation(fields: [material_id], references: [material_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_withdrawal_material")
-  users         users     @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_withdrawal_user")
+  withdrawal_id     Int                @id @default(autoincrement()) @db.UnsignedInt
+  material_id       Int                @db.UnsignedInt
+  user_id           Int                @db.UnsignedInt
+  quantity          Int
+  remark            String?            @db.Text
+  withdrawn_at      DateTime           @default(now()) @db.DateTime(0)
+  // มีค่า = ใบนี้ต้องคืน (ตาม is_returnable ของวัสดุตอนเบิก แก้ธงที่วัสดุทีหลังใบเก่าไม่เปลี่ยนตาม)
+  // เก็บแบบเดียวกับ borrow_details.return_date คือเที่ยงคืน UTC ของวันครบกำหนด
+  due_date          DateTime?          @db.Date
+  // ผลรวม material_returns.quantity เก็บซ้ำไว้ ตอบ "ค้างคืนอีกกี่ชิ้น" ได้โดยไม่ต้อง sum ทุกครั้ง
+  returned_quantity Int                @default(0)
+  // เวลาที่คืนครบ null = ยังค้างคืน (หรือเป็นวัสดุสิ้นเปลืองที่ไม่ต้องคืน)
+  returned_at       DateTime?          @db.DateTime(0)
+  materials         materials          @relation(fields: [material_id], references: [material_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_withdrawal_material")
+  users             users              @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_withdrawal_user")
+  material_returns  material_returns[]
 
   @@index([material_id], map: "idx_withdrawals_material")
   @@index([user_id], map: "idx_withdrawals_user")
+}
+
+// การรับคืนวัสดุแต่ละครั้ง คืนทีละส่วนได้ (เบิก 3 คืน 2 แล้วค่อยคืนอีก 1) Admin เป็นคนกดรับคืนเสมอ
+// ของเสีย/หายไม่มีขั้นตอนพิเศษ Admin ปรับยอดคงเหลือที่ตัววัสดุเอง
+model material_returns {
+  return_id            Int                  @id @default(autoincrement()) @db.UnsignedInt
+  withdrawal_id        Int                  @db.UnsignedInt
+  quantity             Int
+  remark               String?              @db.Text
+  returned_at          DateTime             @default(now()) @db.DateTime(0)
+  received_by          Int                  @db.UnsignedInt
+  material_withdrawals material_withdrawals @relation(fields: [withdrawal_id], references: [withdrawal_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_material_return_withdrawal")
+  users                users                @relation(fields: [received_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_material_return_user")
+
+  @@index([withdrawal_id], map: "idx_material_returns_withdrawal")
+  @@index([received_by], map: "idx_material_returns_user")
 }
 
 model users {
@@ -140,6 +167,7 @@ model users {
   equipment_history       equipment_history[]
   repairs                 repairs[]
   material_withdrawals    material_withdrawals[]
+  material_returns        material_returns[]
   audit_rounds_opened     audit_rounds[]          @relation("audit_round_opened_by")
   audit_rounds_closed     audit_rounds[]          @relation("audit_round_closed_by")
   audit_records           audit_records[]

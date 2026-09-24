@@ -1,5 +1,6 @@
 // ตรวจรูปแบบ input สำหรับ endpoint วัสดุ — แนวเดียวกับ equipment.validator.js
 import { AppError } from '../../utils/AppError.js';
+import { isFutureDueDate } from '../../utils/dueDate.js';
 import { hasOwn, toDate } from '../../utils/parsing.js';
 
 // ตัวเลขต้องตรงกับ @db.VarChar(...)/@db.Text ใน schema.prisma ของ materials เป๊ะๆ
@@ -23,6 +24,7 @@ export const editableFields = [
   'unit_name',
   'unit_price',
   'remark',
+  'is_returnable',
 ];
 
 export function validateMaterialIdParam(request, _response, next) {
@@ -59,6 +61,7 @@ export function validateCreateMaterial(request, _response, next) {
       ? null
       : Number(unitPriceValue);
   const remark = String(body.remark ?? '').trim() || null;
+  const isReturnable = body.is_returnable ?? false;
 
   if (!materialName || !materialCode || !categoryId || !unitName) {
     return next(
@@ -96,6 +99,9 @@ export function validateCreateMaterial(request, _response, next) {
   if (unitPrice !== null && (Number.isNaN(unitPrice) || unitPrice < 0)) {
     return next(new AppError(400, 'ราคาต่อหน่วยไม่ถูกต้อง'));
   }
+  if (typeof isReturnable !== 'boolean') {
+    return next(new AppError(400, 'ค่า "ต้องคืน" ไม่ถูกต้อง'));
+  }
 
   request.validated = {
     materialName,
@@ -107,6 +113,7 @@ export function validateCreateMaterial(request, _response, next) {
     unitName,
     unitPrice,
     remark,
+    isReturnable,
   };
   next();
 }
@@ -116,6 +123,9 @@ export function validateUpdateMaterial(request, _response, next) {
 
   if (!editableFields.some((field) => hasOwn(body, field))) {
     return next(new AppError(400, 'กรุณาระบุข้อมูลที่ต้องการแก้ไข'));
+  }
+  if (hasOwn(body, 'is_returnable') && typeof body.is_returnable !== 'boolean') {
+    return next(new AppError(400, 'ค่า "ต้องคืน" ไม่ถูกต้อง'));
   }
 
   request.validated = { ...request.validated, body };
@@ -138,12 +148,50 @@ export function validateImportMaterials(request, _response, next) {
 }
 
 // เบิกวัสดุ (ตัดยอดทันที ไม่มีขั้นตอนรออนุมัติ) — ทุก role ที่ login แล้วเรียกได้
+// due_date ไม่บังคับที่นี่ เพราะต้องรู้ก่อนว่าวัสดุต้องคืนไหม (service เช็คต่อ) แต่ถ้าส่งมาต้องเป็นวันในอนาคต
 export function validateWithdrawMaterial(request, _response, next) {
+  const quantity = Number(request.body?.quantity);
+  const remark = String(request.body?.remark ?? '').trim() || null;
+  const dueDateValue = request.body?.due_date;
+  const dueDate = toDate(dueDateValue);
+
+  if (!Number.isInteger(quantity) || quantity <= 0) {
+    return next(new AppError(400, 'กรุณาระบุจำนวนที่จะเบิกให้ถูกต้อง'));
+  }
+  if (exceedsLength(remark, MAX_LONG_TEXT_LENGTH)) {
+    return next(
+      new AppError(400, `หมายเหตุต้องไม่เกิน ${MAX_LONG_TEXT_LENGTH} ตัวอักษร`),
+    );
+  }
+  if (dueDateValue != null && dueDateValue !== '' && !dueDate) {
+    return next(new AppError(400, 'วันครบกำหนดคืนไม่ถูกต้อง'));
+  }
+  if (dueDate && !isFutureDueDate(dueDate)) {
+    return next(new AppError(400, 'วันครบกำหนดคืนต้องเป็นวันพรุ่งนี้หรือหลังจากนั้น'));
+  }
+
+  request.validated = { ...request.validated, quantity, remark, dueDate };
+  next();
+}
+
+export function validateWithdrawalIdParam(request, _response, next) {
+  const withdrawalId = Number(request.params.withdrawalId);
+
+  if (!Number.isInteger(withdrawalId) || withdrawalId <= 0) {
+    return next(new AppError(400, 'รหัสรายการเบิกไม่ถูกต้อง'));
+  }
+
+  request.validated = { ...request.validated, withdrawalId };
+  next();
+}
+
+// Admin รับคืนวัสดุ ยอดที่คืนได้ (ไม่เกินที่ค้าง) ตรวจใน service เพราะต้องอ่านใบเบิกก่อน
+export function validateReturnWithdrawal(request, _response, next) {
   const quantity = Number(request.body?.quantity);
   const remark = String(request.body?.remark ?? '').trim() || null;
 
   if (!Number.isInteger(quantity) || quantity <= 0) {
-    return next(new AppError(400, 'กรุณาระบุจำนวนที่จะเบิกให้ถูกต้อง'));
+    return next(new AppError(400, 'กรุณาระบุจำนวนที่รับคืนให้ถูกต้อง'));
   }
   if (exceedsLength(remark, MAX_LONG_TEXT_LENGTH)) {
     return next(

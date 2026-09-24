@@ -31,7 +31,7 @@ export async function countPendingRepairs(client = prisma) {
   return client.repairs.count({ where: { status: 'pending_repair' } });
 }
 
-// เกณฑ์ "เลยกำหนดคืน" ต้องตรงกับ borrow.service.js (isPastDueDate): return_date เก็บเป็นเที่ยงคืน UTC ของ
+// เกณฑ์ "เลยกำหนดคืน" ต้องตรงกับ utils/dueDate.js (isPastDueDate): return_date เก็บเป็นเที่ยงคืน UTC ของ
 // วันครบกำหนด แต่ผู้ใช้อยู่ไทย (UTC+7) จึงยังไม่เกินกำหนดจนกว่าจะถึงเที่ยงคืนไทย = return_date + 17 ชม. UTC
 export async function countOverdueBorrows(client = prisma) {
   const rows = await client.$queryRaw`
@@ -61,6 +61,36 @@ export async function findOverdueBorrows(limit, client = prisma) {
       AND bd.return_requested_at IS NULL
       AND bd.return_date < DATE_SUB(NOW(), INTERVAL 17 HOUR)
     ORDER BY bd.return_date ASC
+    LIMIT ${limit}
+  `;
+}
+
+// วัสดุที่ต้องคืนแต่เลยกำหนด (เกณฑ์เดียวกับครุภัณฑ์ด้านบน) นับเป็นใบเบิก ไม่ใช่จำนวนชิ้น
+export async function countOverdueMaterialWithdrawals(client = prisma) {
+  const rows = await client.$queryRaw`
+    SELECT COUNT(*) AS count
+    FROM material_withdrawals mw
+    WHERE mw.due_date IS NOT NULL
+      AND mw.returned_at IS NULL
+      AND mw.due_date < DATE_SUB(NOW(), INTERVAL 17 HOUR)
+  `;
+
+  return Number(rows[0]?.count ?? 0);
+}
+
+export async function findOverdueMaterialWithdrawals(limit, client = prisma) {
+  return client.$queryRaw`
+    SELECT mw.withdrawal_id AS withdrawal_id, mw.due_date AS due_date,
+           mw.quantity - mw.returned_quantity AS outstanding_quantity,
+           m.material_code AS material_code, m.material_name AS material_name,
+           m.unit_name AS unit_name, u.name AS borrower_name
+    FROM material_withdrawals mw
+    JOIN materials m ON m.material_id = mw.material_id
+    JOIN users u ON u.user_id = mw.user_id
+    WHERE mw.due_date IS NOT NULL
+      AND mw.returned_at IS NULL
+      AND mw.due_date < DATE_SUB(NOW(), INTERVAL 17 HOUR)
+    ORDER BY mw.due_date ASC
     LIMIT ${limit}
   `;
 }

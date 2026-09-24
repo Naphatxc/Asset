@@ -1,5 +1,18 @@
 // Dialog กรอกจำนวนที่จะเบิกวัสดุ — กดยืนยันแล้วตัดยอดทันที ไม่มีขั้นตอนรออนุมัติ (ต่างจากยืมครุภัณฑ์)
+// วัสดุที่ต้องคืน (is_returnable) ต้องกรอกวันครบกำหนดคืนเพิ่ม เงื่อนไขเดียวกับวันคืนของใบยืมครุภัณฑ์
 import { useState } from 'react';
+
+import ThaiDateInput from './ThaiDateInput.jsx';
+
+// ThaiDateInput ใช้ค่า YYYY-MM-DD (เหมือน MyBorrows.jsx)
+function tomorrowDateInput() {
+  const date = new Date();
+  date.setDate(date.getDate() + 1);
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${date.getFullYear()}-${month}-${day}`;
+}
 
 export default function WithdrawMaterialDialog({
   material,
@@ -9,6 +22,9 @@ export default function WithdrawMaterialDialog({
 }) {
   const [quantity, setQuantity] = useState('1');
   const [remark, setRemark] = useState('');
+  const [dueDate, setDueDate] = useState('');
+  // วัสดุที่ต้องคืนเรียกว่า "ยืม" ให้ตรงกับปุ่มในรายการวัสดุ (MaterialManager.jsx)
+  const action = material.is_returnable ? 'ยืม' : 'เบิก';
   const [error, setError] = useState('');
 
   function handleSubmit(event) {
@@ -24,8 +40,21 @@ export default function WithdrawMaterialDialog({
       return;
     }
 
+    if (material.is_returnable && !dueDate) {
+      setError('กรุณาระบุวันครบกำหนดคืน');
+      return;
+    }
+    if (material.is_returnable && dueDate < tomorrowDateInput()) {
+      setError('วันครบกำหนดคืนต้องเป็นวันพรุ่งนี้หรือหลังจากนั้น');
+      return;
+    }
+
     setError('');
-    onSubmit({ quantity: qty, remark: remark.trim() || null });
+    onSubmit({
+      quantity: qty,
+      remark: remark.trim() || null,
+      dueDate: material.is_returnable ? dueDate : null,
+    });
   }
 
   return (
@@ -40,7 +69,9 @@ export default function WithdrawMaterialDialog({
         <div className="form-heading">
           <div>
             <p className="section-kicker">Withdraw material</p>
-            <h2 id="withdraw-dialog-title">เบิกวัสดุ</h2>
+            <h2 id="withdraw-dialog-title">
+              {material.is_returnable ? 'ยืมวัสดุ (ต้องคืน)' : 'เบิกวัสดุ'}
+            </h2>
           </div>
         </div>
 
@@ -53,7 +84,7 @@ export default function WithdrawMaterialDialog({
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <label>
-              จำนวนที่เบิก ({material.unit_name})
+              จำนวนที่{action} ({material.unit_name})
               <input
                 type="number"
                 min="1"
@@ -66,6 +97,18 @@ export default function WithdrawMaterialDialog({
                 required
               />
             </label>
+
+            {material.is_returnable && (
+              <label>
+                วันครบกำหนดคืน
+                <ThaiDateInput
+                  value={dueDate}
+                  min={tomorrowDateInput()}
+                  onChange={(event) => setDueDate(event.target.value)}
+                  required
+                />
+              </label>
+            )}
 
             <label className="field-wide">
               หมายเหตุ (ไม่บังคับ)
@@ -82,7 +125,7 @@ export default function WithdrawMaterialDialog({
 
           <div className="form-actions">
             <button className="button-primary" type="submit" disabled={submitting}>
-              {submitting ? 'กำลังเบิก...' : 'ยืนยันเบิก'}
+              {submitting ? `กำลัง${action}...` : `ยืนยัน${action}`}
             </button>
             <button className="button-secondary" type="button" onClick={onClose}>
               ยกเลิก
