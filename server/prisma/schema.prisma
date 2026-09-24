@@ -2,6 +2,13 @@ generator client {
   provider = "prisma-client-js"
 }
 
+// ภาพ ER (mermaid ใน .md ไม่ต้องลง Chromium) สร้างใหม่ทุกครั้งที่ prisma migrate dev / npm run prisma:erd
+// postinstall สั่ง --generator client อย่างเดียว ตอน deploy บน Railway จึงไม่รันตัวนี้
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../../docs/ERD.md"
+}
+
 datasource db {
   provider = "mysql"
 }
