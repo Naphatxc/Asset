@@ -41,7 +41,7 @@ export function getAvailableEquipment() {
   return request('/api/available-equipment');
 }
 
-// items ตามรูปแบบไฟล์ที่ server/scripts/export-equipment.js สร้าง (ดู ImportEquipmentDialog.jsx)
+// items ตามรูปแบบไฟล์ที่ server/scripts/export-equipment.js สร้าง (ไฟล์ Excel แปลงเป็นรูปแบบนี้ใน utils/importExcel.js)
 export function importEquipment(items) {
   return request('/api/admin/equipment-items/import', { method: 'POST', body: { items } });
 }

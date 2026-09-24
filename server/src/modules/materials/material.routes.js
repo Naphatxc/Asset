@@ -5,6 +5,7 @@ import express from 'express';
 import * as materialController from './material.controller.js';
 import {
   validateCreateMaterial,
+  validateImportMaterials,
   validateMaterialIdParam,
   validateUpdateMaterial,
   validateWithdrawMaterial,
@@ -49,6 +50,14 @@ adminMaterialRouter.post(
   '/',
   validateCreateMaterial,
   materialController.createMaterial,
+);
+
+// POST /api/admin/materials/import - นำเข้าวัสดุหลายรายการจากไฟล์ Excel { items: [...] }
+// (body ใหญ่กว่าปกติ จึงมี parser แยกที่ app.js)
+adminMaterialRouter.post(
+  '/import',
+  validateImportMaterials,
+  materialController.importMaterials,
 );
 
 // PATCH /api/admin/materials/:id/restore - ทำให้ deleted_at กลับเป็น NULL

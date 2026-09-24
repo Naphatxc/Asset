@@ -37,7 +37,7 @@ import { useToast } from '../../../components/ToastProvider.jsx';
 import EquipmentHistory from './EquipmentHistory.jsx';
 import EquipmentTable, { equipmentSortColumns } from './EquipmentTable.jsx';
 import QrCodeDialog from '../../../components/QrCodeDialog.jsx';
-import ImportEquipmentDialog from './ImportEquipmentDialog.jsx';
+import ImportDialog from './ImportDialog.jsx';
 
 const PAGE_SIZE = 20;
 const statusFilterOptions = [
@@ -532,7 +532,7 @@ export default function EquipmentManager({ user }) {
         />
       )}
 
-      {importing && <ImportEquipmentDialog onClose={() => setImporting(false)} />}
+      {importing && <ImportDialog kind="equipment" onClose={() => setImporting(false)} />}
 
       {loading ? (
         <p className="loading-message">กำลังโหลดครุภัณฑ์...</p>

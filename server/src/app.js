@@ -18,9 +18,12 @@ app.use((_request, response, next) => {
   response.set('X-Content-Type-Options', 'nosniff');
   next();
 });
-// ไฟล์นำเข้าครุภัณฑ์หลายร้อยรายการใหญ่เกินเพดาน 100kb ปกติ ให้ path นี้ path เดียวรับได้ถึง 10mb
+// ไฟล์นำเข้าครุภัณฑ์/วัสดุหลายร้อยรายการใหญ่เกินเพดาน 100kb ปกติ ให้สอง path นี้รับได้ถึง 10mb
 // ต้องอยู่ก่อน express.json() ตัวหลัก (ตัวหลักจะข้าม request ที่ถูก parse ไปแล้ว)
-app.use('/api/admin/equipment-items/import', express.json({ limit: '10mb' }));
+app.use(
+  ['/api/admin/equipment-items/import', '/api/admin/materials/import'],
+  express.json({ limit: '10mb' }),
+);
 app.use(express.json());
 app.use(cookieParser());
 

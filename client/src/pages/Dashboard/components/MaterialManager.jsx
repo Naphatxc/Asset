@@ -30,6 +30,7 @@ import PaginationBar, { useClampPage } from '../../../components/PaginationBar.j
 import SelectWithCreate from '../../../components/SelectWithCreate.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import WithdrawMaterialDialog from '../../../components/WithdrawMaterialDialog.jsx';
+import ImportDialog from './ImportDialog.jsx';
 
 const PAGE_SIZE = 20;
 
@@ -91,6 +92,7 @@ export default function MaterialManager({ user }) {
   const [editingMaterial, setEditingMaterial] = useState(null);
   const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
   const [withdrawingMaterial, setWithdrawingMaterial] = useState(null);
+  const [importing, setImporting] = useState(false);
   const [searchInput, setSearchInput] = useState(initialParams.get('search') ?? '');
   const [search, setSearch] = useState(initialParams.get('search') ?? '');
   const [categoryFilter, setCategoryFilter] = useState(initialParams.get('category') ?? '');
@@ -365,9 +367,18 @@ export default function MaterialManager({ user }) {
               </button>
 
               {view === 'active' && (
-                <button className="button-primary" type="button" onClick={openCreateForm}>
-                  + เพิ่มวัสดุ
-                </button>
+                <>
+                  <button
+                    className="button-secondary"
+                    type="button"
+                    onClick={() => setImporting(true)}
+                  >
+                    นำเข้าจากไฟล์
+                  </button>
+                  <button className="button-primary" type="button" onClick={openCreateForm}>
+                    + เพิ่มวัสดุ
+                  </button>
+                </>
               )}
             </>
           )}
@@ -419,6 +430,8 @@ export default function MaterialManager({ user }) {
           />
         </>
       )}
+
+      {importing && <ImportDialog kind="material" onClose={() => setImporting(false)} />}
 
       {withdrawingMaterial && (
         <WithdrawMaterialDialog

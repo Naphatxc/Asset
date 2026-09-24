@@ -1,3 +1,4 @@
+import * as materialImportService from './material-import.service.js';
 import * as materialService from './material.service.js';
 import { materialImageDir, uploadedImageFiles } from '../../middlewares/upload.middleware.js';
 import { AppError } from '../../utils/AppError.js';
@@ -63,6 +64,27 @@ export async function createMaterial(request, response, next) {
     const material = await materialService.createMaterial(request.validated);
 
     response.status(201).json({ message: 'เพิ่มวัสดุสำเร็จ', material });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// body: { items: [...] } แถวไหนผิดตอบ 400 พร้อมรายการแถวที่ผิด (เหมือน importEquipment ใน equipment.controller.js)
+export async function importMaterials(request, response, next) {
+  try {
+    const { items } = request.validated;
+    const { rows, errors } = materialImportService.validateImportRows(items);
+
+    if (errors) {
+      return response.status(400).json({
+        message: `ไฟล์มีข้อมูลไม่ถูกต้อง ${errors.length} แถว ยังไม่ได้นำเข้าเลย กรุณาแก้แล้วลองใหม่`,
+        errors: errors.slice(0, 100),
+      });
+    }
+
+    const result = await materialImportService.importMaterials(rows);
+
+    response.status(200).json({ message: `นำเข้าวัสดุ ${result.created} รายการ`, ...result });
   } catch (error) {
     next(error);
   }

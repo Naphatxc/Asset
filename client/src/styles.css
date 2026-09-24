@@ -271,7 +271,14 @@ a {
   line-height: 1.5;
 }
 
-/* หน้าต่างนำเข้าครุภัณฑ์จากไฟล์ (ImportEquipmentDialog) ซ่อน input file ของเบราว์เซอร์ ใช้ปุ่มของระบบแทน */
+/* หน้าต่างนำเข้าครุภัณฑ์/วัสดุจากไฟล์ (ImportDialog) ซ่อน input file ของเบราว์เซอร์ ใช้ปุ่มของระบบแทน */
+.import-template {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  margin-top: 14px;
+}
+
 .import-file-picker {
   display: flex;
   align-items: center;

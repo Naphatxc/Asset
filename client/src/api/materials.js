@@ -39,6 +39,11 @@ export function withdrawMaterial(materialId, { quantity, remark }) {
 }
 
 // กลุ่มคำสั่งของ Admin (Create/Update/Delete/Restore)
+// items = แถวจากไฟล์ Excel ที่แปลงแล้วใน utils/importExcel.js (ดู MATERIAL_IMPORT)
+export function importMaterials(items) {
+  return request('/api/admin/materials/import', { method: 'POST', body: { items } });
+}
+
 export function createMaterial(material) {
   return request('/api/admin/materials', {
     method: 'POST',

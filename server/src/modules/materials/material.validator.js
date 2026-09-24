@@ -7,6 +7,7 @@ export const MAX_MATERIAL_NAME_LENGTH = 150;
 export const MAX_MATERIAL_CODE_LENGTH = 50;
 export const MAX_UNIT_NAME_LENGTH = 50;
 export const MAX_LONG_TEXT_LENGTH = 2000; // remark เป็น TEXT ไม่จำกัดจาก DB
+export const MAX_IMPORT_ROWS = 5000; // เท่ากับของครุภัณฑ์ (equipment.validator.js)
 
 function exceedsLength(value, max) {
   return typeof value === 'string' && value.length > max;
@@ -118,6 +119,21 @@ export function validateUpdateMaterial(request, _response, next) {
   }
 
   request.validated = { ...request.validated, body };
+  next();
+}
+
+// ตรวจแค่โครงของ body ส่วนข้อมูลรายแถวตรวจใน material-import.service.js เพราะต้องรายงานแถวที่ผิดทั้งหมดกลับไป
+export function validateImportMaterials(request, _response, next) {
+  const items = request.body?.items;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return next(new AppError(400, 'ไม่พบรายการวัสดุในไฟล์'));
+  }
+  if (items.length > MAX_IMPORT_ROWS) {
+    return next(new AppError(400, `นำเข้าได้ครั้งละไม่เกิน ${MAX_IMPORT_ROWS} รายการ กรุณาแบ่งไฟล์`));
+  }
+
+  request.validated = { ...request.validated, items };
   next();
 }
 
