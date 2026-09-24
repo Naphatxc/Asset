@@ -63,6 +63,14 @@ textarea {
   background: linear-gradient(90deg, var(--stat-gold), var(--stat-pink));
 }
 
+.brand-logo {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 10px;
+  border-radius: 50%;
+  object-fit: contain;
+}
+
 .eyebrow {
   margin: 0;
   color: var(--stat-plum);
@@ -139,6 +147,133 @@ a {
   box-shadow: 0 13px 26px rgba(237, 0, 130, 0.27);
 }
 
+/* ช่องรหัสผ่าน + ปุ่มรูปตา (PasswordInput) ปุ่มลอยอยู่ขอบขวาในช่อง ต้องล้างสไตล์ปุ่ม gradient ของ
+   .login-form button ทิ้งทั้งหมด และเว้น padding ขวาของ input ไว้ไม่ให้ข้อความวิ่งไปใต้ปุ่ม */
+.password-field {
+  position: relative;
+  display: block;
+}
+
+.password-field input {
+  padding-right: 48px;
+}
+
+.login-form .password-toggle,
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: #8a7a80;
+  background: transparent;
+  box-shadow: none;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.login-form .password-toggle:hover,
+.password-toggle:hover {
+  color: var(--stat-plum);
+  background: rgba(180, 59, 107, 0.08);
+  box-shadow: none;
+  transform: translateY(-50%);
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid var(--stat-pink-soft);
+  outline-offset: 1px;
+}
+
+/* ปุ่มแบบลิงก์ข้อความในฟอร์ม login (ลืมรหัสผ่าน/ยกเลิก) ต้องล้างสไตล์ปุ่ม gradient ของ .login-form button */
+.login-form .forgot-link,
+.login-form .auth-switch {
+  padding: 4px 0;
+  border: 0;
+  color: var(--stat-plum);
+  background: transparent;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+.login-form .forgot-link {
+  justify-self: end;
+  margin-top: -10px;
+  font-size: 0.9rem;
+}
+
+.login-form .forgot-link:hover,
+.login-form .auth-switch:hover {
+  color: var(--stat-pink);
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  text-decoration: underline;
+}
+
+/* ใต้ป้ายสถานะในตารางยืม-คืน: ใครรับคืน/แจ้งคืนเมื่อไหร่ */
+.borrow-status-note {
+  display: block;
+  margin-top: 6px;
+  color: var(--stat-slate-dark);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+/* หน้าต่างนำเข้าครุภัณฑ์จากไฟล์ (ImportEquipmentDialog) ซ่อน input file ของเบราว์เซอร์ ใช้ปุ่มของระบบแทน */
+.import-file-picker {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0;
+  cursor: pointer;
+}
+
+.import-file-picker input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.import-file-picker:focus-within .button-secondary {
+  outline: 2px solid var(--stat-pink-soft);
+  outline-offset: 2px;
+}
+
+.import-file-name {
+  color: #555555;
+  overflow-wrap: anywhere;
+}
+
+.import-preview {
+  padding: 12px 14px;
+  border: 1px solid #ead9df;
+  border-radius: 10px;
+  background: var(--stat-pink-paper);
+}
+
+.import-preview p {
+  margin: 0 0 8px;
+}
+
+.import-category-list,
+.import-errors,
+.import-result ul {
+  margin: 0;
+  padding-left: 20px;
+  line-height: 1.7;
+}
+
+.import-errors {
+  margin-top: 8px;
+}
+
 /* ===== ข้อความผลลัพธ์จาก API ===== */
 .error-message {
   margin: 0;
@@ -155,8 +290,73 @@ button:disabled {
   transform: none;
 }
 
-.dashboard-card {
-  width: min(100%, 1180px);
+/* ===== โครงหน้า Dashboard: sidebar เลือก tab ซ้าย + เนื้อหาขวา ===== */
+.dashboard-shell {
+  min-height: 100dvh;
+  display: flex;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255, 191, 2, 0.14), transparent 28%),
+    radial-gradient(circle at 90% 85%, rgba(237, 0, 130, 0.12), transparent 32%),
+    linear-gradient(145deg, #ffffff 0%, #fffbfd 48%, #f4f7f7 100%);
+}
+
+.dashboard-sidebar {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 260px;
+  padding: 28px 20px;
+  border-right: 1px solid rgba(180, 59, 107, 0.16);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dashboard-account {
+  margin-bottom: 24px;
+}
+
+.dashboard-account h1 {
+  margin: 8px 0 10px;
+  font-size: 1.4rem;
+  word-break: break-word;
+}
+
+.dashboard-account .account-summary {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.dashboard-nav {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dashboard-nav-item {
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 9px;
+  color: #454545;
+  background: transparent;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dashboard-nav-item:hover {
+  background: var(--stat-pink-paper);
+}
+
+.dashboard-nav-item.active {
+  color: #ffffff;
+  background: linear-gradient(90deg, var(--stat-gold), var(--stat-pink));
+}
+
+.dashboard-content {
+  flex: 1;
+  min-width: 0;
+  padding: 28px clamp(20px, 4vw, 40px);
 }
 
 /* ===== ตารางผู้ใช้และครุภัณฑ์ ===== */
@@ -190,12 +390,79 @@ button:disabled {
   border-bottom: 1px solid #e6ebec;
 }
 
+/* ข้อความยาวที่ไม่มีจุดให้ตัดบรรทัด (อีเมล ชื่อ/รหัสยาวๆ ข้อความไม่มีเว้นวรรค) ต้องขึ้นบรรทัดใหม่ในช่องตัวเอง
+   ไม่งั้นความกว้างขั้นต่ำของคอลัมน์เท่ากับคำที่ยาวที่สุด ตารางกว้างเกินหน้าจนต้องเลื่อนไปดูคอลัมน์หลังๆ
+   ต้องเป็น anywhere ไม่ใช่ break-word เพราะ anywhere เท่านั้นที่ลดความกว้างขั้นต่ำของคอลัมน์ ตารางจึงหดพอดีหน้าได้ */
+.user-table td,
+.equipment-table td {
+  overflow-wrap: anywhere;
+}
+
+/* ตัวเลข (ราคา) ห้ามหักกลางค่า เช่น ฿1.0 / 0 */
+.user-table td.cell-number,
+.equipment-table td.cell-number {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+/* โหมดตารางเต็ม (พื้นที่ ≥ 960px) บีบระยะซ้าย-ขวาของช่องลงนิดหน่อย ตารางคอลัมน์เยอะอย่างครุภัณฑ์จะได้มีที่ให้
+   ช่องข้อความ ไม่ต้องหักคำกลางคำบนจอโน้ตบุ๊ก 1366px (โหมดการ์ดใช้ padding ของตัวเองอยู่แล้ว) */
+@container dashboard (min-width: 960px) {
+  .user-table th,
+  .user-table td,
+  .equipment-table th,
+  .equipment-table td {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+}
+
 .user-table th,
 .equipment-table th {
   color: #ffffff;
   background: var(--stat-slate);
   font-size: 0.84rem;
   letter-spacing: 0.025em;
+}
+
+/* หัวคอลัมน์ที่คลิกเรียงได้ (ดู SortableTh ใน ListFilters.jsx) หน้าตาเหมือนหัวตารางปกติ + ลูกศร ▲/▼
+   คอลัมน์ที่ยังไม่ได้เรียงแสดงลูกศรจางๆ ให้รู้ว่ากดได้ */
+.sort-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sort-arrow {
+  font-size: 0.62rem;
+  letter-spacing: -0.1em;
+  opacity: 0.45;
+}
+
+.sort-header.active .sort-arrow,
+.sort-header:hover .sort-arrow {
+  opacity: 1;
+}
+
+.sort-header:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ช่องเลือกเรียงลำดับใช้แทนหัวตารางเฉพาะโหมดการ์ด (หัวตารางถูกซ่อน) ดู @container dashboard ด้านล่าง
+   .sort-only-cards คือแถวที่มีแค่ช่องนี้ (เช่น ประวัติการเบิก) ซ่อนทั้งแถวไม่ให้เหลือช่องว่างตอนเป็นตาราง */
+.equipment-filters .sort-select-cards,
+.equipment-filters.sort-only-cards {
+  display: none;
 }
 
 .user-table tbody tr:last-child td,
@@ -251,8 +518,11 @@ button:disabled {
   flex: none;
 }
 
-.equipment-table {
-  min-width: 1080px;
+/* ไม่ล็อก min-width ของตารางแล้ว ให้กว้างตามเนื้อหาจริง พื้นที่แคบกว่านี้ .responsive-table จะกลายเป็นการ์ดเอง
+   dropdown สถานที่จำกัดความกว้างไว้ ไม่งั้นจะกว้างตามชื่อสถานที่ที่ยาวที่สุดแล้วดันทั้งตารางให้ล้น */
+.equipment-table td .status-select {
+  width: 100%;
+  max-width: 220px;
 }
 
 .equipment-code {
@@ -290,6 +560,74 @@ button:disabled {
   background: #eaf4ff;
 }
 
+.status-damaged {
+  color: #5b3f99;
+  background: #f1ebff;
+}
+
+.status-disposed {
+  color: #4b5563;
+  background: #eef0f2;
+}
+
+.status-overdue {
+  color: #a61b43;
+  background: #fff0f4;
+}
+
+.status-returned {
+  color: #176b4d;
+  background: #e8fff5;
+}
+
+.status-pending {
+  color: #315b84;
+  background: #eaf4ff;
+}
+
+.status-rejected {
+  color: #6b6b6b;
+  background: #f1f1f1;
+}
+
+.status-pending_return {
+  color: #805600;
+  background: #fff4cc;
+}
+
+.status-completed {
+  color: #176b4d;
+  background: #e8fff5;
+}
+
+.status-cancelled {
+  color: #6b6b6b;
+  background: #f1f1f1;
+}
+
+.checkbox-list {
+  display: grid;
+  gap: 8px;
+  max-height: 260px;
+  padding: 12px;
+  overflow-y: auto;
+  border: 1px solid #d7cbcf;
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.checkbox-list-item {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400 !important;
+}
+
+.checkbox-list-item input {
+  width: auto !important;
+}
+
 .empty-state,
 .loading-message {
   padding: 22px;
@@ -307,6 +645,62 @@ button:disabled {
 
 .equipment-toolbar {
   align-items: center;
+}
+
+/* ===== ค้นหา/กรองสถานะ + แบ่งหน้า สำหรับรายการครุภัณฑ์ที่มีจำนวนมาก ===== */
+.equipment-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+
+.equipment-filters input,
+.equipment-filters select {
+  padding: 9px 12px;
+  border: 1px solid #d7cbcf;
+  border-radius: 9px;
+  color: #333333;
+  background: #ffffff;
+}
+
+.equipment-filters input {
+  flex: 1;
+  min-width: 200px;
+}
+
+.equipment-filters select {
+  min-width: 140px;
+}
+
+.pagination-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pagination-summary {
+  color: var(--stat-slate-dark);
+  font-size: 0.85rem;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+
+.pagination-controls button {
+  padding: 6px 12px;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* ===== ปุ่มและ Action สำหรับ Admin ===== */
@@ -341,11 +735,11 @@ button:disabled {
   background: #ffffff;
 }
 
-.row-actions {
-  min-width: 220px;
-}
-
+/* ป้ายปุ่มห้ามตัดกลางคำ (ช่องตารางตั้ง overflow-wrap: anywhere ไว้ ปุ่มจะรับค่านั้นมาด้วย) พื้นที่ไม่พอให้ปุ่ม
+   ขึ้นแถวใหม่ทั้งปุ่มแทน (.row-actions เป็น flex-wrap) */
 .row-actions button {
+  white-space: nowrap;
+  overflow-wrap: normal;
   padding: 6px 9px;
   font-size: 0.8rem;
 }
@@ -403,6 +797,9 @@ button:disabled {
 
 .form-grid label {
   display: grid;
+  /* align-content: start กัน grid แจกพื้นที่ว่างส่วนเกิน (ตอนแถวข้างๆ สูงกว่า เช่นมีตัวนับตัวอักษร) เข้าไป
+     ยืดตัว select/input เองจนสูงไม่เท่ากับช่องข้างๆ ที่ไม่มีตัวนับ — ให้พื้นที่เกินไปอยู่ท้ายกล่องแทน */
+  align-content: start;
   gap: 7px;
   color: #454545;
   font-weight: 600;
@@ -434,6 +831,141 @@ button:disabled {
 
 .field-wide {
   grid-column: 1 / -1;
+}
+
+.required-mark {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+/* ตัวนับตัวอักษรใต้ช่องที่มี maxLength เตือนก่อนโดนตัดจริงตอนใกล้เต็ม (ดู CharCount ใน EquipmentForm.jsx) */
+.char-count {
+  justify-self: end;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #8a8a8a;
+}
+
+.char-count-warning {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* ฟอร์มกรอกสั้นๆ ที่แทนที่ select ตอนกด "+ เพิ่ม...ใหม่" (หมวดหมู่/สถานที่) */
+.select-with-create {
+  display: grid;
+  gap: 8px;
+}
+
+.select-with-create-field {
+  display: grid;
+  gap: 3px;
+}
+
+.select-with-create input {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #d7cbcf;
+  border-radius: 9px;
+  color: #333333;
+  background: #ffffff;
+  font-weight: 400;
+}
+
+.select-with-create-error {
+  margin: 0;
+}
+
+.select-with-create-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.select-with-create-actions button {
+  flex: 1;
+}
+
+/* popover: ใช้ตอน SelectWithCreate อยู่ในแถว toolbar แคบๆ (filter ของรายการครุภัณฑ์) ฟอร์มกรอกลอยขึ้นมา
+   ด้านล่าง select แทนที่จะดันแถวให้เบี้ยว (ดู SelectWithCreate.jsx prop popover) */
+.select-with-create-popover-anchor {
+  position: relative;
+}
+
+.select-with-create-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  width: max(240px, 100%);
+  padding: 12px;
+  background: #ffffff;
+  border: 1px solid #d7cbcf;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(50, 30, 40, 0.18);
+}
+
+/* ช่องเลือกแบบพิมพ์ค้นหาในช่องเดียว (ดู SearchableSelect.jsx) เช่น เลือกผู้ยืม/ครุภัณฑ์ตอนแจ้งซ่อม
+   รายการกว้างเท่าช่อง สูงไม่เกิน 280px เลื่อนในกล่อง แทนรายการของ <select> ที่ browser เปิดเต็มจอ */
+.combobox {
+  position: relative;
+}
+
+.combobox-input {
+  width: 100%;
+}
+
+.combobox-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  max-height: 280px;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+  background: #ffffff;
+  border: 1px solid #d7cbcf;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(50, 30, 40, 0.18);
+}
+
+.combobox-option,
+.combobox-empty {
+  padding: 8px 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+
+.combobox-option {
+  cursor: pointer;
+}
+
+.combobox-option.active {
+  background: #fde8f2;
+}
+
+.combobox-option.selected {
+  color: var(--stat-plum);
+  font-weight: 600;
+}
+
+.combobox-empty {
+  color: var(--stat-slate-dark);
+}
+
+/* ช่องค้นหาเหนือ checkbox-list เลือกครุภัณฑ์หลายชิ้น (ดู EquipmentPicker.jsx) */
+.equipment-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.equipment-picker-filter {
+  font-weight: 400;
+  font-size: 0.9rem;
 }
 
 .form-actions {
@@ -513,6 +1045,211 @@ button:disabled {
   background: #fffaf0;
 }
 
+/* ===== ภาพรวม Dashboard: stat card + กราฟ ===== */
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin: 14px 0;
+}
+
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  color: #ffffff;
+}
+
+.stat-card-value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.stat-card-label {
+  font-size: 0.85rem;
+  opacity: 0.92;
+}
+
+.stat-card-total {
+  background: linear-gradient(135deg, var(--stat-slate-dark), var(--stat-slate));
+}
+
+.stat-card-available {
+  background: linear-gradient(135deg, #176b4d, #22a06b);
+}
+
+.stat-card-borrowed {
+  background: linear-gradient(135deg, #b98600, var(--stat-gold));
+}
+
+.stat-card-users {
+  background: linear-gradient(135deg, var(--stat-plum), var(--stat-pink));
+}
+
+/* การ์ดคลิกได้ "ต้องดำเนินการ" (คำขอยืมรออนุมัติ/ครุภัณฑ์รอซ่อม/เลยกำหนดคืน) — สีเทาเมื่อค่าเป็น 0
+   (ไม่มีอะไรต้องทำ) เปลี่ยนเป็นสีเตือนเมื่อมีรายการค้างจริง ให้กวาดตาเห็นได้ทันทีว่าต้องรีบดูอันไหนก่อน */
+.attention-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.attention-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 18px;
+  border: 1px solid #ead9df;
+  border-radius: 12px;
+  background: #fffbfd;
+  color: #333333;
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.attention-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(180, 59, 107, 0.15);
+}
+
+.attention-card-value {
+  font-size: 1.9rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--stat-slate-dark);
+}
+
+.attention-card-label {
+  font-size: 0.85rem;
+  color: #6b6b6b;
+}
+
+.attention-card-active .attention-card-value {
+  color: var(--stat-plum);
+}
+
+.attention-card-overdue.attention-card-active {
+  border-color: #f3b4c4;
+  background: #fff0f4;
+}
+
+.attention-card-overdue.attention-card-active .attention-card-value {
+  color: #a61b43;
+}
+
+/* กิจกรรมล่าสุด (ยืม/คืน/แจ้งซ่อม) เรียงตามเวลา ดู DashboardOverview.jsx buildRecentActivity ฝั่ง backend */
+.activity-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.activity-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  font-size: 1rem;
+  background: #f1f1f1;
+}
+
+.activity-icon-borrow {
+  background: #fff4cc;
+}
+
+.activity-icon-return {
+  background: #e8fff5;
+}
+
+.activity-icon-repair {
+  background: #fff0e8;
+}
+
+.activity-body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.activity-text {
+  margin: 0;
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
+.activity-time {
+  font-size: 0.78rem;
+  color: var(--stat-slate-dark);
+}
+
+/* grid/flex item กว้างอย่างน้อยเท่าเนื้อหาข้างในโดยปริยาย ชื่อยาวๆ ในรายการเลยดันกล่องล้นออกนอกหน้า
+   ต้องตั้ง min-width: 0 ที่ตัวกล่อง (.overview-panel, .activity-body) ให้หดได้แล้วตัดบรรทัดข้างในแทน */
+.overview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.overview-panel {
+  min-width: 0;
+  padding: 18px 20px;
+  border: 1px solid #ead9df;
+  border-radius: 14px;
+  background: #fffbfd;
+  margin-bottom: 16px;
+}
+
+.overview-panel h3 {
+  margin: 0 0 14px;
+  font-size: 1.05rem;
+  color: var(--stat-plum);
+}
+
+.pie-chart-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 20px;
+}
+
+.pie-legend {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.88rem;
+  color: #454545;
+}
+
+.pie-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pie-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
 .user-table select {
   padding: 7px 10px;
   border: 1px solid var(--stat-plum);
@@ -527,8 +1264,24 @@ button:disabled {
   opacity: 0.55;
 }
 
-.logout-button {
+/* ปุ่มเปลี่ยนรหัสผ่านใน sidebar วางเหนือปุ่มออกจากระบบ ปุ่มออกจากระบบจึงไม่ต้องเว้นระยะบนเองแล้ว */
+.account-button {
   margin-top: 24px;
+  padding: 10px 15px;
+  border: 1px solid #d9cbd0;
+  border-radius: 9px;
+  color: var(--stat-plum);
+  background: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.account-button:hover {
+  border-color: var(--stat-plum);
+}
+
+.logout-button {
+  margin-top: 8px;
   padding: 10px 15px;
   border: 0;
   border-radius: 9px;
@@ -582,6 +1335,131 @@ button:disabled {
   .field-wide {
     grid-column: auto;
   }
+
+  /* Sidebar กลายเป็นแถบ tab แนวนอนด้านบน เลื่อนซ้าย-ขวาได้แทนคอลัมน์ซ้ายตายตัว */
+  .dashboard-shell {
+    flex-direction: column;
+  }
+
+  .dashboard-sidebar {
+    width: auto;
+    padding: 18px 16px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(180, 59, 107, 0.16);
+  }
+
+  .dashboard-account {
+    margin-bottom: 14px;
+  }
+
+  .dashboard-nav {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .dashboard-nav-item {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .dashboard-content {
+    padding: 20px 16px;
+  }
+}
+
+/* ===== ตารางแบบ responsive =====
+   ตารางที่ติด .responsive-table กลายเป็นการ์ดทีละแถวเมื่อพื้นที่เนื้อหาแคบ (มือถือ, แท็บเล็ต, หน้าต่างย่อ)
+   ใช้ container query วัดจากความกว้างของ .dashboard-content จริง ไม่ใช่ความกว้างจอ เพราะแท็บเล็ตยังมี
+   sidebar กินที่ 260px อยู่ การ์ดเรียงหลายคอลัมน์เองเมื่อพื้นที่พอ จุดสลับ 960px มาจากตารางยืม-คืนที่ต้องใช้
+   ราว 920px ถึงจะไม่ล้น (ตารางอื่นใช้น้อยกว่า ยกเว้นครุภัณฑ์ ~1215px ที่ยอมให้เลื่อนแนวนอนบนจอ 960–1215px)
+   หัวคอลัมน์ย้ายไปอยู่หน้าค่าแต่ละช่องผ่าน data-label ของ <td> */
+.dashboard-content {
+  container: dashboard / inline-size;
+}
+
+@container dashboard (max-width: 959px) {
+  .table-wrap:has(> .responsive-table) {
+    overflow-x: visible;
+    border: 0;
+    border-radius: 0;
+  }
+
+  table.responsive-table {
+    display: block;
+    min-width: 0;
+  }
+
+  .responsive-table thead {
+    display: none;
+  }
+
+  .equipment-filters .sort-select-cards {
+    display: block;
+  }
+
+  .equipment-filters.sort-only-cards {
+    display: flex;
+  }
+
+  .responsive-table tbody {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr));
+    gap: 12px;
+  }
+
+  /* flex column เพื่อดันแถบปุ่มลงล่างสุดของการ์ด การ์ดในแถวเดียวกันจะได้ปุ่มตรงแนวกัน */
+  .responsive-table tr {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 0;
+    border: 1px solid #dbe3e4;
+    border-radius: 12px;
+    background: #ffffff;
+  }
+
+  /* label วางแบบ absolute ทางซ้าย แทน grid เพราะบางช่องมีหลายส่วน (รหัส<br>ชื่อ, จำนวน+ป้ายใกล้หมด)
+     ซึ่ง grid จะแยกแต่ละส่วนเป็นคนละ cell */
+  table.responsive-table td {
+    position: relative;
+    display: block;
+    padding: 8px 14px 8px 120px;
+    border-bottom: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* dropdown ในตาราง (สถานที่, สิทธิ์) กว้างตามตัวเลือกที่ยาวสุด ต้องจำกัดไม่ให้ดันการ์ดล้น */
+  .responsive-table td select {
+    max-width: 100%;
+  }
+
+  .responsive-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    top: 9px;
+    left: 14px;
+    width: 96px;
+    color: var(--stat-slate-dark);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  table.responsive-table td.stack-actions {
+    margin-top: auto;
+    padding-top: 12px;
+    padding-left: 14px;
+    border-top: 1px solid #e6ebec;
+  }
+
+  /* ตารางครุภัณฑ์มีช่องปุ่ม 2 ช่องติดกัน (QR + จัดการ) ให้เส้นคั่นอยู่แค่เหนือช่องแรก */
+  table.responsive-table td.stack-actions + td.stack-actions {
+    margin-top: 0;
+    padding-top: 4px;
+    border-top: 0;
+  }
+
+  .responsive-table td.stack-actions::before {
+    content: none;
+  }
 }
 
 .auth-switch {
@@ -607,4 +1485,873 @@ button:disabled {
   border-radius: 8px;
   color: #176b4d;
   background: #edfff7;
+}
+
+/* ===== Toast แจ้งเตือน (ดู ToastProvider.jsx) ===== */
+.toast-container {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 1000;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+}
+
+.toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(50, 30, 40, 0.18);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  animation: toast-in 0.2s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.toast span {
+  flex: 1;
+}
+
+.toast-success {
+  border: 1px solid #9ed8c1;
+  color: #176b4d;
+  background: #edfff7;
+}
+
+.toast-error {
+  border: 1px solid #f4b6c8;
+  color: #9d174d;
+  background: #fff1f5;
+}
+
+.toast-close {
+  flex-shrink: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.toast-close:hover {
+  opacity: 1;
+}
+
+/* ===== Routing, หน้ารายละเอียด และ QR Code ===== */
+.destination-message {
+  padding: 10px 12px;
+  border-left: 4px solid var(--stat-gold);
+  color: #6f4d00;
+  background: #fff9e8;
+}
+
+.button-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.centered-state {
+  text-align: center;
+}
+
+.centered-state .button-link {
+  margin-top: 12px;
+}
+
+.detail-shell {
+  place-items: start center;
+}
+
+.equipment-detail-card {
+  width: min(100%, 960px);
+}
+
+.detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 26px;
+}
+
+.detail-header h1 {
+  margin-bottom: 8px;
+}
+
+.detail-code {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #fff0f7;
+}
+
+.detail-account {
+  justify-content: flex-end;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 0;
+}
+
+.detail-grid > div {
+  padding: 14px;
+  border: 1px solid #e7dce0;
+  border-radius: 10px;
+  background: #fffdfd;
+}
+
+.detail-grid dt {
+  margin-bottom: 5px;
+  color: var(--stat-slate-dark);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.detail-grid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.detail-grid .detail-wide {
+  grid-column: 1 / -1;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: 20px;
+  background: rgba(28, 24, 26, 0.64);
+}
+
+/* ข้อความยาวไม่เว้นวรรค (ชื่อครุภัณฑ์/วัสดุ อาการ ชื่อไฟล์) ต้องตัดบรรทัดในกล่อง ไม่ดัน dialog ล้นจอมือถือ
+   min-width: 0 ให้ dialog หดตาม grid ของ .modal-backdrop ได้ ไม่ขยายตามความกว้างข้อความ */
+.qr-dialog,
+.withdraw-dialog,
+.repair-dialog {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ป้ายปุ่มห้ามหักกลางคำ (เหมือนในตาราง) */
+.qr-dialog button,
+.withdraw-dialog button,
+.repair-dialog button {
+  overflow-wrap: normal;
+}
+
+.repair-detail-grid,
+.repair-detail-grid dd {
+  min-width: 0;
+}
+
+.qr-dialog {
+  width: min(100%, 520px);
+  padding: 24px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 26px 70px rgba(25, 18, 21, 0.3);
+}
+
+.qr-dialog h2 {
+  margin: 2px 0 0;
+}
+
+.qr-label-preview {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  padding: 18px;
+  border: 2px solid var(--stat-pink-soft);
+  border-radius: 14px;
+  text-align: center;
+}
+
+.qr-image {
+  width: min(100%, 320px);
+  height: auto;
+  image-rendering: pixelated;
+}
+
+.qr-label-preview strong {
+  color: var(--stat-plum);
+  font-size: 1.25rem;
+}
+
+.qr-label-preview small {
+  max-width: 100%;
+  color: var(--stat-slate-dark);
+  overflow-wrap: anywhere;
+}
+
+.qr-actions > button {
+  flex: 1 1 170px;
+}
+
+.withdraw-dialog {
+  width: min(100%, 480px);
+  padding: 24px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 26px 70px rgba(25, 18, 21, 0.3);
+}
+
+.withdraw-dialog h2 {
+  margin: 2px 0 0;
+}
+
+.withdraw-dialog-material {
+  margin: 0 0 16px;
+  color: #454545;
+}
+
+/* วัสดุใกล้/ถึงจำนวนขั้นต่ำ — badge เตือนในตารางวัสดุ (ดู MaterialManager.jsx) */
+.status-low_stock {
+  color: #a61b43;
+  background: #fff0f4;
+}
+
+.repair-dialog {
+  width: min(100%, 640px);
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 24px;
+  border-radius: 16px;
+  background: #ffffff;
+  box-shadow: 0 26px 70px rgba(25, 18, 21, 0.3);
+}
+
+.repair-detail-grid {
+  display: grid;
+  gap: 4px;
+  margin: 14px 0;
+  padding: 14px 16px;
+  border: 1px solid var(--stat-pink-soft);
+  border-radius: 12px;
+}
+
+.repair-detail-grid dt {
+  margin-top: 8px;
+  color: var(--stat-slate-dark);
+  font-size: 0.82rem;
+}
+
+.repair-detail-grid dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.file-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.file-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--stat-pink-soft);
+  color: var(--stat-plum);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.file-chip:hover {
+  text-decoration: underline;
+}
+
+/* ===== ช่องแนบไฟล์แบบลากวาง (ดู FileDropInput.jsx) — ใช้กับแจ้งซ่อม/แนบไฟล์เพิ่ม ===== */
+.file-drop-zone {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  border: 2px dashed #d7cbcf;
+  border-radius: 12px;
+  background: #fffdfd;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.file-drop-zone:hover,
+.file-drop-zone:focus-visible {
+  border-color: var(--stat-pink-soft);
+}
+
+.file-drop-zone-active {
+  border-color: var(--stat-pink-soft);
+  background: var(--stat-pink-paper);
+}
+
+.file-drop-zone p {
+  margin: 0;
+  color: #8a6b73;
+  font-size: 0.9rem;
+}
+
+.file-drop-native-input {
+  display: none;
+}
+
+/* ===== ราคา/ปีของครุภัณฑ์ที่เลือกในฟอร์มแจ้งซ่อม (ดู RepairManager.jsx) ===== */
+.repair-item-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  align-self: end;
+  gap: 10px;
+  margin: 0;
+}
+
+.repair-item-info > div {
+  padding: 8px 12px;
+  border: 1px solid #e7dce0;
+  border-radius: 9px;
+  background: #ffffff;
+}
+
+.repair-item-info dt {
+  color: var(--stat-slate-dark);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.repair-item-info dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+}
+
+/* ===== รูปครุภัณฑ์/วัสดุ (ดู ImageInput.jsx, ItemThumbnail.jsx) ===== */
+.image-field {
+  display: grid;
+  gap: 7px;
+  color: #454545;
+  font-weight: 600;
+}
+
+.image-input {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.image-input-preview {
+  display: grid;
+  place-items: center;
+  width: 180px;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border: 2px dashed #d7cbcf;
+  border-radius: 12px;
+  color: #8a6b73;
+  background: #fffdfd;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.image-input-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-input-actions {
+  display: flex;
+  flex: 1 1 220px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.image-input .button-danger {
+  padding: 8px 12px;
+  border: 1px solid #e7a7b6;
+  border-radius: 8px;
+  color: #a61b43;
+  background: #fff4f6;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.field-hint {
+  flex-basis: 100%;
+  margin: 0;
+  color: #8a6b73;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.item-thumbnail {
+  display: inline-grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  border: 1px solid #e7dce0;
+  border-radius: 8px;
+  color: #b9a8ae;
+  background: #f6f1f3;
+  vertical-align: middle;
+}
+
+.item-thumbnail img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.detail-image img {
+  display: block;
+  max-width: 100%;
+  max-height: 420px;
+  margin: 0 auto;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.file-chip-removable button {
+  all: unset;
+  margin-left: 8px;
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.file-chip-removable button:hover {
+  color: var(--stat-plum);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .detail-header,
+  .detail-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .detail-account {
+    justify-content: flex-start;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detail-grid .detail-wide {
+    grid-column: auto;
+  }
+
+  .modal-backdrop {
+    padding: 10px;
+  }
+
+  .qr-dialog {
+    padding: 18px;
+  }
+
+  .repair-dialog {
+    padding: 18px;
+  }
+}
+
+/* ===== ตรวจนับครุภัณฑ์ประจำปี =====
+   หน้าสแกน (/audit/:roundId) ออกแบบให้ถือมือถือมือเดียวเดินตรวจ: คอลัมน์เดียวกว้างไม่เกิน 560px
+   ปุ่มผลตรวจใหญ่พอให้นิ้วโป้งกดได้แม่นขณะเดิน ส่วนหน้าจัดการรอบอยู่ในแท็บของ Dashboard ตามปกติ */
+.audit-scan-shell {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 560px);
+  min-height: 100dvh;
+  margin: 0 auto;
+  padding: 16px 16px 40px;
+}
+
+.audit-scan-header h1 {
+  margin: 4px 0 10px;
+  font-size: clamp(1.3rem, 5vw, 1.7rem);
+}
+
+.audit-back-link {
+  display: inline-block;
+  margin-bottom: 8px;
+  text-decoration: none;
+}
+
+.audit-closed-note {
+  margin: 8px 0 0;
+  color: var(--stat-slate-dark);
+  font-weight: 600;
+}
+
+.audit-panel {
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid #ead9df;
+  border-radius: 14px;
+  background: var(--stat-paper);
+}
+
+.audit-room-label {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.audit-room-label select,
+.audit-search input,
+.audit-note {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #d7cbcf;
+  border-radius: 10px;
+  background: var(--stat-paper);
+}
+
+.audit-room-progress {
+  display: grid;
+  gap: 4px;
+  color: #555555;
+  font-size: 0.9rem;
+}
+
+.audit-progress {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.audit-progress-track {
+  flex: 1;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #f1e6ea;
+}
+
+.audit-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--stat-gold), var(--stat-pink));
+  transition: width 240ms ease;
+}
+
+.audit-scan-button {
+  padding: 16px;
+  font-size: 1.05rem;
+}
+
+.audit-wide-button {
+  width: 100%;
+}
+
+/* qr-scanner วางกรอบเล็ง (highlightScanRegion) แบบ absolute อ้างอิงกับ parent ของ <video> */
+.qr-scanner {
+  position: relative;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #1c181a;
+}
+
+.qr-scanner video {
+  display: block;
+  width: 100%;
+  max-height: 55dvh;
+  object-fit: cover;
+}
+
+.qr-scanner-error {
+  margin: 0;
+  padding: 14px;
+  color: #ffffff;
+}
+
+.audit-lookup-message {
+  margin: 0;
+}
+
+.audit-item-card {
+  border-width: 2px;
+  box-shadow: 0 10px 26px rgba(88, 53, 68, 0.1);
+}
+
+.audit-item-card.audit-outcome-normal {
+  border-color: #22a06b;
+}
+
+.audit-item-card.audit-outcome-damaged {
+  border-color: #d9480f;
+}
+
+.audit-item-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.audit-item-heading h2 {
+  margin: 4px 0;
+  padding: 0;
+  border: 0;
+  font-size: 1.15rem;
+  line-height: 1.4;
+}
+
+.audit-item-meta {
+  margin: 0;
+  color: #555555;
+}
+
+.audit-notice {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #805600;
+  background: #fff8e0;
+}
+
+.audit-notice-done {
+  color: #176b4d;
+  background: #e8fff5;
+}
+
+.audit-move-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff0f6;
+  cursor: pointer;
+}
+
+.audit-move-toggle input {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  flex-shrink: 0;
+  accent-color: var(--stat-pink);
+}
+
+.audit-note {
+  resize: vertical;
+}
+
+.audit-result-buttons {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 10px;
+}
+
+.audit-result-buttons button {
+  min-height: 56px;
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.audit-result-normal {
+  background: linear-gradient(135deg, #176b4d, #22a06b);
+}
+
+.audit-result-damaged {
+  background: linear-gradient(135deg, #a33a16, #e8590c);
+}
+
+.audit-search {
+  display: flex;
+  gap: 8px;
+}
+
+.audit-search input {
+  flex: 1;
+  min-width: 0;
+}
+
+.audit-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.audit-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #efe3e7;
+  border-radius: 10px;
+  color: inherit;
+  background: #fffbfd;
+  text-align: left;
+  cursor: pointer;
+}
+
+.audit-list-name {
+  display: block;
+  color: #444444;
+  font-size: 0.9rem;
+}
+
+.audit-list-heading {
+  margin: 10px 0 0;
+  font-size: 0.95rem;
+}
+
+.audit-empty {
+  margin: 0;
+  color: #777777;
+}
+
+.audit-outcome-badge {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: #637f84;
+  background: #eef3f4;
+}
+
+.audit-outcome-badge.audit-outcome-normal {
+  color: #176b4d;
+  background: #e8fff5;
+}
+
+.audit-outcome-badge.audit-outcome-damaged {
+  color: #a33a16;
+  background: #fff0e8;
+}
+
+.audit-outcome-badge.audit-outcome-borrowed {
+  color: #805600;
+  background: #fff4cc;
+}
+
+.audit-outcome-badge.audit-outcome-in_repair {
+  color: #315b84;
+  background: #eaf4ff;
+}
+
+.audit-outcome-badge.audit-outcome-missing {
+  color: #a61b43;
+  background: #fff0f4;
+}
+
+/* ส่วนจัดการรอบในแท็บ Dashboard */
+.audit-open-round {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid #ead9df;
+  border-radius: 14px;
+  background: var(--stat-pink-paper);
+}
+
+.audit-open-round h3 {
+  margin: 2px 0 0;
+}
+
+.audit-round-meta {
+  margin: 0;
+  color: #555555;
+}
+
+.audit-open-round .row-actions {
+  min-width: 0;
+}
+
+.audit-confirm {
+  padding: 12px 14px;
+  border-left: 4px solid #d9480f;
+  border-radius: 8px;
+  background: #fff4ee;
+}
+
+.audit-confirm p {
+  margin: 0 0 10px;
+}
+
+.audit-history-heading {
+  margin: 26px 0 10px;
+}
+
+.audit-summary {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.audit-filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.audit-chip {
+  padding: 7px 12px;
+  border: 1px solid #d9cbd0;
+  border-radius: 999px;
+  color: #444444;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.audit-chip.active {
+  border-color: var(--stat-pink);
+  color: #ffffff;
+  background: var(--stat-pink);
 }

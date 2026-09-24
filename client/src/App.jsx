@@ -1,191 +1,47 @@
-// App ดูแลเรื่องบัญชีผู้ใช้และ Session ส่วนงานครุภัณฑ์แยกไปอยู่ใน EquipmentManager
-import { useEffect, useState } from 'react';
-import AuthForm from './components/AuthForm.jsx';
-import Dashboard from './components/Dashboard.jsx';
-
-const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+// App ดูแลเรื่อง Session และ Routing เท่านั้น ไม่มี logic เฉพาะหน้าใดหน้าหนึ่งอยู่ที่นี่
+// Login/Register อยู่ใน LoginPage, จัดการผู้ใช้ (Admin) อยู่ใน Dashboard ทั้งหมด
+// Session มาจาก query ['auth','me'] — กลายเป็น null อัตโนมัติเมื่อเจอ 401 (ดู main.jsx: handleAuthError)
+// จึงไม่ต้องส่ง onUnauthorized/onSessionExpired ไล่ผ่าน prop หลายชั้นเหมือนเดิมอีกต่อไป
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Route, Routes, useLocation } from 'react-router-dom';
+import { getCurrentUser, logout as logoutRequest } from './api/auth.js';
+import AuditScanPage from './pages/AuditScanPage/AuditScanPage.jsx';
+import Dashboard from './pages/Dashboard/Dashboard.jsx';
+import EquipmentDetailPage from './pages/EquipmentDetailPage/EquipmentDetailPage.jsx';
+import LoginPage from './pages/LoginPage/LoginPage.jsx';
+import NotFoundPage from './pages/NotFoundPage/NotFoundPage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage/ResetPasswordPage.jsx';
 
 export default function App() {
-  // State ของฟอร์ม Login/Register
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [user, setUser] = useState(null);
-  const [users, setUsers] = useState([]);
-  // State สำหรับข้อความและสถานะการโหลดของหน้า Authentication/Admin
-  const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
-  const [adminError, setAdminError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
-  const [updatingUserId, setUpdatingUserId] = useState(null);
-  const [authMode, setAuthMode] = useState('login');
-  const [name, setName] = useState('');
+  const queryClient = useQueryClient();
+  const location = useLocation();
 
-  // เมื่อเปิดหรือ Refresh เว็บ ให้ใช้ Token เดิมถาม /me ว่ายัง Login อยู่หรือไม่
-  useEffect(() => {
-    const token = localStorage.getItem('access_token');
+  // เช็ค session ตอนโหลด/Refresh หน้าเว็บ cookie จะแนบไปเองถ้ามี (retry:false ตั้งไว้ที่ QueryClient กลาง)
+  const { data: meData, isLoading: checkingSession } = useQuery({
+    queryKey: ['auth', 'me'],
+    queryFn: getCurrentUser,
+  });
+  const user = meData?.user ?? null;
 
-    if (!token) {
-      setCheckingSession(false);
-      return;
-    }
-
-    async function loadCurrentUser() {
-      try {
-        const response = await fetch(`${apiUrl}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await response.json();
-
-        if (!response.ok) throw new Error(data.message);
-        setUser(data.user);
-      } catch {
-        localStorage.removeItem('access_token');
-        setUser(null);
-      } finally {
-        setCheckingSession(false);
-      }
-    }
-
-    loadCurrentUser();
-  }, []);
-
-  // รายชื่อผู้ใช้เป็นข้อมูลเฉพาะ Admin จึงโหลดหลังทราบ role แล้วเท่านั้น
-  useEffect(() => {
-    if (user?.role !== 'admin') {
-      setUsers([]);
-      return;
-    }
-
-    async function loadUsers() {
-      try {
-        setAdminError('');
-        const token = localStorage.getItem('access_token');
-        const response = await fetch(`${apiUrl}/api/admin/users`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await response.json();
-
-        if (response.status === 401) {
-          clearSession();
-          return;
-        }
-        if (!response.ok) throw new Error(data.message);
-        setUsers(data.users);
-      } catch (loadError) {
-        setAdminError(loadError.message);
-      }
-    }
-
-    loadUsers();
-  }, [user]);
-
-  // ล้างทั้ง Token และข้อมูลในหน่วยความจำ ใช้ร่วมกันตอน Logout/Token หมดอายุ
-  function clearSession() {
-    localStorage.removeItem('access_token');
-    setUser(null);
-    setUsers([]);
-  }
-
-  // Login และ Register ใช้ฟอร์มเดียวกัน แต่เลือก endpoint จาก authMode
-  async function handleSubmit(event) {
-    event.preventDefault();
-    setError('');
-    setSuccessMessage('');
-    setLoading(true);
-
+  // เรียก /api/auth/logout ให้ server ล้าง cookie ก่อน แล้วค่อยล้าง cache ฝั่งนี้ — ทำ best-effort
+  // คือถึง request ล้มเหลว (เช่น server ล่ม) ก็ยังล้าง session ให้ UI กลับไปหน้า Login ได้ตามปกติ
+  async function logout() {
     try {
-      const endpoint =
-        authMode === 'login' ? '/api/auth/login' : '/api/auth/register';
-      const requestBody =
-        authMode === 'login'
-          ? { email, password }
-          : { name, email, password };
-      const response = await fetch(`${apiUrl}${endpoint}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(requestBody),
-      });
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message ?? 'ไม่สามารถดำเนินการได้');
-      }
-      if (authMode === 'register') {
-        setAuthMode('login');
-        setName('');
-        setPassword('');
-        setSuccessMessage('สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ');
-        return;
-      }
-
-      localStorage.setItem('access_token', data.token);
-      setUser(data.user);
-    } catch (submitError) {
-      setError(submitError.message);
-    } finally {
-      setLoading(false);
+      await logoutRequest();
+    } catch {
+      // เพิกเฉย: cookie อาจหมดอายุอยู่แล้วหรือ network มีปัญหา ไม่ควรบล็อกไม่ให้ผู้ใช้ออกจากระบบ
     }
+
+    queryClient.setQueryData(['auth', 'me'], null);
+    queryClient.removeQueries({ queryKey: ['admin-users'] });
   }
 
-  // เปลี่ยน role แล้วอัปเดตเฉพาะแถวที่เปลี่ยน ไม่จำเป็นต้องโหลดทั้งตารางใหม่
-  async function updateUserRole(userId, role) {
-    try {
-      setAdminError('');
-      setUpdatingUserId(userId);
-      const token = localStorage.getItem('access_token');
-      const response = await fetch(
-        `${apiUrl}/api/admin/users/${userId}/role`,
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ role }),
-        },
-      );
-      const data = await response.json();
-
-      if (response.status === 401) {
-        clearSession();
-        return;
-      }
-      if (!response.ok) throw new Error(data.message);
-
-      setUsers((currentUsers) =>
-        currentUsers.map((item) =>
-          item.user_id === userId
-            ? { ...item, role: data.user.role }
-            : item,
-        ),
-      );
-    } catch (updateError) {
-      setAdminError(updateError.message);
-    } finally {
-      setUpdatingUserId(null);
-    }
+  // ลิงก์ตั้งรหัสผ่านใหม่จากอีเมลต้องเปิดได้ทั้งตอน login อยู่และไม่ได้ login (ไม่ต้องรอเช็ค session)
+  if (location.pathname === '/reset-password') {
+    return <ResetPasswordPage />;
   }
 
-  // ทุกครั้งที่สลับ Login/Register ต้องล้างข้อมูลและข้อความจากหน้าก่อน
-  function switchAuthMode() {
-    setError('');
-    setSuccessMessage('');
-    setName('');
-    setEmail('');
-    setPassword('');
-    setAuthMode((currentMode) =>
-      currentMode === 'login' ? 'register' : 'login',
-    );
-  }
-
-  function logout() {
-    clearSession();
-    setEmail('');
-    setPassword('');
-  }
-
-  // ระหว่างตรวจ Token ยังไม่ควรแสดงหน้า Login เพราะหน้าจะกระพริบ
+  // ระหว่างตรวจ Session ยังไม่ควรแสดงหน้า Login เพราะหน้าจะกระพริบ
   if (checkingSession) {
     return (
       <main className="app-shell">
@@ -197,32 +53,17 @@ export default function App() {
   // มี user = ผ่านการ Login แล้ว จึงแสดง Dashboard
   if (user) {
     return (
-      <Dashboard
-        user={user}
-        users={users}
-        adminError={adminError}
-        updatingUserId={updatingUserId}
-        onUpdateUserRole={updateUserRole}
-        onSessionExpired={clearSession}
-        onLogout={logout}
-      />
+      <Routes>
+        <Route path="/" element={<Dashboard user={user} onLogout={logout} />} />
+        <Route
+          path="/equipment/:code"
+          element={<EquipmentDetailPage user={user} />}
+        />
+        <Route path="/audit/:roundId" element={<AuditScanPage user={user} />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
     );
   }
 
-  return (
-    <AuthForm
-      authMode={authMode}
-      name={name}
-      email={email}
-      password={password}
-      error={error}
-      successMessage={successMessage}
-      loading={loading}
-      onNameChange={setName}
-      onEmailChange={setEmail}
-      onPasswordChange={setPassword}
-      onSubmit={handleSubmit}
-      onSwitchMode={switchAuthMode}
-    />
-  );
+  return <LoginPage />;
 }

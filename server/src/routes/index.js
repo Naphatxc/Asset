@@ -1,0 +1,41 @@
+// รวม Route ทุกโมดูล mount ใต้ /api ตาม path เดิมของระบบ (ดู app.js)
+import express from 'express';
+
+import adminAuditRouter from '../modules/audit/audit.routes.js';
+import adminUserRoutes from '../modules/users/admin-users.routes.js';
+import authRoutes from '../modules/auth/auth.routes.js';
+import borrowRoutes, {
+  adminBorrowRouter,
+} from '../modules/borrow/borrow.routes.js';
+import dashboardRoutes from '../modules/dashboard/dashboard.routes.js';
+import equipmentRoutes, {
+  adminEquipmentRouter,
+} from '../modules/equipment/equipment.routes.js';
+import healthRoutes from '../modules/health/health.routes.js';
+import materialRoutes, {
+  adminMaterialRouter,
+} from '../modules/materials/material.routes.js';
+import optionRoutes, {
+  adminOptionsRouter,
+} from '../modules/options/options.routes.js';
+import adminRepairRouter, { repairRouter } from '../modules/repair/repair.routes.js';
+
+const router = express.Router();
+
+router.use('/', healthRoutes);
+router.use('/auth', authRoutes);
+router.use('/admin/users', adminUserRoutes);
+router.use('/equipment-items', equipmentRoutes);
+router.use('/admin/equipment-items', adminEquipmentRouter);
+router.use('/borrows', borrowRoutes);
+router.use('/admin/borrows', adminBorrowRouter);
+router.use('/admin/dashboard', dashboardRoutes);
+router.use('/repairs', repairRouter);
+router.use('/admin/repairs', adminRepairRouter);
+router.use('/admin/audits', adminAuditRouter);
+router.use('/materials', materialRoutes);
+router.use('/admin/materials', adminMaterialRouter);
+router.use('/', optionRoutes);
+router.use('/admin', adminOptionsRouter);
+
+export default router;

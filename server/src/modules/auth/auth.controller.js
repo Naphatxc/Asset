@@ -1,0 +1,123 @@
+import * as authService from './auth.service.js';
+import * as passwordResetService from './password-reset.service.js';
+import {
+  accessTokenCookieName,
+  accessTokenCookieOptions,
+  csrfTokenCookieName,
+  csrfCookieOptions,
+} from '../../config/env.js';
+import { generateCsrfToken } from '../../utils/csrf.js';
+
+export async function register(request, response, next) {
+  try {
+    const user = await authService.register(request.validated);
+
+    response.status(201).json({
+      message: 'ลงทะเบียนสำเร็จ',
+      user,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function login(request, response, next) {
+  try {
+    const { token, user } = await authService.login(request.validated);
+    // csrf_token ส่งทั้งเป็น cookie (server ใช้เทียบตอน verify) และใน response body ด้านล่าง
+    // (client เก็บจาก body ไปแนบ header เอง) ส่วน access_token เป็น httpOnly กัน XSS ขโมย token ไปใช้ตรง ๆ
+    const csrfToken = generateCsrfToken();
+
+    response
+      .cookie(accessTokenCookieName, token, accessTokenCookieOptions)
+      .cookie(csrfTokenCookieName, csrfToken, csrfCookieOptions)
+      .status(200)
+      .json({
+        message: 'เข้าสู่ระบบสำเร็จ',
+        user,
+        // client ต้องได้ค่านี้ผ่าน body เพราะ production client/server คนละ host กัน
+        // อ่าน csrf_token cookie ผ่าน document.cookie ข้าม origin ไม่ได้ (ดู client/src/api/http.js)
+        csrfToken,
+      });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// POST /api/auth/logout — ไม่บังคับผ่าน authenticate เพราะแค่ล้าง cookie เก่าที่อาจหมดอายุไปแล้วก็ยังต้องทำได้
+// clearCookie ต้องส่ง secure/sameSite ให้ตรงกับตอน set (accessTokenCookieOptions/csrfCookieOptions) เป๊ะๆ
+// ไม่งั้นตอน production (cross-site) browser จะเมิน Set-Cookie ที่ขาด SameSite=None; Secure แล้ว cookie เดิมไม่ถูกล้างจริง
+export async function changePassword(request, response, next) {
+  try {
+    const { currentPassword, newPassword } = request.validated;
+    const { token, user } = await authService.changePassword(
+      Number(request.user.sub),
+      currentPassword,
+      newPassword,
+    );
+    // ใช้ csrf token เดิมต่อ แค่ยืดอายุ cookie ให้เท่ากับ session ใหม่
+    const csrfToken = request.cookies?.[csrfTokenCookieName] ?? generateCsrfToken();
+
+    response
+      .cookie(accessTokenCookieName, token, accessTokenCookieOptions)
+      .cookie(csrfTokenCookieName, csrfToken, csrfCookieOptions)
+      .status(200)
+      .json({ message: 'เปลี่ยนรหัสผ่านสำเร็จ', user, csrfToken });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function forgotPassword(request, response, next) {
+  try {
+    await passwordResetService.requestPasswordReset(request.validated.email);
+
+    // ข้อความเดียวกันเสมอ ไม่บอกว่าอีเมลนี้มีบัญชีหรือไม่
+    response.status(200).json({
+      message: 'ถ้ามีบัญชีที่ใช้อีเมลนี้ ระบบได้ส่งลิงก์ตั้งรหัสผ่านใหม่ไปแล้ว กรุณาตรวจสอบกล่องอีเมล',
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetPassword(request, response, next) {
+  try {
+    const { token, newPassword } = request.validated;
+    await passwordResetService.resetPasswordWithToken(token, newPassword);
+
+    response.status(200).json({ message: 'ตั้งรหัสผ่านใหม่สำเร็จ กรุณาเข้าสู่ระบบด้วยรหัสผ่านใหม่' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export function logout(_request, response) {
+  response
+    .clearCookie(accessTokenCookieName, {
+      path: accessTokenCookieOptions.path,
+      secure: accessTokenCookieOptions.secure,
+      sameSite: accessTokenCookieOptions.sameSite,
+    })
+    .clearCookie(csrfTokenCookieName, {
+      path: csrfCookieOptions.path,
+      secure: csrfCookieOptions.secure,
+      sameSite: csrfCookieOptions.sameSite,
+    })
+    .status(200)
+    .json({ message: 'ออกจากระบบสำเร็จ' });
+}
+
+export async function getCurrentUser(request, response, next) {
+  try {
+    const user = await authService.getCurrentUser(Number(request.user.sub));
+
+    // ส่ง csrf_token กลับไปด้วยทุกครั้งที่เช็ค session (เช่น ตอน refresh หน้า) เพื่อให้ client
+    // sync ค่าที่เก็บไว้ในหน่วยความจำใหม่ได้ โดยไม่ต้องอ่าน cookie นี้ผ่าน document.cookie เอง
+    response
+      .status(200)
+      .json({ user, csrfToken: request.cookies?.[csrfTokenCookieName] ?? null });
+  } catch (error) {
+    next(error);
+  }
+}
