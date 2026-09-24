@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 import { resetPassword } from '../../api/auth.js';
+import AuthHeader from '../../components/AuthHeader.jsx';
 import PasswordInput from '../../components/PasswordInput.jsx';
 
 export default function ResetPasswordPage() {
@@ -43,9 +44,7 @@ export default function ResetPasswordPage() {
   return (
     <main className="app-shell">
       <section className="welcome-card">
-        <img className="brand-logo" src="/logo.jpg" alt="Mathematics" />
-        <p className="eyebrow">Material & Asset Management</p>
-        <h1>ตั้งรหัสผ่านใหม่</h1>
+        <AuthHeader title="ตั้งรหัสผ่านใหม่" />
 
         {!token ? (
           <p className="error-message">ลิงก์ไม่ถูกต้อง กรุณาเปิดลิงก์จากอีเมลอีกครั้ง หรือขอลิงก์ใหม่</p>

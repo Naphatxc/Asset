@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 
 import { forgotPassword, login, register } from '../../api/auth.js';
+import AuthHeader from '../../components/AuthHeader.jsx';
 import PasswordInput from '../../components/PasswordInput.jsx';
 import { useToast } from '../../components/ToastProvider.jsx';
 
@@ -95,10 +96,9 @@ export default function LoginPage() {
     return (
       <main className="app-shell">
         <section className="welcome-card">
-          <img className="brand-logo" src="/logo.jpg" alt="Mathematics" />
-          <p className="eyebrow">Material & Asset Management</p>
-          <h1>ลืมรหัสผ่าน</h1>
-          <p>กรอกอีเมลที่ใช้สมัคร ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปให้ (ใช้ได้ 30 นาที)</p>
+          <AuthHeader title="ลืมรหัสผ่าน">
+            <p>กรอกอีเมลที่ใช้สมัคร ระบบจะส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ไปให้ (ใช้ได้ 30 นาที)</p>
+          </AuthHeader>
 
           <form className="login-form" onSubmit={handleForgotSubmit}>
             <label>
@@ -137,14 +137,13 @@ export default function LoginPage() {
   return (
     <main className="app-shell">
       <section className="welcome-card">
-        <img className="brand-logo" src="/logo.jpg" alt="Mathematics" />
-        <p className="eyebrow">Material & Asset Management</p>
-        <h1>{isLogin ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}</h1>
-        <p>
-          {isLogin
-            ? 'กรอกอีเมลและรหัสผ่านเพื่อเข้าใช้งาน'
-            : 'สร้างบัญชีผู้ใช้งานใหม่'}
-        </p>
+        <AuthHeader title={isLogin ? 'เข้าสู่ระบบ' : 'สมัครสมาชิก'}>
+          <p>
+            {isLogin
+              ? 'กรอกอีเมลและรหัสผ่านเพื่อเข้าใช้งาน'
+              : 'สร้างบัญชีผู้ใช้งานใหม่'}
+          </p>
+        </AuthHeader>
         {destinationMessage && (
           <p className="destination-message">{destinationMessage}</p>
         )}
