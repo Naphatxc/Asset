@@ -6,17 +6,19 @@ import { useLocation } from 'react-router-dom';
 
 import { forgotPassword, login, register } from '../../api/auth.js';
 import PasswordInput from '../../components/PasswordInput.jsx';
+import { useToast } from '../../components/ToastProvider.jsx';
 
+// สำเร็จแล้วแจ้งเป็น toast เหมือนส่วนอื่นของระบบ ส่วน error ยังแสดงค้างใต้ฟอร์มเพราะต้องแก้ข้อมูลที่กรอกตาม
 export default function LoginPage() {
   const location = useLocation();
   const queryClient = useQueryClient();
+  const { showSuccess } = useToast();
 
   const [authMode, setAuthMode] = useState('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
 
   // ใช้ตัวแปรเดียวควบคุมว่าต้องแสดงช่องชื่อและข้อความแบบ Login หรือ Register
   const isLogin = authMode === 'login';
@@ -33,7 +35,7 @@ export default function LoginPage() {
   const registerMutation = useMutation({ mutationFn: register });
   const forgotMutation = useMutation({
     mutationFn: forgotPassword,
-    onSuccess: (data) => setSuccessMessage(data.message),
+    onSuccess: (data) => showSuccess(data.message),
     onError: (mutationError) => setError(mutationError.message),
   });
 
@@ -41,7 +43,6 @@ export default function LoginPage() {
   async function handleSubmit(event) {
     event.preventDefault();
     setError('');
-    setSuccessMessage('');
 
     try {
       if (authMode === 'register') {
@@ -49,7 +50,7 @@ export default function LoginPage() {
         setAuthMode('login');
         setName('');
         setPassword('');
-        setSuccessMessage('สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ');
+        showSuccess('สมัครสมาชิกสำเร็จ กรุณาเข้าสู่ระบบ');
         return;
       }
 
@@ -63,7 +64,6 @@ export default function LoginPage() {
   // ทุกครั้งที่สลับ Login/Register ต้องล้างข้อมูลและข้อความจากหน้าก่อน
   function switchAuthMode() {
     setError('');
-    setSuccessMessage('');
     setName('');
     setEmail('');
     setPassword('');
@@ -75,7 +75,6 @@ export default function LoginPage() {
   // ลืมรหัสผ่าน: กรอกอีเมลแล้วระบบส่งลิงก์ตั้งรหัสใหม่ไปให้ เก็บอีเมลที่พิมพ์ไว้ในหน้า login มาใส่ให้เลย
   function openForgotPassword() {
     setError('');
-    setSuccessMessage('');
     setPassword('');
     forgotMutation.reset();
     setAuthMode('forgot');
@@ -83,14 +82,12 @@ export default function LoginPage() {
 
   function backToLogin() {
     setError('');
-    setSuccessMessage('');
     setAuthMode('login');
   }
 
   function handleForgotSubmit(event) {
     event.preventDefault();
     setError('');
-    setSuccessMessage('');
     forgotMutation.mutate(email);
   }
 
@@ -117,7 +114,6 @@ export default function LoginPage() {
               />
             </label>
 
-            {successMessage && <p className="success-message">{successMessage}</p>}
             {error && <p className="error-message">{error}</p>}
 
             <button type="submit" disabled={forgotMutation.isPending}>
@@ -201,9 +197,6 @@ export default function LoginPage() {
             </button>
           )}
 
-          {successMessage && (
-            <p className="success-message">{successMessage}</p>
-          )}
           {error && <p className="error-message">{error}</p>}
 
           <button type="submit" disabled={loading}>
