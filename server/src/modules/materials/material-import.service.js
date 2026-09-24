@@ -41,6 +41,8 @@ function parseRow(raw) {
     unitPrice: optionalNumber(raw.unit_price),
     expireDate: raw.expire_date ? toDate(raw.expire_date) : null,
     remark: text(raw.remark) || null,
+    // หน้าเว็บแปลง ใช่/ไม่/เว้นว่าง เป็น boolean แล้ว (ดู toBoolean ใน importExcel.js) ไม่ส่งมา = ไม่ต้องคืน
+    isReturnable: raw.is_returnable ?? false,
   };
 
   if (!row.code) return { error: 'ไม่มีรหัสวัสดุ' };
@@ -63,6 +65,7 @@ function parseRow(raw) {
     return { error: 'ราคาต่อหน่วยไม่ถูกต้อง' };
   }
   if (raw.expire_date && !row.expireDate) return { error: 'วันหมดอายุไม่ถูกต้อง' };
+  if (typeof row.isReturnable !== 'boolean') return { error: 'ช่อง "ต้องคืน" ต้องเป็น ใช่ ไม่ หรือเว้นว่าง' };
 
   return { row };
 }

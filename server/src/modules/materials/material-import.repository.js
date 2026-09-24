@@ -23,6 +23,7 @@ export async function createMany(rows, client = prisma) {
       unit_name: row.unitName,
       unit_price: row.unitPrice,
       remark: row.remark,
+      is_returnable: row.isReturnable,
     })),
   });
   return result.count;

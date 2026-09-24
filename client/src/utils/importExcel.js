@@ -11,7 +11,8 @@ const MAX_ROWS = 5000; // ตรงกับ MAX_IMPORT_ROWS ของ server
 // column: key = ชื่อ field ที่ส่งให้ server, label = หัวตาราง (ห้ามซ้ำกัน เพราะตอนอ่านจับคู่คอลัมน์ด้วยหัวตาราง
 // ผู้ใช้จึงสลับคอลัมน์ได้), type = วิธีแปลงค่า (date/year/number ไม่ระบุ = ข้อความ),
 // text = ตั้งเซลล์ในแม่แบบเป็นข้อความ ไม่ให้ Excel ตัดเลข 0 นำหน้าหรือแปลงวันที่เอง,
-// options = ชื่อชุดตัวเลือก (ส่งมาตอนสร้างแม่แบบ) ใช้ทำ dropdown ที่ยังพิมพ์ค่าใหม่เองได้
+// options = ชื่อชุดตัวเลือก (ส่งมาตอนสร้างแม่แบบ) ใช้ทำ dropdown ที่ยังพิมพ์ค่าใหม่เองได้,
+// choices = ตัวเลือกตายตัวในแม่แบบ ต้องเลือกจากรายการเท่านั้น (type boolean ตัวแรก = true)
 const DATE_HOW = 'วว/ดด/ปปปป (พ.ศ. หรือ ค.ศ. ก็ได้)';
 
 export const EQUIPMENT_IMPORT = {
@@ -46,6 +47,7 @@ export const MATERIAL_IMPORT = {
     { key: 'minimum_quantity', label: 'จำนวนขั้นต่ำ', width: 16, type: 'number', how: 'แจ้งเตือนเมื่อคงเหลือไม่เกินจำนวนนี้ เว้นว่าง = 0', example: '10' },
     { key: 'unit_price', label: 'ราคาต่อหน่วย', width: 16, type: 'number', how: 'ตัวเลข ไม่ต้องใส่หน่วย', example: '120' },
     { key: 'expire_date', label: 'วันหมดอายุ', width: 16, text: true, type: 'date', how: DATE_HOW, example: '31/12/2570' },
+    { key: 'is_returnable', label: 'ต้องคืน', width: 12, type: 'boolean', choices: ['ใช่', 'ไม่'], how: 'ใช่ = ยืมแล้วต้องนำมาคืน (เช่น สาย HDMI) เว้นว่างหรือ ไม่ = เบิกแล้วหมดไป', example: 'ไม่' },
     { key: 'remark', label: 'หมายเหตุ', width: 30, example: '' },
   ],
   notes: ['รหัสที่มีอยู่แล้วจะถูกข้ามทั้งแถว จำนวนไม่ถูกบวกเพิ่ม ถ้าจะรับของเข้าสต๊อกให้แก้จำนวนที่รายการนั้นในระบบ'],
@@ -153,7 +155,22 @@ function toText(value) {
   return String(value).trim();
 }
 
-const CONVERTERS = { date: toDateString, year: toYear, number: toNumber };
+const TRUE_WORDS = ['ใช่', 'ต้องคืน', 'y', 'yes', 'true', '1', '✓', '/'];
+const FALSE_WORDS = ['ไม่', 'ไม่ใช่', 'ไม่ต้องคืน', 'n', 'no', 'false', '0', '-'];
+
+// เว้นว่าง = false รับคำที่คนมักพิมพ์เองด้วย (Yes/No, 1/0, เซลล์ TRUE/FALSE ของ Excel)
+// คำอื่นส่งข้อความเดิมไป ให้ server ตอบกลับว่าแถวไหนผิด
+function toBoolean(value) {
+  if (isBlank(value)) return false;
+  if (typeof value === 'boolean') return value;
+
+  const text = String(value).trim().toLowerCase();
+  if (TRUE_WORDS.includes(text)) return true;
+  if (FALSE_WORDS.includes(text)) return false;
+  return String(value).trim();
+}
+
+const CONVERTERS = { date: toDateString, year: toYear, number: toNumber, boolean: toBoolean };
 
 // หาแถวหัวตารางในสิบแถวแรก (เผื่อผู้ใช้เพิ่มหัวเรื่องไว้ด้านบน) ต้องเจอหัวตารางของคอลัมน์ที่บังคับกรอกครบ
 function findHeader(worksheet, spec) {
@@ -273,6 +290,18 @@ export async function downloadImportTemplate(spec, options = {}) {
         ],
         showErrorMessage: false,
       });
+    });
+  }
+
+  for (const column of spec.columns.filter((item) => item.choices)) {
+    const letter = sheet.getColumn(column.key).letter;
+    sheet.dataValidations.add(`${letter}2:${letter}${MAX_ROWS + 1}`, {
+      type: 'list',
+      allowBlank: true,
+      formulae: [`"${column.choices.join(',')}"`],
+      showErrorMessage: true,
+      errorTitle: column.label,
+      error: `เลือกได้แค่ ${column.choices.join(' หรือ ')} หรือเว้นว่าง`,
     });
   }
 

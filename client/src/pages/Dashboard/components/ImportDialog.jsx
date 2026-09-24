@@ -76,6 +76,7 @@ async function readImportFile(file, config) {
     sourceRows,
     categories: [...categories.entries()].sort((a, b) => b[1] - a[1]),
     withLocation: items.filter((item) => item?.location_name).length,
+    returnable: items.filter((item) => item?.is_returnable === true).length,
   };
 }
 
@@ -241,6 +242,7 @@ export default function ImportDialog({ kind, onClose }) {
                     (preview.withLocation > 0
                       ? ` · มีสถานที่ ${preview.withLocation} รายการ`
                       : ' · ไม่มีข้อมูลสถานที่ (ไปตั้งตอนตรวจนับได้)')}
+                  {preview.returnable > 0 && ` · ต้องคืน ${preview.returnable} รายการ`}
                 </p>
                 <ul className="import-category-list">
                   {preview.categories.map(([name, count]) => (
