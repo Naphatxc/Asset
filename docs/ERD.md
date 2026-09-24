@@ -126,6 +126,7 @@ deleted deleted
     String unit_name 
     Decimal unit_price "❓"
     String remark "❓"
+    Boolean is_returnable 
     String image_path "❓"
     DateTime deleted_at "❓"
     }
@@ -136,6 +137,17 @@ deleted deleted
     Int quantity 
     String remark "❓"
     DateTime withdrawn_at 
+    DateTime due_date "❓"
+    Int returned_quantity 
+    DateTime returned_at "❓"
+    }
+  
+
+  "material_returns" {
+    Int return_id "🗝️"
+    Int quantity 
+    String remark "❓"
+    DateTime returned_at 
     }
   
 
@@ -222,6 +234,8 @@ deleted deleted
     "materials" }o--|| "categories" : "categories"
     "material_withdrawals" }o--|| "materials" : "materials"
     "material_withdrawals" }o--|| "users" : "users"
+    "material_returns" }o--|| "material_withdrawals" : "material_withdrawals"
+    "material_returns" }o--|| "users" : "users"
     "users" |o--|| "users_role" : "enum:role"
     "password_reset_tokens" }o--|| "users" : "users"
     "borrow_details" }o--|| "borrows" : "borrows"
