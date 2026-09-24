@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import CharCount from './CharCount.jsx';
 import ImageInput from './ImageInput.jsx';
 import SelectWithCreate from './SelectWithCreate.jsx';
+import ThaiDateInput from './ThaiDateInput.jsx';
 import { categoryCreateFields } from './EquipmentForm.jsx';
 
 const MAX_MATERIAL_NAME_LENGTH = 150;
@@ -266,9 +267,8 @@ export default function MaterialForm({
 
         <label>
           วันหมดอายุ
-          <input
+          <ThaiDateInput
             name="expire_date"
-            type="date"
             value={form.expire_date}
             onChange={updateField}
           />

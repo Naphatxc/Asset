@@ -17,6 +17,7 @@ import ListFilters, {
 } from '../../../components/ListFilters.jsx';
 import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
+import ThaiDateInput from '../../../components/ThaiDateInput.jsx';
 
 const MAX_REMARK_LENGTH = 2000; // ต้องตรงกับ server (borrow.validator.js)
 
@@ -45,7 +46,7 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
-// input type="date" ต้องการ YYYY-MM-DD
+// ThaiDateInput ใช้ค่า YYYY-MM-DD
 function tomorrowDateInput() {
   const date = new Date();
   date.setDate(date.getDate() + 1);
@@ -180,8 +181,7 @@ export default function MyBorrows() {
           <div className="form-grid">
             <label>
               วันครบกำหนดคืน
-              <input
-                type="date"
+              <ThaiDateInput
                 value={returnDate}
                 min={tomorrowDateInput()}
                 onChange={(event) => setReturnDate(event.target.value)}

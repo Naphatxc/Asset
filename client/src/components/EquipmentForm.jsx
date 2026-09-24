@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import CharCount from './CharCount.jsx';
 import ImageInput from './ImageInput.jsx';
 import SelectWithCreate from './SelectWithCreate.jsx';
+import ThaiDateInput from './ThaiDateInput.jsx';
 
 // จำกัดความยาวแต่ละช่องกันพิมพ์ยาวเกินจริง (spam) ตัวเลขอิงจากข้อมูลครุภัณฑ์จริงที่ยังไม่ได้ migrate เข้าระบบนี้
 // (ชื่อยาวสุด 194 ตัวอักษร, คุณสมบัติ/รายละเอียดยาวสุด ~244 ตัวอักษร) เผื่อ headroom ให้พอ แต่ต้องตรงกับ
@@ -59,7 +60,7 @@ const emptyForm = {
 // ปีงบประมาณเก็บใน DB เป็น ค.ศ. (คอลัมน์ MySQL YEAR รับได้แค่ 1901–2155) แต่ผู้ใช้กรอก/เห็นเป็น พ.ศ.
 const BUDDHIST_ERA_OFFSET = 543;
 
-// input type="date" ต้องการ YYYY-MM-DD จึงตัดส่วนเวลาออก
+// ThaiDateInput รับค่า YYYY-MM-DD จึงตัดส่วนเวลาออก
 function toDateInput(value) {
   return value ? String(value).slice(0, 10) : '';
 }
@@ -374,9 +375,8 @@ export default function EquipmentForm({
 
         <label>
           วันที่รับ
-          <input
+          <ThaiDateInput
             name="receive_date"
-            type="date"
             value={form.receive_date}
             onChange={updateField}
           />
@@ -384,9 +384,8 @@ export default function EquipmentForm({
 
         <label>
           วันหมดประกัน
-          <input
+          <ThaiDateInput
             name="warranty_expire"
-            type="date"
             value={form.warranty_expire}
             onChange={updateField}
           />

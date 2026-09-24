@@ -1003,6 +1003,155 @@ button:disabled {
   color: var(--stat-slate-dark);
 }
 
+/* ช่องเลือกวันที่แบบ พ.ศ. (ดู ThaiDateInput.jsx) */
+.thai-date {
+  position: relative;
+}
+
+.thai-date-field {
+  position: relative;
+}
+
+.thai-date-field input {
+  width: 100%;
+  padding-right: 40px;
+}
+
+.thai-date-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  color: var(--stat-slate-dark);
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.thai-date-toggle:hover {
+  color: var(--stat-plum);
+  background: #fde8f2;
+}
+
+.thai-date-popup {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  width: 290px;
+  max-width: calc(100vw - 32px);
+  padding: 10px;
+  font-weight: 400;
+  background: #ffffff;
+  border: 1px solid #d7cbcf;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(50, 30, 40, 0.18);
+}
+
+.thai-date-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.thai-date-header select {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 4px;
+  border: 1px solid #d7cbcf;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  background: #ffffff;
+}
+
+.thai-date-header button {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--stat-plum);
+  background: transparent;
+  cursor: pointer;
+}
+
+.thai-date-header button:hover,
+.thai-date-day:hover:not(:disabled):not(.selected) {
+  background: #fde8f2;
+}
+
+.thai-date-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+}
+
+.thai-date-weekday {
+  padding: 4px 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--stat-slate-dark);
+}
+
+.thai-date-day {
+  aspect-ratio: 1;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: #333333;
+  background: transparent;
+  cursor: pointer;
+}
+
+.thai-date-day.today {
+  border-color: var(--stat-pink-soft);
+  font-weight: 600;
+}
+
+.thai-date-day.selected {
+  color: #ffffff;
+  background: var(--stat-pink);
+  font-weight: 600;
+}
+
+.thai-date-day:disabled {
+  color: #c4c4c4;
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.thai-date-footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.thai-date-footer button {
+  padding: 4px 8px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  color: var(--stat-plum);
+  background: transparent;
+  cursor: pointer;
+}
+
+.thai-date-footer button:hover:not(:disabled) {
+  background: #fde8f2;
+}
+
 /* ช่องค้นหาเหนือ checkbox-list เลือกครุภัณฑ์หลายชิ้น (ดู EquipmentPicker.jsx) */
 .equipment-picker {
   display: grid;
