@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "node --watch-path=src src/server.js",
     "start": "node src/server.js",
-    "postinstall": "prisma generate --config prisma.config.js",
+    "postinstall": "prisma generate --generator client --config prisma.config.js",
     "prisma:generate": "prisma generate --config prisma.config.js",
+    "prisma:erd": "prisma generate --generator erd --config prisma.config.js",
     "prisma:studio": "prisma studio --config prisma.config.js",
     "prisma:migrate:dev": "prisma migrate dev --config prisma.config.js",
     "prisma:migrate:deploy": "prisma migrate deploy --config prisma.config.js",
@@ -26,5 +27,8 @@
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.4.0",
     "prisma": "7.10.0"
+  },
+  "devDependencies": {
+    "prisma-erd-generator": "^3.2.1"
   }
 }
