@@ -2,7 +2,11 @@
 import express from 'express';
 
 import * as adminUserController from './admin-user.controller.js';
-import { validateUpdateUserRole } from './admin-user.validator.js';
+import {
+  validateCreateUser,
+  validateUpdateUserRole,
+  validateUserId,
+} from './admin-user.validator.js';
 import {
   authenticate,
   requireAdmin,
@@ -18,6 +22,12 @@ router.use(authenticate, verifyCsrfToken, requireAdmin);
 
 // GET /api/admin/users
 router.get('/', adminUserController.getUsers);
+
+// POST /api/admin/users { name, email, password, role }
+router.post('/', validateCreateUser, adminUserController.createUser);
+
+// DELETE /api/admin/users/:id
+router.delete('/:id', validateUserId, adminUserController.deleteUser);
 
 // PATCH /api/admin/users/:id/role
 router.patch(

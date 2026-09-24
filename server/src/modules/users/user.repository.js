@@ -111,3 +111,10 @@ export async function updateRole(id, role, client = prisma) {
 export async function count(client = prisma) {
   return client.users.count();
 }
+
+export async function remove(id, client = prisma) {
+  return client.users.delete({
+    where: { user_id: id },
+    select: { user_id: true },
+  });
+}

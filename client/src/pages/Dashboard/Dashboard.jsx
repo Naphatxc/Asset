@@ -7,8 +7,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { getUsers, updateUserRole as updateUserRoleRequest } from '../../api/admin-users.js';
+import {
+  createUser as createUserRequest,
+  deleteUser as deleteUserRequest,
+  getUsers,
+  updateUserRole as updateUserRoleRequest,
+} from '../../api/admin-users.js';
 import ChangePasswordDialog from '../../components/ChangePasswordDialog.jsx';
+import CreateUserDialog from '../../components/CreateUserDialog.jsx';
 import { SortSelect, sortRows } from '../../components/ListFilters.jsx';
 import PaginationBar, { paginateRows } from '../../components/PaginationBar.jsx';
 import { useToast } from '../../components/ToastProvider.jsx';
@@ -60,6 +66,8 @@ export default function Dashboard({ user, onLogout }) {
   const [userPage, setUserPage] = useState(1);
   const [userSort, setUserSort] = useState({ key: 'name', dir: 'asc' });
   const [changingPassword, setChangingPassword] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState(null);
 
   // รายชื่อผู้ใช้เป็นข้อมูลเฉพาะ Admin จึงโหลดหลังทราบ role แล้วเท่านั้น
   const { data: usersData } = useQuery({
@@ -101,6 +109,39 @@ export default function Dashboard({ user, onLogout }) {
     } finally {
       setUpdatingUserId(null);
     }
+  }
+
+  const createUserMutation = useMutation({
+    mutationFn: createUserRequest,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      setCreatingUser(false);
+      showSuccess(`เพิ่มผู้ใช้ ${data.user.name} แล้ว`);
+    },
+  });
+
+  function openCreateUser() {
+    createUserMutation.reset();
+    setCreatingUser(true);
+  }
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (item) => deleteUserRequest(item.user_id),
+    onSuccess: (_data, item) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      showSuccess(`ลบผู้ใช้ ${item.name} แล้ว`);
+    },
+    onError: (deleteError) => showError(deleteError.message),
+    onSettled: () => setConfirmingDeleteId(null),
+  });
+
+  // กดครั้งแรกแค่เปลี่ยนปุ่มเป็น "ยืนยันลบ" กดซ้ำจึงลบจริง
+  function deleteUser(item) {
+    if (confirmingDeleteId !== item.user_id) {
+      setConfirmingDeleteId(item.user_id);
+      return;
+    }
+    deleteUserMutation.mutate(item);
   }
 
   return (
@@ -179,6 +220,9 @@ export default function Dashboard({ user, onLogout }) {
                 sort={userSort}
                 onSortChange={changeUserSort}
               />
+              <button className="button-primary" type="button" onClick={openCreateUser}>
+                + เพิ่มผู้ใช้
+              </button>
             </div>
             {filteredUsers.length === 0 ? (
               <div className="empty-state">
@@ -190,6 +234,12 @@ export default function Dashboard({ user, onLogout }) {
                 currentUserId={user.user_id}
                 updatingUserId={updatingUserId}
                 onUpdateRole={updateUserRole}
+                confirmingDeleteId={confirmingDeleteId}
+                deletingUserId={
+                  deleteUserMutation.isPending ? deleteUserMutation.variables?.user_id : null
+                }
+                onDelete={deleteUser}
+                onCancelDelete={() => setConfirmingDeleteId(null)}
                 sort={userSort}
                 onSortChange={changeUserSort}
               />
@@ -198,6 +248,15 @@ export default function Dashboard({ user, onLogout }) {
           </section>
         )}
       </main>
+
+      {creatingUser && (
+        <CreateUserDialog
+          submitting={createUserMutation.isPending}
+          error={createUserMutation.error?.message}
+          onSubmit={(values) => createUserMutation.mutate(values)}
+          onClose={() => setCreatingUser(false)}
+        />
+      )}
 
       {changingPassword && (
         <ChangePasswordDialog

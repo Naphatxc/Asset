@@ -11,3 +11,14 @@ export function updateUserRole(userId, role) {
     body: { role },
   });
 }
+
+export function createUser({ name, email, password, role }) {
+  return request('/api/admin/users', {
+    method: 'POST',
+    body: { name, email, password, role },
+  });
+}
+
+export function deleteUser(userId) {
+  return request(`/api/admin/users/${userId}`, { method: 'DELETE' });
+}
