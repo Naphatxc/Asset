@@ -297,7 +297,7 @@ export default function DashboardOverview() {
                           {item.equipment_name}
                         </td>
                         <td data-label="ผู้ยืม">{item.borrower_name}</td>
-                        <td data-label="ครบกำหนดคืน">{formatDateTime(item.return_date)}</td>
+                        <td data-label="ครบกำหนดคืน">{formatDate(item.return_date)}</td>
                       </tr>
                     ))}
                   </tbody>

@@ -53,6 +53,13 @@ function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+function formatDate(value) {
+  if (!value) return '-';
+  return new Intl.DateTimeFormat('th-TH', {
+    dateStyle: 'medium',
+  }).format(new Date(value));
+}
+
 // ThaiDateInput ใช้ค่า YYYY-MM-DD
 function tomorrowDateInput() {
   const date = new Date();
@@ -374,7 +381,7 @@ export default function BorrowManager() {
                     {detail.equipment_name}
                   </td>
                   <td data-label="วันที่ยืม">{formatDateTime(borrow.borrow_date)}</td>
-                  <td data-label="กำหนดคืน">{formatDateTime(detail.return_date)}</td>
+                  <td data-label="กำหนดคืน">{formatDate(detail.return_date)}</td>
                   <td data-label="หมายเหตุ">{borrow.remark || '-'}</td>
                   <td data-label="สถานะ">
                     <span className={`status-badge status-${detail.status}`}>
