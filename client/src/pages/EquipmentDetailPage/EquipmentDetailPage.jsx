@@ -235,6 +235,14 @@ export default function EquipmentDetailPage({ user }) {
           <Link className="button-link button-secondary" to={returnTo}>
             กลับหน้ารายการ
           </Link>
+          {equipment.status === 'available' && !editing && (
+            <Link
+              className="button-link button-primary"
+              to={`/?tab=repair&item=${equipment.item_id}`}
+            >
+              แจ้งซ่อม
+            </Link>
+          )}
           {admin && !editing && (
             <>
               <button

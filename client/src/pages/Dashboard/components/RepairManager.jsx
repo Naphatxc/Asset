@@ -2,6 +2,7 @@
 // mine (User ทั่วไป): แจ้งซ่อมได้ และเห็นเฉพาะรายการที่ตัวเองแจ้ง ดูรายละเอียดได้อย่างเดียว
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 
 import { getAvailableEquipment, getEquipmentByCode } from '../../../api/equipment.js';
 import { getMyRepairs, getRepairs, reportRepair, startRepair } from '../../../api/repair.js';
@@ -58,8 +59,10 @@ export default function RepairManager({ mine = false }) {
   const queryClient = useQueryClient();
   const { showSuccess, showError } = useToast();
 
-  const [formOpen, setFormOpen] = useState(false);
-  const [itemId, setItemId] = useState('');
+  const [searchParams] = useSearchParams();
+  const presetItemId = searchParams.get('item') ?? '';
+  const [formOpen, setFormOpen] = useState(Boolean(presetItemId));
+  const [itemId, setItemId] = useState(presetItemId);
   const [issue, setIssue] = useState('');
   const [files, setFiles] = useState([]);
   const [search, setSearch] = useState('');
