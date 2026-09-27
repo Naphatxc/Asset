@@ -86,3 +86,10 @@ export async function updateStatus(borrowId, status, client = prisma) {
     data: { status },
   });
 }
+
+export async function deleteByID(borrowID, client = prisma) {
+  await client.borrow_details.deleteMany({ where: { borrow_id: borrowID } });
+  return client.borrows.delete({
+    where: { borrow_id: borrowID },
+  });
+}

@@ -85,6 +85,18 @@ export async function rejectBorrow(request, response, next) {
   }
 }
 
+export async function cancelBorrow(request, response, next) {
+  try {
+    const { borrowId } = request.validated;
+    const userId = Number(request.user.sub);
+    await borrowService.cancelBorrow(borrowId, userId);
+
+    response.status(200).json({ message: 'ยกเลิกคำขอยืมแล้ว' });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function returnBorrowDetail(request, response, next) {
   try {
     const { borrowDetailId } = request.validated;

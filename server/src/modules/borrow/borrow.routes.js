@@ -32,6 +32,14 @@ borrowRouter.post(
   borrowController.requestBorrow,
 );
 
+// DELETE /api/borrows/:id/cancel - ยกเลิกคำขอยืมของตัวเองที่ยังรออนุมัติ (ลบทิ้ง เพราะยังไม่เคยล็อกครุภัณฑ์)
+borrowRouter.delete(
+  '/:id/cancel',
+  verifyCsrfToken,
+  validateBorrowIdParam,
+  borrowController.cancelBorrow,
+);
+
 // PATCH /api/borrows/details/:id/return - คืนของตัวเอง (Admin คืนแทนใครก็ได้ด้วย เช็คสิทธิ์ใน service)
 borrowRouter.patch(
   '/details/:id/return',

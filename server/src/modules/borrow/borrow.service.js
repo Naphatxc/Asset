@@ -260,6 +260,22 @@ export async function rejectBorrow(borrowId) {
   }
 }
 
+export async function cancelBorrow(borrowId, userId) {
+  const borrow = await borrowRepository.findById(borrowId);//ดึงข้อมูลด้วย ID มาเก็บใน borrow
+
+  if (!borrow) {
+    throw new AppError(404, 'ไม่พบคำขอยืม');
+  }
+  if (borrow.user_id !== userId) { 
+    throw new AppError(403, 'คุณไม่มีสิทธิ์ยกเลิกคำขอนี้');
+  }
+  if (borrow.status !== 'pending') {
+    throw new AppError(400, 'ยกเลิกได้เฉพาะคำขอที่รออนุมัติ');
+  }
+
+  await borrowRepository.deleteByID(borrowId);
+}
+
 // เจ้าของใบยืมกดคืนเอง -> แค่ตั้ง return_requested_at รอ Admin ยืนยัน (ยังไม่แตะสถานะครุภัณฑ์)
 // Admin คืนแทนใครก็ได้ (เช่น รับของคืนหน้าเคาน์เตอร์ หรือยืนยันคำขอคืนที่ user ส่งมา) -> ถือว่าคืนจริงทันที
 export async function returnBorrowDetail(borrowDetailId, actorId) {
