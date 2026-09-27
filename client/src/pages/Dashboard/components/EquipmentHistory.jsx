@@ -17,15 +17,6 @@ function formatDateTime(value) {
   }).format(new Date(value.replace(' ', 'T')));
 }
 
-// Snapshot เป็น JSON ของข้อมูลก่อน/หลัง จัดย่อหน้าให้อ่านง่ายใน <pre>
-function formatSnapshot(snapshot) {
-  if (!snapshot) return '-';
-
-  return JSON.stringify(snapshot, null, 2);
-}
-
-
-
 export default function EquipmentHistory({
   equipment,
   history,
@@ -70,20 +61,6 @@ export default function EquipmentHistory({
                 </div>
                 <time>{formatDateTime(entry.created_at)}</time>
               </div>
-
-              <details>
-                <summary>ดูข้อมูลก่อนและหลัง</summary>
-                <div className="history-snapshots">
-                  <div>
-                    <h4>ข้อมูลเดิม</h4>
-                    <pre>{formatSnapshot(entry.old_data)}</pre>
-                  </div>
-                  <div>
-                    <h4>ข้อมูลใหม่</h4>
-                    <pre>{formatSnapshot(entry.new_data)}</pre>
-                  </div>
-                </div>
-              </details>
             </li>
           ))}
         </ol>

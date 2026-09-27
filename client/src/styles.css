@@ -1205,39 +1205,6 @@ button:disabled {
   font-size: 0.82rem;
 }
 
-.history-list details {
-  margin-top: 10px;
-}
-
-.history-list summary {
-  color: var(--stat-plum);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.history-snapshots {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  margin-top: 10px;
-}
-
-.history-snapshots h4 {
-  margin: 0 0 6px;
-}
-
-.history-snapshots pre {
-  max-height: 260px;
-  overflow: auto;
-  margin: 0;
-  padding: 12px;
-  border-radius: 8px;
-  color: #e8f1f2;
-  background: #30474b;
-  font-size: 0.75rem;
-  white-space: pre-wrap;
-}
-
 .user-note {
   margin-top: 22px;
   padding: 12px 14px;
@@ -1527,8 +1494,7 @@ button:disabled {
     align-items: stretch;
   }
 
-  .form-grid,
-  .history-snapshots {
+  .form-grid {
     grid-template-columns: 1fr;
   }
 
