@@ -86,3 +86,9 @@ export async function updateStatus(borrowId, status, client = prisma) {
     data: { status },
   });
 }
+
+// ลบใบยืมทั้งใบ ต้องลบ borrow_details ก่อน เพราะ fk_borrow_detail_borrow ชี้มาที่ borrows
+export async function deleteById(borrowId, client = prisma) {
+  await client.borrow_details.deleteMany({ where: { borrow_id: borrowId } });
+  return client.borrows.delete({ where: { borrow_id: borrowId } });
+}

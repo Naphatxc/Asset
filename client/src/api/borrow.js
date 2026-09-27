@@ -35,6 +35,12 @@ export function rejectBorrow(borrowId) {
   });
 }
 
+export function cancelBorrow(borrowId) {
+  return request(`/api/borrows/${borrowId}/cancel`, {
+    method: 'DELETE',
+  });
+}
+
 // ส่งคำขอยืมให้ตัวเอง — ไม่ส่ง user_id เพราะ server ใช้ตัวตนจาก cookie เสมอ รอ Admin อนุมัติก่อนถึงจะยืมได้จริง
 export function requestBorrow({ returnDate, itemIds, remark }) {
   return request('/api/borrows', {

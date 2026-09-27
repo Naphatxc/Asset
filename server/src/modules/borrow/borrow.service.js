@@ -260,6 +260,37 @@ export async function rejectBorrow(borrowId) {
   }
 }
 
+// ผู้ยืมยกเลิกคำขอของตัวเองได้เฉพาะใบที่ยัง pending -> ลบทิ้งทั้งใบ เพราะยังไม่เคยล็อกครุภัณฑ์
+// เช็คสถานะกับลบอยู่ใน transaction เดียวกัน กัน Admin อนุมัติใบเดียวกันพร้อมกันแล้วใบถูกลบ
+// ทั้งที่ครุภัณฑ์ถูกล็อกเป็น borrowed ไปแล้ว (ครุภัณฑ์จะค้างสถานะโดยไม่มีใบยืม)
+export async function cancelBorrow(borrowId, userId) {
+  try {
+    const result = await runSerializableTransaction(async (tx) => {
+      const borrow = await borrowRepository.findById(borrowId, tx);
+
+      if (!borrow) return { error: 'ไม่พบคำขอยืม', status: 404 };
+      if (borrow.user_id !== userId) {
+        return { error: 'คุณไม่มีสิทธิ์ยกเลิกคำขอนี้', status: 403 };
+      }
+      if (borrow.status !== 'pending') {
+        return { error: 'ยกเลิกได้เฉพาะคำขอที่รออนุมัติ', status: 400 };
+      }
+
+      await borrowRepository.deleteById(borrowId, tx);
+
+      return {};
+    });
+
+    if (result.error) {
+      throw new AppError(result.status, result.error);
+    }
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw new AppError(500, 'ไม่สามารถยกเลิกคำขอยืมได้', { cause: error });
+  }
+}
+
 // เจ้าของใบยืมกดคืนเอง -> แค่ตั้ง return_requested_at รอ Admin ยืนยัน (ยังไม่แตะสถานะครุภัณฑ์)
 // Admin คืนแทนใครก็ได้ (เช่น รับของคืนหน้าเคาน์เตอร์ หรือยืนยันคำขอคืนที่ user ส่งมา) -> ถือว่าคืนจริงทันที
 export async function returnBorrowDetail(borrowDetailId, actorId) {

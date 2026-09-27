@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
 import {
+  cancelBorrow,
   getMyBorrows,
   requestBorrow,
   returnBorrowDetail,
@@ -141,6 +142,17 @@ export default function MyBorrows() {
   const returnMutation = useMutation({
     mutationFn: returnBorrowDetail,
     // กดคืนเองแค่ส่งคำขอ (return_requested_at) ยังไม่เปลี่ยนสถานะครุภัณฑ์จริง จึงไม่ invalidate ['equipment']
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['borrows', 'mine'] });
+      showSuccess(data.message);
+    },
+    onError: (mutationError) => showError(mutationError.message),
+  });
+
+  const cancelMutation = useMutation({
+    mutationFn: cancelBorrow,
+    // ยกเลิกแล้วโหลดรายการยืมของฉันใหม่ ใบที่ถูกลบจะหายจากตาราง
+    // ไม่ต้องโหลด ['equipment'] เพราะใบที่รออนุมัติยังไม่เคยล็อกครุภัณฑ์
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['borrows', 'mine'] });
       showSuccess(data.message);
@@ -311,7 +323,7 @@ export default function MyBorrows() {
                   </td>
                   <td className="stack-actions">
                     {detail.status === 'borrowed' ||
-                    detail.status === 'overdue' ? (
+                      detail.status === 'overdue' ? (
                       <div className="row-actions">
                         <button
                           className="button-restore"
@@ -326,6 +338,17 @@ export default function MyBorrows() {
                           {busyBorrowDetailId === detail.borrow_detail_id
                             ? 'กำลังบันทึก...'
                             : 'คืน'}
+                        </button>
+                      </div>
+                    ) : detail.status === 'pending' ? (
+                      <div className="row-actions">
+                        <button
+                          className="button-danger"
+                          type="button"
+                          disabled={cancelMutation.isPending}
+                          onClick={() => cancelMutation.mutate(borrow.borrow_id)}
+                        >
+                          ยกเลิกคำขอ
                         </button>
                       </div>
                     ) : (
