@@ -148,7 +148,7 @@ export default function Dashboard({ user, onLogout }) {
     <div className="dashboard-shell">
       <aside className="dashboard-sidebar">
         <div className="dashboard-account">
-          <img className="brand-logo" src="/logo.jpg" alt="Mathematics" />
+          <img className="brand-logo" src="/logo.png" alt="สถิติประยุกต์ Applied Statistics" />
           <p className="eyebrow">Material & Asset Management</p>
           <h1>{user.name}</h1>
           <div className="account-summary">

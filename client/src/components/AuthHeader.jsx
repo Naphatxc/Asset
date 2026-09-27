@@ -3,7 +3,7 @@
 export default function AuthHeader({ title, children }) {
   return (
     <header className="auth-header">
-      <img className="brand-logo" src="/logo.jpg" alt="Mathematics" />
+      <img className="brand-logo" src="/logo.png" alt="สถิติประยุกต์ Applied Statistics" />
       <div className="auth-organization">
         <p className="auth-department">ภาควิชาสถิติประยุกต์</p>
         <p className="auth-faculty">

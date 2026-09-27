@@ -63,12 +63,13 @@ textarea {
   background: linear-gradient(90deg, var(--stat-gold), var(--stat-pink));
 }
 
+/* โลโก้เป็นแนวนอน (สัดส่วน 388:100) จึงกำหนดแค่ความกว้างแล้วให้ความสูงตามสัดส่วนเอง */
 .brand-logo {
-  width: 56px;
-  height: 56px;
+  display: block;
+  width: 100%;
+  max-width: 220px;
+  height: auto;
   margin-bottom: 10px;
-  border-radius: 50%;
-  object-fit: contain;
 }
 
 /* หัวการ์ดหน้า Login / ลืมรหัสผ่าน / ตั้งรหัสผ่านใหม่ — โลโก้ใหญ่ ชื่อหน่วยงาน และหัวข้อ จัดกึ่งกลางทั้งหมด */
@@ -77,11 +78,8 @@ textarea {
 }
 
 .auth-header .brand-logo {
-  display: block;
-  width: clamp(96px, 28vw, 132px);
-  height: clamp(96px, 28vw, 132px);
+  max-width: 300px;
   margin: 0 auto 16px;
-  box-shadow: 0 8px 22px rgba(88, 53, 68, 0.14);
 }
 
 .auth-organization {
