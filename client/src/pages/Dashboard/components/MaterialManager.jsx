@@ -635,7 +635,7 @@ export default function MaterialManager({ user }) {
                   <SortableTh sortKey="name" {...materialSortProps}>ชื่อวัสดุ</SortableTh>
                   <th>หมวดหมู่</th>
                   <SortableTh sortKey="quantity" {...materialSortProps}>คงเหลือ</SortableTh>
-                  <SortableTh sortKey="unit_price" {...materialSortProps}>ราคา/หน่วย</SortableTh>
+                  <SortableTh sortKey="unit_price" className="cell-number" {...materialSortProps}>ราคา/หน่วย</SortableTh>
                   <SortableTh sortKey="expire_date" {...materialSortProps}>วันหมดอายุ</SortableTh>
                   <th>จัดการ</th>
                 </tr>

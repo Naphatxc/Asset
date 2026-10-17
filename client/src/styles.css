@@ -454,6 +454,11 @@ button:disabled {
 .equipment-table td.cell-number {
   white-space: nowrap;
   overflow-wrap: normal;
+  text-align: right;
+}
+
+.equipment-table th.cell-number {
+  text-align: right;
 }
 
 /* โหมดตารางเต็ม (พื้นที่ ≥ 960px) บีบระยะซ้าย-ขวาของช่องลงนิดหน่อย ตารางคอลัมน์เยอะอย่างครุภัณฑ์จะได้มีที่ให้

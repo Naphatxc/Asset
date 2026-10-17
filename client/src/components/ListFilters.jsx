@@ -62,12 +62,12 @@ function directionLabel(column, dir) {
 }
 
 // หัวคอลัมน์ที่คลิกเรียงได้ แสดง ▲/▼ ตามทิศที่เรียงอยู่ คอลัมน์ที่ยังไม่ได้เลือกแสดงลูกศรจางๆ ให้รู้ว่ากดได้
-export function SortableTh({ sortKey, sortColumns, sort, onSortChange, children }) {
+export function SortableTh({ sortKey, sortColumns, sort, onSortChange, className, children }) {
   const active = sort.key === sortKey;
   const ascending = sort.dir === 'asc';
 
   return (
-    <th aria-sort={active ? (ascending ? 'ascending' : 'descending') : 'none'}>
+    <th className={className} aria-sort={active ? (ascending ? 'ascending' : 'descending') : 'none'}>
       <button
         type="button"
         className={active ? 'sort-header active' : 'sort-header'}

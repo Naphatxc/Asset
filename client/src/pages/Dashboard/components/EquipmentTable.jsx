@@ -97,7 +97,7 @@ export default function EquipmentTable({
             <SortableTh sortKey="name" {...sortProps}>ชื่อครุภัณฑ์</SortableTh>
             <th>หมวดหมู่</th>
             <th>สถานที่</th>
-            <SortableTh sortKey="price" {...sortProps}>ราคา</SortableTh>
+            <SortableTh sortKey="price" className="cell-number" {...sortProps}>ราคา</SortableTh>
             <th>สถานะ</th>
             {mode === 'deleted' && <th>จำหน่ายออกเมื่อ</th>}
             {mode === 'active' && <th>ข้อมูลและ QR</th>}
