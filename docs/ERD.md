@@ -25,6 +25,7 @@ damaged damaged
         users_role {
             admin admin
 user user
+student student
         }
     
 
@@ -162,6 +163,22 @@ deleted deleted
     }
   
 
+  "rooms" {
+    Int room_id "🗝️"
+    String room_name 
+    Boolean is_active 
+    }
+  
+
+  "room_bookings" {
+    Int booking_id "🗝️"
+    DateTime start_at 
+    DateTime end_at 
+    String purpose "❓"
+    DateTime created_at 
+    }
+  
+
   "password_reset_tokens" {
     Int token_id "🗝️"
     String token_hash 
@@ -237,6 +254,8 @@ deleted deleted
     "material_returns" }o--|| "material_withdrawals" : "material_withdrawals"
     "material_returns" }o--|| "users" : "users"
     "users" |o--|| "users_role" : "enum:role"
+    "room_bookings" }o--|| "rooms" : "rooms"
+    "room_bookings" }o--|| "users" : "users"
     "password_reset_tokens" }o--|| "users" : "users"
     "borrow_details" }o--|| "borrows" : "borrows"
     "borrow_details" }o--|| "equipment_items" : "equipment_items"

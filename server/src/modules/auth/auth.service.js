@@ -20,10 +20,13 @@ export async function register({ name, email, password }) {
     // ฐานข้อมูลเก็บ hash เท่านั้น ไม่เก็บรหัสผ่านจริง
     const passwordHash = await bcrypt.hash(password, 12);
 
+    // สมัครเองได้แค่นักเรียน (จองห้องอย่างเดียว) บุคลากรที่ต้องยืม-คืนให้ Admin เปลี่ยน role เป็น user ให้
+    // กันคนนอกสมัครแล้วยืมครุภัณฑ์ได้ทันที
     return await userRepository.create({
       name,
       email,
       password_hash: passwordHash,
+      role: 'student',
     });
   } catch (error) {
     if (error instanceof AppError) throw error;

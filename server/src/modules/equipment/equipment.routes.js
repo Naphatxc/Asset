@@ -11,6 +11,7 @@ import {
 } from './equipment.validator.js';
 import {
   authenticate,
+  blockStudent,
   requireAdmin,
 } from '../../middlewares/auth.middleware.js';
 import { verifyCsrfToken } from '../../middlewares/csrf.middleware.js';
@@ -19,7 +20,7 @@ import { uploadEquipmentImage } from '../../middlewares/upload.middleware.js';
 const equipmentRouter = express.Router();
 const adminEquipmentRouter = express.Router();
 
-equipmentRouter.use(authenticate);
+equipmentRouter.use(authenticate, blockStudent);
 // verifyCsrfToken ก่อน requireAdmin: เป็น check ที่ถูกกว่า (ไม่ query DB) จึงคัดออกก่อน
 adminEquipmentRouter.use(authenticate, verifyCsrfToken, requireAdmin);
 

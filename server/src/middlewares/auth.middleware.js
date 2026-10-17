@@ -69,6 +69,16 @@ export async function authenticate(request, response, next) {
   next();
 }
 
+// นักเรียนใช้ได้แค่จองห้อง ใส่ไว้หลัง authenticate ของทุก router ฝั่ง user ที่ไม่ใช่ห้อง (ยืม/เบิก/ซ่อม/ครุภัณฑ์)
+// role มาจาก request.account ที่ authenticate โหลดจาก DB ล่าสุด เปลี่ยนเป็น user แล้วใช้ได้ทันทีไม่ต้อง login ใหม่
+export function blockStudent(request, _response, next) {
+  if (request.account?.role === 'student') {
+    return next(new AppError(403, 'บัญชีนักเรียนใช้ได้เฉพาะการจองห้อง'));
+  }
+
+  next();
+}
+
 export async function requireAdmin(request, _response, next) {
   try {
     // อ่าน role ล่าสุดจาก DB ไม่เชื่อ role ใน Token อย่างเดียว เพราะ Admin อาจเพิ่งถูกลดสิทธิ์

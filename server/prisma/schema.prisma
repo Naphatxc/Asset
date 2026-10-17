@@ -173,6 +173,34 @@ model users {
   audit_records           audit_records[]
   password_reset_tokens   password_reset_tokens[]
   returned_borrow_details borrow_details[]        @relation("borrow_detail_returned_by")
+  room_bookings           room_bookings[]
+}
+
+// ห้องที่นักเรียนจองได้ (เริ่มต้น 5 ห้อง ใส่ไว้ใน migration) Admin เพิ่ม/แก้ชื่อ/ปิดห้องได้
+// ไม่มีปุ่มลบ เพราะห้องที่เคยถูกจองแล้วต้องอ้างอิงจากประวัติการจองได้ ปิดแทน (is_active = false)
+model rooms {
+  room_id       Int             @id @default(autoincrement()) @db.UnsignedInt
+  room_name     String          @unique(map: "uq_room_name") @db.VarChar(100)
+  is_active     Boolean         @default(true)
+  room_bookings room_bookings[]
+}
+
+// การจองห้อง จองแล้วได้ทันที ไม่มีขั้นตอนอนุมัติ ระบบกันเวลาชนกันเองตอนสร้าง (room.service.js)
+// start_at/end_at เก็บเป็นเวลาจริงแบบ UTC (ต่างจาก return_date ที่เก็บแค่วันที่) เช่น จอง 13:00 เวลาไทย = 06:00 UTC
+// ยกเลิกการจอง = ลบแถวทิ้ง (เหมือนยกเลิกคำขอยืม) เพราะไม่ได้ไปล็อกอะไรอื่นในระบบ
+model room_bookings {
+  booking_id Int      @id @default(autoincrement()) @db.UnsignedInt
+  room_id    Int      @db.UnsignedInt
+  user_id    Int      @db.UnsignedInt
+  start_at   DateTime @db.DateTime(0)
+  end_at     DateTime @db.DateTime(0)
+  purpose    String?  @db.Text
+  created_at DateTime @default(now()) @db.DateTime(0)
+  rooms      rooms    @relation(fields: [room_id], references: [room_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_room_booking_room")
+  users      users    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_room_booking_user")
+
+  @@index([room_id, start_at], map: "idx_room_bookings_room_start")
+  @@index([user_id], map: "fk_room_booking_user")
 }
 
 // ลิงก์ "ลืมรหัสผ่าน" ที่ส่งทางอีเมล เก็บแค่ hash (sha256) ของ token ไม่เก็บตัวจริง
@@ -328,9 +356,12 @@ enum equipment_items_status {
   damaged
 }
 
+// student = นักเรียน ใช้ได้แค่จองห้อง (ดู blockStudent ใน auth.middleware.js) สมัครเองจากหน้า login ได้ role นี้
+// user = บุคลากร ยืม-คืน/เบิก/แจ้งซ่อม/จองห้องได้ Admin เป็นคนเปลี่ยน role ให้
 enum users_role {
   admin
   user
+  student
 }
 
 enum borrows_status {

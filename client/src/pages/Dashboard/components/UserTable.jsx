@@ -53,6 +53,7 @@ export default function UserTable({
                   >
                     <option value="user">User</option>
                     <option value="admin">Admin</option>
+                    <option value="student">Student</option>
                   </select>
                 </td>
                 <td className="stack-actions" data-label="จัดการ">
