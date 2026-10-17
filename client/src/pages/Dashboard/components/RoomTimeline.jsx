@@ -37,6 +37,16 @@ function formatThaiDate(date) {
 export default function RoomTimeline({ rooms, bookings, date, minDate, userId, onChangeDate }) {
   const isToday = date === minDate;
 
+  // ห้องที่ปิดแล้วแต่ยังมีการจองค้างอยู่ในวันนั้นก็ต้องโชว์ (ชื่อห้องมากับตัวการจองเลย ไม่ต้องขอข้อมูลเพิ่ม)
+  const openRoomIds = new Set(rooms.map((room) => room.room_id));
+  const closedRooms = [];
+  bookings.forEach((booking) => {
+    if (!openRoomIds.has(booking.room_id) && !closedRooms.some((room) => room.room_id === booking.room_id)) {
+      closedRooms.push({ room_id: booking.room_id, room_name: `${booking.room_name} (ปิดอยู่)` });
+    }
+  });
+  const timelineRooms = [...rooms, ...closedRooms];
+
   return (
     <div className="room-timeline">
       <div className="room-timeline-toolbar">
@@ -71,7 +81,7 @@ export default function RoomTimeline({ rooms, bookings, date, minDate, userId, o
         </strong>
       </div>
 
-      {rooms.length === 0 ? (
+      {timelineRooms.length === 0 ? (
         <p className="loading-message">ยังไม่มีห้องที่เปิดให้จอง</p>
       ) : (
         <div className="room-timeline-scroll">
@@ -85,7 +95,7 @@ export default function RoomTimeline({ rooms, bookings, date, minDate, userId, o
               </div>
             </div>
 
-            {rooms.map((room) => (
+            {timelineRooms.map((room) => (
               <div className="room-timeline-row" key={room.room_id}>
                 <div className="room-timeline-room">{room.room_name}</div>
                 <div className="room-timeline-track">

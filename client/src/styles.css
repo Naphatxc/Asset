@@ -2564,8 +2564,15 @@ button:disabled {
   margin-bottom: 6px;
 }
 
+/* ชื่อห้องค้างซ้ายตอนเลื่อนตารางแนวนอน (จอแคบ) ไม่งั้นเลื่อนไปแล้วไม่รู้ว่าแถวไหนห้องไหน */
 .room-timeline-room {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  padding-right: 4px;
+  background: var(--stat-paper);
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .room-timeline-hours {
@@ -2647,4 +2654,23 @@ button:disabled {
 
 .room-timeline-legend .legend-mine {
   background: var(--stat-pink);
+}
+
+@media (max-width: 640px) {
+  .room-timeline {
+    padding: 10px;
+  }
+
+  .room-timeline-grid {
+    min-width: 600px;
+  }
+
+  .room-timeline-row {
+    grid-template-columns: 76px 1fr;
+    gap: 6px;
+  }
+
+  .room-timeline-room {
+    font-size: 0.82rem;
+  }
 }
