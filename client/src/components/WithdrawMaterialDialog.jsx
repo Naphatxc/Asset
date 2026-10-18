@@ -26,6 +26,7 @@ export default function WithdrawMaterialDialog({
   // วัสดุที่ต้องคืนเรียกว่า "ยืม" ให้ตรงกับปุ่มในรายการวัสดุ (MaterialManager.jsx)
   const action = material.is_returnable ? 'ยืม' : 'เบิก';
   const [error, setError] = useState('');
+  const [confirming, setConfirming] = useState(false);
 
   function handleSubmit(event) {
     event.preventDefault();
@@ -50,6 +51,13 @@ export default function WithdrawMaterialDialog({
     }
 
     setError('');
+
+    // กดครั้งแรกแค่เปิด popup ยืนยัน กด "ยืนยัน" ใน popup (submit ฟอร์มเดิมซ้ำ) จึงเบิกจริง
+    if (!confirming) {
+      setConfirming(true);
+      return;
+    }
+
     onSubmit({
       quantity: qty,
       remark: remark.trim() || null,
@@ -123,9 +131,40 @@ export default function WithdrawMaterialDialog({
 
           {error && <p className="error-message">{error}</p>}
 
+          {/* popup อยู่ใน <form> เดียวกัน ปุ่มยืนยันจึงเป็น submit ที่วิ่งเข้า handleSubmit ซ้ำได้เลย */}
+          {confirming && (
+            <div className="modal-backdrop" role="presentation" onMouseDown={() => setConfirming(false)}>
+              <section
+                className="withdraw-dialog"
+                role="alertdialog"
+                aria-modal="true"
+                aria-labelledby="withdraw-confirm-title"
+                onMouseDown={(event) => event.stopPropagation()}
+              >
+                <h2 id="withdraw-confirm-title">ยืนยันการ{action}</h2>
+                <p>
+                  {action} {material.material_code} {material.material_name} จำนวน {quantity}{' '}
+                  {material.unit_name} ใช่หรือไม่?
+                </p>
+                <div className="form-actions">
+                  <button className="button-primary" type="submit" disabled={submitting}>
+                    {submitting ? `กำลัง${action}...` : `ยืนยัน${action}`}
+                  </button>
+                  <button
+                    className="button-secondary"
+                    type="button"
+                    onClick={() => setConfirming(false)}
+                  >
+                    กลับไปแก้ไข
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
+
           <div className="form-actions">
             <button className="button-primary" type="submit" disabled={submitting}>
-              {submitting ? `กำลัง${action}...` : `ยืนยัน${action}`}
+              {action}
             </button>
             <button className="button-secondary" type="button" onClick={onClose}>
               ยกเลิก

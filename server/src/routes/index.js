@@ -19,6 +19,10 @@ import optionRoutes, {
   adminOptionsRouter,
 } from '../modules/options/options.routes.js';
 import adminRepairRouter, { repairRouter } from '../modules/repair/repair.routes.js';
+import roomRoutes, {
+  adminRoomRouter,
+  roomBookingRouter,
+} from '../modules/rooms/room.routes.js';
 
 const router = express.Router();
 
@@ -35,6 +39,9 @@ router.use('/admin/repairs', adminRepairRouter);
 router.use('/admin/audits', adminAuditRouter);
 router.use('/materials', materialRoutes);
 router.use('/admin/materials', adminMaterialRouter);
+router.use('/rooms', roomRoutes);
+router.use('/room-bookings', roomBookingRouter);
+router.use('/admin/rooms', adminRoomRouter);
 router.use('/', optionRoutes);
 router.use('/admin', adminOptionsRouter);
 

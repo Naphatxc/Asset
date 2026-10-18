@@ -454,6 +454,11 @@ button:disabled {
 .equipment-table td.cell-number {
   white-space: nowrap;
   overflow-wrap: normal;
+  text-align: right;
+}
+
+.equipment-table th.cell-number {
+  text-align: right;
 }
 
 /* โหมดตารางเต็ม (พื้นที่ ≥ 960px) บีบระยะซ้าย-ขวาของช่องลงนิดหน่อย ตารางคอลัมน์เยอะอย่างครุภัณฑ์จะได้มีที่ให้
@@ -2520,4 +2525,152 @@ button:disabled {
   border-color: var(--stat-pink);
   color: #ffffff;
   background: var(--stat-pink);
+}
+
+/* ตารางเวลาห้องจอง (RoomTimeline.jsx) แถว = ห้อง, คอลัมน์ = 12 ชั่วโมง (08:00–20:00) */
+.room-timeline {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid #dbe3e4;
+  border-radius: 12px;
+  background: var(--stat-paper);
+}
+
+.room-timeline-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.room-timeline-date {
+  margin-left: 6px;
+}
+
+.room-timeline-scroll {
+  overflow-x: auto;
+}
+
+.room-timeline-grid {
+  min-width: 720px;
+}
+
+.room-timeline-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+/* ชื่อห้องค้างซ้ายตอนเลื่อนตารางแนวนอน (จอแคบ) ไม่งั้นเลื่อนไปแล้วไม่รู้ว่าแถวไหนห้องไหน */
+.room-timeline-room {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  padding-right: 4px;
+  background: var(--stat-paper);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.room-timeline-hours {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  color: var(--stat-slate-dark);
+  font-size: 0.78rem;
+}
+
+.room-timeline-hours span {
+  padding-left: 4px;
+  border-left: 1px solid #dbe3e4;
+}
+
+/* พื้นสีเขียวอ่อน = ว่าง เส้นแบ่งทุกชั่วโมง (1/12 ของความกว้าง) */
+.room-timeline-track {
+  position: relative;
+  height: 40px;
+  border-radius: 8px;
+  background: repeating-linear-gradient(
+    to right,
+    #eaf6ee 0,
+    #eaf6ee calc(100% / 12 - 1px),
+    #cfe3d6 calc(100% / 12 - 1px),
+    #cfe3d6 calc(100% / 12)
+  );
+}
+
+.room-timeline-booking {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 6px;
+  overflow: hidden;
+  border: 1px solid #f1a8c2;
+  border-radius: 6px;
+  background: #fbd5e3;
+  color: #7a1f48;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.room-timeline-booking.mine {
+  border-color: var(--stat-pink);
+  background: var(--stat-pink);
+  color: #ffffff;
+}
+
+.room-timeline-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 10px;
+  color: var(--stat-slate-dark);
+  font-size: 0.82rem;
+}
+
+.room-timeline-legend i {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 3px;
+  vertical-align: -1px;
+}
+
+.room-timeline-legend .legend-free {
+  background: #eaf6ee;
+  border: 1px solid #cfe3d6;
+}
+
+.room-timeline-legend .legend-booked {
+  background: #fbd5e3;
+  border: 1px solid #f1a8c2;
+}
+
+.room-timeline-legend .legend-mine {
+  background: var(--stat-pink);
+}
+
+@media (max-width: 640px) {
+  .room-timeline {
+    padding: 10px;
+  }
+
+  .room-timeline-grid {
+    min-width: 600px;
+  }
+
+  .room-timeline-row {
+    grid-template-columns: 76px 1fr;
+    gap: 6px;
+  }
+
+  .room-timeline-room {
+    font-size: 0.82rem;
+  }
 }

@@ -8,3 +8,6 @@ server/uploads/repairs/*
 !server/uploads/repairs/.gitkeep
 server/uploads/equipment/*
 server/uploads/materials/*
+
+# บัญชีทดลองในเครื่อง (มีรหัสผ่าน ห้าม commit)
+test-accounts.txt

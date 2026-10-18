@@ -14,6 +14,7 @@ import {
 } from './material.validator.js';
 import {
   authenticate,
+  blockStudent,
   requireAdmin,
 } from '../../middlewares/auth.middleware.js';
 import { verifyCsrfToken } from '../../middlewares/csrf.middleware.js';
@@ -22,7 +23,7 @@ import { uploadMaterialImage } from '../../middlewares/upload.middleware.js';
 const materialRouter = express.Router();
 const adminMaterialRouter = express.Router();
 
-materialRouter.use(authenticate);
+materialRouter.use(authenticate, blockStudent);
 // verifyCsrfToken ก่อน requireAdmin: เป็น check ที่ถูกกว่า (ไม่ query DB) จึงคัดออกก่อน
 adminMaterialRouter.use(authenticate, verifyCsrfToken, requireAdmin);
 

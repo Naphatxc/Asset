@@ -25,6 +25,7 @@ import EquipmentManager from './components/EquipmentManager.jsx';
 import MaterialManager from './components/MaterialManager.jsx';
 import MyBorrows from './components/MyBorrows.jsx';
 import RepairManager from './components/RepairManager.jsx';
+import RoomBooking from './components/RoomBooking.jsx';
 import UserTable, { userSortColumns } from './components/UserTable.jsx';
 
 const adminTabs = [
@@ -35,6 +36,7 @@ const adminTabs = [
   { key: 'repair', label: 'แจ้งซ่อม' },
   { key: 'audit', label: 'ตรวจนับประจำปี' },
   { key: 'users', label: 'ผู้ใช้งาน' },
+  { key: 'room', label: 'จองห้อง' },
 ];
 
 const userTabs = [
@@ -42,14 +44,20 @@ const userTabs = [
   { key: 'materials', label: 'วัสดุ' },
   { key: 'borrow', label: 'ยืมของฉัน' },
   { key: 'repair', label: 'แจ้งซ่อม' },
+  { key: 'room', label: 'จองห้อง' },
+];
+
+const studentTabs = [
+  { key: 'room', label: 'จองห้อง' },
 ];
 
 export default function Dashboard({ user, onLogout }) {
   const queryClient = useQueryClient();
   const { showError, showSuccess } = useToast();
   const admin = user.role === 'admin';
-  const tabs = admin ? adminTabs : userTabs;
-  const defaultTab = admin ? 'overview' : 'equipment';
+  const student = user.role === 'student';
+  const tabs = student ? studentTabs : admin ? adminTabs : userTabs;
+  const defaultTab = student ? 'room' : admin ? 'overview' : 'equipment';
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab');
   // เผื่อ URL ถูกแก้มือเป็นแท็บที่ role นี้ไม่มีสิทธิ์เห็น (เช่น user ทั่วไปใส่ ?tab=users เอง)
@@ -154,7 +162,7 @@ export default function Dashboard({ user, onLogout }) {
           <div className="account-summary">
             <span>{user.email}</span>
             <span className="role-badge">
-              {admin ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน'}
+              {student ? 'นักเรียน' : admin ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน'}
             </span>
           </div>
         </div>
@@ -199,6 +207,8 @@ export default function Dashboard({ user, onLogout }) {
         {activeTab === 'borrow' && (admin ? <BorrowManager /> : <MyBorrows />)}
 
         {activeTab === 'repair' && <RepairManager mine={!admin} />}
+
+        {activeTab === 'room' && <RoomBooking user={user} />}
 
         {activeTab === 'audit' && admin && <AuditManager />}
 
