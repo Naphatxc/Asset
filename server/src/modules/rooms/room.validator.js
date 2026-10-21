@@ -7,14 +7,17 @@ const MAX_ROOM_NAME_LENGTH = 100;
 // purpose เป็น TEXT ไม่จำกัดจาก DB จึงกันความยาวไว้ฝั่งนี้เอง (เทียบเท่า borrow.validator.js)
 const MAX_PURPOSE_LENGTH = 2000;
 
-// เวลาทำการของห้อง (เวลาไทย) และจองล่วงหน้าได้ไม่เกินกี่วัน — ฝั่ง client ต้องใช้ค่าเดียวกันในช่องเลือกเวลา
-const OPEN_TIME = '08:00';
-const CLOSE_TIME = '20:00';
+// ช่วงเวลาที่จองได้ (เวลาไทย) จองทีละช่วงเต็ม ไม่เลือกเวลาเองแล้ว — ฝั่ง client (RoomBooking.jsx, RoomTimeline.jsx) ต้องตรงกัน
+// ช่วงเช้ากับบ่ายเว้น 12:00–13:00 พัก ส่วนบ่ายกับเย็นต่อกันพอดีที่ 16:00
+const SLOTS = {
+  morning: { start: '09:00', end: '12:00' },
+  afternoon: { start: '13:00', end: '16:00' },
+  evening: { start: '16:00', end: '18:00' },
+};
+// จองล่วงหน้าได้ไม่เกินกี่วัน
 const MAX_DAYS_AHEAD = 30;
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-// เลือกได้ทีละครึ่งชั่วโมงเท่านั้น (13:00, 13:30) "HH:MM" สองหลักเสมอ จึงเทียบกันแบบ string ได้เลย
-const TIME_PATTERN = /^([01]\d|2[0-3]):(00|30)$/;
 
 // "YYYY-MM-DD" ที่เป็นวันจริง (กัน 2026-02-30 ที่ new Date เลื่อนไปเป็นวันที่ 2 มี.ค. ให้เงียบๆ)
 function isValidDateString(value) {
@@ -39,8 +42,7 @@ export function validateCreateBooking(request, _response, next) {
   const body = request.body ?? {};
   const roomId = Number(body.room_id);
   const date = String(body.date ?? '');
-  const startTime = String(body.start_time ?? '');
-  const endTime = String(body.end_time ?? '');
+  const slot = SLOTS[String(body.slot ?? '')];
   const purpose = String(body.purpose ?? '').trim() || null;
 
   if (!Number.isInteger(roomId) || roomId <= 0) {
@@ -49,18 +51,12 @@ export function validateCreateBooking(request, _response, next) {
   if (!isValidDateString(date)) {
     return next(new AppError(400, 'กรุณาระบุวันที่จอง'));
   }
-  if (!TIME_PATTERN.test(startTime) || !TIME_PATTERN.test(endTime)) {
-    return next(new AppError(400, 'กรุณาเลือกเวลาเริ่มและเวลาสิ้นสุด (ทีละ 30 นาที)'));
-  }
-  if (startTime < OPEN_TIME || endTime > CLOSE_TIME) {
-    return next(new AppError(400, `จองได้เฉพาะช่วง ${OPEN_TIME}–${CLOSE_TIME} น.`));
-  }
-  if (endTime <= startTime) {
-    return next(new AppError(400, 'เวลาสิ้นสุดต้องหลังเวลาเริ่ม'));
+  if (!slot) {
+    return next(new AppError(400, 'กรุณาเลือกช่วงเวลา (เช้า บ่าย หรือเย็น)'));
   }
 
-  const startAt = toBangkokDateTime(date, startTime);
-  const endAt = toBangkokDateTime(date, endTime);
+  const startAt = toBangkokDateTime(date, slot.start);
+  const endAt = toBangkokDateTime(date, slot.end);
 
   if (startAt <= new Date()) {
     return next(new AppError(400, 'จองย้อนหลังหรือช่วงเวลาที่เริ่มไปแล้วไม่ได้'));
@@ -119,6 +115,17 @@ export function validateCreateRoom(request, _response, next) {
   if (!roomName) return;
 
   request.validated = { roomName };
+  next();
+}
+
+export function validateRoomIdParam(request, _response, next) {
+  const roomId = Number(request.params.id);
+
+  if (!Number.isInteger(roomId) || roomId <= 0) {
+    return next(new AppError(400, 'รหัสห้องไม่ถูกต้อง'));
+  }
+
+  request.validated = { ...request.validated, roomId };
   next();
 }
 

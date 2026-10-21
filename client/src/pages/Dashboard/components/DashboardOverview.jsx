@@ -33,7 +33,17 @@ const activityMeta = {
   borrow: { icon: '📤', className: 'activity-icon-borrow' },
   return: { icon: '📥', className: 'activity-icon-return' },
   repair: { icon: '🔧', className: 'activity-icon-repair' },
+  room: { icon: '🏫', className: 'activity-icon-room' },
 };
+
+// "22 ต.ค. 2569 09:00–12:00" ตามเวลาไทย ไว้บอกว่าห้องถูกจองให้ใช้เมื่อไร (ต่างจาก occurred_at ที่เป็นเวลาที่กดจอง)
+function formatBookingPeriod(startAt, endAt) {
+  const time = { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' };
+  const day = new Intl.DateTimeFormat('th-TH', { dateStyle: 'medium', timeZone: 'Asia/Bangkok' });
+  const clock = new Intl.DateTimeFormat('th-TH', time);
+
+  return `${day.format(new Date(startAt))} ${clock.format(new Date(startAt))}–${clock.format(new Date(endAt))}`;
+}
 
 function formatActivityText(activity) {
   switch (activity.type) {
@@ -45,6 +55,8 @@ function formatActivityText(activity) {
       return `${activity.actor_name} คืน ${activity.equipment_name}`;
     case 'repair':
       return `${activity.actor_name} แจ้งซ่อม ${activity.equipment_name}`;
+    case 'room':
+      return `${activity.actor_name} จอง ${activity.room_name} ${formatBookingPeriod(activity.start_at, activity.end_at)}`;
     default:
       return '';
   }

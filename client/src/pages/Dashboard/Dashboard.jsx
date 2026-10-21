@@ -28,23 +28,25 @@ import RepairManager from './components/RepairManager.jsx';
 import RoomBooking from './components/RoomBooking.jsx';
 import UserTable, { userSortColumns } from './components/UserTable.jsx';
 
+// ลำดับเมนู: ภาพรวม -> ของในคลัง (ครุภัณฑ์/วัสดุ) -> บริการประจำวัน (ยืม-คืน/จองห้อง/แจ้งซ่อม)
+// -> งานจัดการของ Admin (ตรวจนับ/ผู้ใช้งาน) อยู่ท้ายสุด
 const adminTabs = [
   { key: 'overview', label: 'ภาพรวม' },
   { key: 'equipment', label: 'ครุภัณฑ์' },
   { key: 'materials', label: 'วัสดุ' },
   { key: 'borrow', label: 'ยืม-คืน' },
+  { key: 'room', label: 'จองห้อง' },
   { key: 'repair', label: 'แจ้งซ่อม' },
   { key: 'audit', label: 'ตรวจนับประจำปี' },
   { key: 'users', label: 'ผู้ใช้งาน' },
-  { key: 'room', label: 'จองห้อง' },
 ];
 
 const userTabs = [
   { key: 'equipment', label: 'ครุภัณฑ์' },
   { key: 'materials', label: 'วัสดุ' },
   { key: 'borrow', label: 'ยืมของฉัน' },
-  { key: 'repair', label: 'แจ้งซ่อม' },
   { key: 'room', label: 'จองห้อง' },
+  { key: 'repair', label: 'แจ้งซ่อม' },
 ];
 
 const studentTabs = [

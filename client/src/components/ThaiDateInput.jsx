@@ -58,6 +58,7 @@ export default function ThaiDateInput({
   value,
   onChange, // เรียกด้วย { target: { name, value } } รูปแบบเดียวกับ onChange ของ input เดิม
   min, // YYYY-MM-DD วันก่อนหน้านี้เลือกไม่ได้
+  max, // YYYY-MM-DD วันหลังจากนี้เลือกไม่ได้ (ไม่ส่ง = ไม่จำกัด)
   required = false,
 }) {
   const popupId = useId();
@@ -73,6 +74,7 @@ export default function ThaiDateInput({
   }, [value]);
 
   const tooEarly = Boolean(value && min && value < min);
+  const tooLate = Boolean(value && max && value > max);
   const invalidText = text.trim() !== '' && !parseThai(text);
 
   useEffect(() => {
@@ -80,8 +82,9 @@ export default function ThaiDateInput({
     if (invalidText) message = 'กรอกวันที่เป็น วว/ดด/ปปปป (พ.ศ.)';
     else if (required && !value) message = 'กรุณาเลือกวันที่';
     else if (tooEarly) message = `เลือกได้ตั้งแต่ ${formatThai(min)} เป็นต้นไป`;
+    else if (tooLate) message = `เลือกได้ไม่เกิน ${formatThai(max)}`;
     inputRef.current?.setCustomValidity(message);
-  }, [invalidText, required, value, tooEarly, min]);
+  }, [invalidText, required, value, tooEarly, tooLate, min, max]);
 
   function emit(nextValue) {
     onChange({ target: { name, value: nextValue } });
@@ -251,7 +254,7 @@ export default function ThaiDateInput({
                   ]
                     .filter(Boolean)
                     .join(' ')}
-                  disabled={Boolean(min && iso < min)}
+                  disabled={Boolean((min && iso < min) || (max && iso > max))}
                   onClick={() => choose(iso)}
                 >
                   {day}
@@ -264,7 +267,11 @@ export default function ThaiDateInput({
             <button type="button" onClick={() => choose('')}>
               ล้าง
             </button>
-            <button type="button" disabled={Boolean(min && today < min)} onClick={() => choose(today)}>
+            <button
+              type="button"
+              disabled={Boolean((min && today < min) || (max && today > max))}
+              onClick={() => choose(today)}
+            >
               วันนี้
             </button>
           </div>

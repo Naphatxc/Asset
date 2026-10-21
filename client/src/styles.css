@@ -557,7 +557,8 @@ button:disabled {
   margin-bottom: 14px;
 }
 
-.section-heading h2 {
+.section-heading h2,
+.section-heading h3 {
   margin: 2px 0 0;
 }
 
@@ -1350,6 +1351,10 @@ button:disabled {
 
 .activity-icon-repair {
   background: #fff0e8;
+}
+
+.activity-icon-room {
+  background: #fde8f1;
 }
 
 .activity-body {
@@ -2527,7 +2532,7 @@ button:disabled {
   background: var(--stat-pink);
 }
 
-/* ตารางเวลาห้องจอง (RoomTimeline.jsx) แถว = ห้อง, คอลัมน์ = 12 ชั่วโมง (08:00–20:00) */
+/* ตารางเวลาห้องจอง (RoomTimeline.jsx) แถว = ห้อง, คอลัมน์ = ช่วงเวลา เช้า/บ่าย/เย็น (ตาม SLOT_OPTIONS) */
 .room-timeline {
   margin-top: 16px;
   padding: 14px;
@@ -2552,16 +2557,17 @@ button:disabled {
   overflow-x: auto;
 }
 
+/* grid เดียวทั้งตาราง คอลัมน์แรกชื่อห้อง + 3 ช่วง แต่ละแถว (.room-timeline-row) ใช้ display: contents
+   ให้ช่องข้างในเรียงเข้า grid หลักตรงกันทุกแถว */
 .room-timeline-grid {
-  min-width: 720px;
+  display: grid;
+  grid-template-columns: 120px repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 520px;
 }
 
 .room-timeline-row {
-  display: grid;
-  grid-template-columns: 120px 1fr;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  display: contents;
 }
 
 /* ชื่อห้องค้างซ้ายตอนเลื่อนตารางแนวนอน (จอแคบ) ไม่งั้นเลื่อนไปแล้วไม่รู้ว่าแถวไหนห้องไหน */
@@ -2569,59 +2575,66 @@ button:disabled {
   position: sticky;
   left: 0;
   z-index: 1;
+  display: flex;
+  align-items: center;
   padding-right: 4px;
   background: var(--stat-paper);
   font-weight: 600;
   overflow-wrap: anywhere;
 }
 
-.room-timeline-hours {
+.room-timeline-slot-head {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
+  justify-items: center;
+  padding-bottom: 2px;
   color: var(--stat-slate-dark);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
 }
 
-.room-timeline-hours span {
-  padding-left: 4px;
-  border-left: 1px solid #dbe3e4;
+.room-timeline-slot-head span {
+  font-size: 0.76rem;
 }
 
-/* พื้นสีเขียวอ่อน = ว่าง เส้นแบ่งทุกชั่วโมง (1/12 ของความกว้าง) */
-.room-timeline-track {
-  position: relative;
-  height: 40px;
-  border-radius: 8px;
-  background: repeating-linear-gradient(
-    to right,
-    #eaf6ee 0,
-    #eaf6ee calc(100% / 12 - 1px),
-    #cfe3d6 calc(100% / 12 - 1px),
-    #cfe3d6 calc(100% / 12)
-  );
-}
-
-.room-timeline-booking {
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  display: flex;
-  align-items: center;
-  padding: 0 6px;
+.room-timeline-cell {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  min-height: 46px;
+  padding: 6px 8px;
   overflow: hidden;
-  border: 1px solid #f1a8c2;
-  border-radius: 6px;
-  background: #fbd5e3;
-  color: #7a1f48;
-  font-size: 0.78rem;
+  border: 1px solid #cfe3d6;
+  border-radius: 8px;
+  background: #eaf6ee;
+  color: #3f6b52;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.room-timeline-cell strong,
+.room-timeline-cell small {
+  max-width: 100%;
+  overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
 }
 
-.room-timeline-booking.mine {
+.room-timeline-cell.booked {
+  border-color: #f1a8c2;
+  background: #fbd5e3;
+  color: #7a1f48;
+}
+
+.room-timeline-cell.mine {
   border-color: var(--stat-pink);
   background: var(--stat-pink);
   color: #ffffff;
+}
+
+.room-timeline-cell.past {
+  border-color: #e2e2e2;
+  background: #f3f3f3;
+  color: #9a9a9a;
 }
 
 .room-timeline-legend {
@@ -2656,21 +2669,79 @@ button:disabled {
   background: var(--stat-pink);
 }
 
+.room-timeline-legend .legend-past {
+  background: #f3f3f3;
+  border: 1px solid #e2e2e2;
+}
+
+/* มือถือ: บีบให้ครบ 3 ช่วงในจอเดียว ไม่ต้องปัดแนวนอน (เดิมช่วงเย็นตกขอบขวาโดยไม่มีอะไรบอก)
+   ชื่อคนจองที่ยาวเกินช่องจะถูกตัดเป็น "…" อยู่แล้ว ส่วนปุ่มเลื่อนวันขยายเป็น 44px ให้นิ้วกดง่าย */
 @media (max-width: 640px) {
   .room-timeline {
     padding: 10px;
   }
 
   .room-timeline-grid {
-    min-width: 600px;
-  }
-
-  .room-timeline-row {
-    grid-template-columns: 76px 1fr;
-    gap: 6px;
+    grid-template-columns: 60px repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    min-width: 0;
   }
 
   .room-timeline-room {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
   }
+
+  .room-timeline-slot-head {
+    font-size: 0.76rem;
+  }
+
+  .room-timeline-slot-head span {
+    font-size: 0.68rem;
+  }
+
+  .room-timeline-cell {
+    padding: 4px;
+    font-size: 0.76rem;
+  }
+
+  /* ช่องแคบ ให้ชื่อขึ้นบรรทัดใหม่ได้ (ตัดคำภาษาไทยตามพจนานุกรมของเบราว์เซอร์) แทนการตัดเป็น "…" สูงสุด 2 บรรทัด */
+  .room-timeline-cell strong,
+  .room-timeline-cell small {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+  }
+
+  .room-timeline-toolbar .button-secondary {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* การจองของฉัน (MyRoomBookings.jsx) อยู่ระหว่างฟอร์มจองกับตารางรายวัน */
+.my-room-bookings {
+  margin-bottom: 24px;
+}
+
+.my-room-bookings h4 {
+  margin: 14px 0 8px;
+  color: var(--stat-slate-dark);
+}
+
+/* ตารางจัดการห้อง (RoomManager.jsx) ล็อกความกว้างคอลัมน์ไว้ ไม่ให้เบราว์เซอร์คิดจากความยาวข้อความ
+   ไม่งั้นพอชื่อห้องได้ " (ปิดอยู่)" ต่อท้าย คอลัมน์ชื่อห้องจะกว้างขึ้นแล้วคอลัมน์จัดการเลื่อนทั้งคอลัมน์
+   มีผลเฉพาะโหมดตาราง โหมดการ์ด (.responsive-table บนจอแคบ) เป็น display: block อยู่แล้ว */
+.room-manager-table {
+  table-layout: fixed;
+}
+
+.room-manager-table th:first-child {
+  width: 40%;
+}
+
+/* ปุ่มปิดห้อง/เปิดห้อง (RoomManager.jsx) กว้างเท่ากันทั้งสองข้อความ ปุ่ม "ลบ" ข้างๆ จะไม่ขยับตอนสลับ */
+.row-actions .room-toggle {
+  min-width: 5.4em;
 }
