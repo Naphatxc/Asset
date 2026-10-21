@@ -65,6 +65,8 @@ export default function RoomManager() {
     <section className="admin-section">
       <h3>จัดการห้อง</h3>
 
+      {roomsQuery.error && <p className="error-message">{roomsQuery.error.message}</p>}
+
       <form className="equipment-form" onSubmit={submitForm}>
         <div className="form-grid">
           <label>
@@ -84,62 +86,66 @@ export default function RoomManager() {
         </div>
       </form>
 
-      <div className="table-wrap">
-        <table className="equipment-table responsive-table">
-          <thead>
-            <tr>
-              <th>ชื่อห้อง</th>
-              <th>จัดการ</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rooms.map((room) => (
-              <tr key={room.room_id}>
-                <td data-label="ชื่อห้อง">
-                  {editingId === room.room_id ? (
-                    <form className="row-actions" onSubmit={saveEdit}>
-                      <input
-                        value={editName}
-                        onChange={(event) => setEditName(event.target.value)}
-                        maxLength={100}
-                        required
-                        autoFocus
-                      />
-                      <button type="submit" disabled={updateMutation.isPending}>บันทึก</button>
-                      <button type="button" onClick={() => setEditingId(null)}>ยกเลิก</button>
-                    </form>
-                  ) : (
-                    <>
-                      {room.room_name}
-                      {!room.is_active && ' (ปิดอยู่)'}
-                    </>
-                  )}
-                </td>
-                <td data-label="จัดการ">
-                  <div className="row-actions">
-                    <button type="button" onClick={() => startEdit(room)}>
-                      แก้ชื่อ
-                    </button>
-                    <button
-                      className={room.is_active ? 'button-danger' : 'button-restore'}
-                      type="button"
-                      disabled={updateMutation.isPending}
-                      onClick={() =>
-                        updateMutation.mutate({
-                          roomId: room.room_id,
-                          changes: { is_active: !room.is_active },
-                        })
-                      }
-                    >
-                      {room.is_active ? 'ปิดห้อง' : 'เปิดห้อง'}
-                    </button>
-                  </div>
-                </td>
+      {roomsQuery.isLoading ? (
+        <p className="loading-message">กำลังโหลดรายชื่อห้อง...</p>
+      ) : (
+        <div className="table-wrap">
+          <table className="equipment-table responsive-table">
+            <thead>
+              <tr>
+                <th>ชื่อห้อง</th>
+                <th>จัดการ</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rooms.map((room) => (
+                <tr key={room.room_id}>
+                  <td data-label="ชื่อห้อง">
+                    {editingId === room.room_id ? (
+                      <form className="row-actions" onSubmit={saveEdit}>
+                        <input
+                          value={editName}
+                          onChange={(event) => setEditName(event.target.value)}
+                          maxLength={100}
+                          required
+                          autoFocus
+                        />
+                        <button type="submit" disabled={updateMutation.isPending}>บันทึก</button>
+                        <button type="button" onClick={() => setEditingId(null)}>ยกเลิก</button>
+                      </form>
+                    ) : (
+                      <>
+                        {room.room_name}
+                        {!room.is_active && ' (ปิดอยู่)'}
+                      </>
+                    )}
+                  </td>
+                  <td data-label="จัดการ">
+                    <div className="row-actions">
+                      <button type="button" onClick={() => startEdit(room)}>
+                        แก้ชื่อ
+                      </button>
+                      <button
+                        className={room.is_active ? 'button-danger' : 'button-restore'}
+                        type="button"
+                        disabled={updateMutation.isPending}
+                        onClick={() =>
+                          updateMutation.mutate({
+                            roomId: room.room_id,
+                            changes: { is_active: !room.is_active },
+                          })
+                        }
+                      >
+                        {room.is_active ? 'ปิดห้อง' : 'เปิดห้อง'}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
       <p className="loading-message">ปิดห้อง = จองใหม่ไม่ได้ แต่การจองที่มีอยู่แล้วยังอยู่ครบ</p>
     </section>
   );

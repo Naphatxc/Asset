@@ -95,7 +95,7 @@ export async function findOverdueMaterialWithdrawals(limit, client = prisma) {
   `;
 }
 
-// สามแหล่งด้านล่างรวมกันเป็น Feed "กิจกรรมล่าสุด" ที่ service.js เอาไปเรียงตามเวลาอีกที (แต่ละ query จำกัด
+// สี่แหล่งด้านล่าง (ยืม/คืน/แจ้งซ่อม/จองห้อง) รวมกันเป็น Feed "กิจกรรมล่าสุด" ที่ service.js เอาไปเรียงตามเวลาอีกที (แต่ละ query จำกัด
 // จำนวนไว้ก่อน กัน query หนักตอนข้อมูลเยอะ แทนที่จะดึงมาทั้งหมดแล้วมาเรียง/ตัดทีหลัง)
 export async function findRecentBorrows(limit, client = prisma) {
   return client.$queryRaw`
@@ -133,6 +133,19 @@ export async function findRecentRepairs(limit, client = prisma) {
     JOIN equipment_items ei ON ei.item_id = r.item_id
     JOIN users u ON u.user_id = r.reported_by
     ORDER BY r.repair_date DESC
+    LIMIT ${limit}
+  `;
+}
+
+// การจองห้องล่าสุด (เรียงตามเวลาที่กดจอง ไม่ใช่เวลาที่จะใช้ห้อง) การจองที่ถูกยกเลิกถูกลบทิ้งไปแล้วจึงไม่ขึ้นที่นี่
+export async function findRecentRoomBookings(limit, client = prisma) {
+  return client.$queryRaw`
+    SELECT rb.created_at AS occurred_at, rb.start_at AS start_at, rb.end_at AS end_at,
+           r.room_name AS room_name, u.name AS actor_name
+    FROM room_bookings rb
+    JOIN rooms r ON r.room_id = rb.room_id
+    JOIN users u ON u.user_id = rb.user_id
+    ORDER BY rb.created_at DESC
     LIMIT ${limit}
   `;
 }

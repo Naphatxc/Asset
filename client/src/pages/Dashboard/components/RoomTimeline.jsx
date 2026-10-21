@@ -1,11 +1,11 @@
 // ตารางเวลาของทุกห้องในวันที่เลือก (ดูอย่างเดียว ไม่มีปุ่มจอง) แถว = ห้อง, คอลัมน์ = ชั่วโมง
-// ช่วงที่มีคนจองเป็นแถบสีทาบบนช่องว่าง วางตำแหน่งด้วยเปอร์เซ็นต์ของเวลา 08:00–20:00
-const OPEN_HOUR = 8; // ต้องตรงกับ OPEN_TIME/CLOSE_TIME ใน server (room.validator.js)
-const CLOSE_HOUR = 20;
+// ช่วงที่มีคนจองเป็นแถบสีทาบบนช่องว่าง วางตำแหน่งด้วยเปอร์เซ็นต์ของเวลา 09:00–18:00
+const OPEN_HOUR = 9; // ช่วงเวลาที่แสดง = ตั้งแต่ช่วงเช้าเริ่มถึงช่วงเย็นจบ ตรงกับ SLOTS ใน server (room.validator.js)
+const CLOSE_HOUR = 18;
 const TOTAL_MINUTES = (CLOSE_HOUR - OPEN_HOUR) * 60;
 const HOURS = Array.from({ length: CLOSE_HOUR - OPEN_HOUR }, (_, index) => OPEN_HOUR + index);
 
-// เวลาจาก server เป็น UTC -> จำนวนนาทีนับจาก 08:00 ตามเวลาไทย (UTC+7)
+// เวลาจาก server เป็น UTC -> จำนวนนาทีนับจาก OPEN_HOUR (09:00) ตามเวลาไทย (UTC+7)
 function minutesFromOpen(value) {
   const bangkok = new Date(new Date(value).getTime() + 7 * 60 * 60 * 1000);
   return bangkok.getUTCHours() * 60 + bangkok.getUTCMinutes() - OPEN_HOUR * 60;
@@ -34,7 +34,18 @@ function formatThaiDate(date) {
   });
 }
 
-export default function RoomTimeline({ rooms, bookings, date, minDate, userId, onChangeDate }) {
+// minDate/maxDate = ช่วงวันที่เลื่อนดูได้ (ตรงกับช่วงที่จองได้) loading/failed มาจาก query ใน RoomBooking.jsx
+export default function RoomTimeline({
+  rooms,
+  bookings,
+  date,
+  minDate,
+  maxDate,
+  loading,
+  failed,
+  userId,
+  onChangeDate,
+}) {
   const isToday = date === minDate;
 
   // ห้องที่ปิดแล้วแต่ยังมีการจองค้างอยู่ในวันนั้นก็ต้องโชว์ (ชื่อห้องมากับตัวการจองเลย ไม่ต้องขอข้อมูลเพิ่ม)
@@ -62,6 +73,7 @@ export default function RoomTimeline({ rooms, bookings, date, minDate, userId, o
         <button
           className="button-secondary"
           type="button"
+          disabled={date >= maxDate}
           onClick={() => onChangeDate(shiftDate(date, 1))}
           aria-label="วันถัดไป"
         >
@@ -81,11 +93,15 @@ export default function RoomTimeline({ rooms, bookings, date, minDate, userId, o
         </strong>
       </div>
 
-      {timelineRooms.length === 0 ? (
+      {loading ? (
+        <p className="loading-message">กำลังโหลดตารางห้อง...</p>
+      ) : failed ? (
+        <p className="loading-message">โหลดตารางห้องไม่สำเร็จ</p>
+      ) : timelineRooms.length === 0 ? (
         <p className="loading-message">ยังไม่มีห้องที่เปิดให้จอง</p>
       ) : (
         <div className="room-timeline-scroll">
-          <div className="room-timeline-grid">
+          <div className="room-timeline-grid" style={{ '--hours': HOURS.length }}>
             <div className="room-timeline-row">
               <div />
               <div className="room-timeline-hours">

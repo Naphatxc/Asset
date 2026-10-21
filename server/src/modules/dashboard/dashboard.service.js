@@ -10,9 +10,12 @@ const EMPTY_STATUS_COUNTS = {
   damaged: 0,
 };
 
-// รวม 3 แหล่ง (ยืมใหม่/คืนแล้ว/แจ้งซ่อม) เป็น Feed เดียว เรียงตามเวลาล่าสุดก่อน — แต่ละ query ดึงมาเกินจำนวน
+// รวม 4 แหล่ง (ยืมใหม่/คืนแล้ว/แจ้งซ่อม/จองห้อง) เป็น Feed เดียว เรียงตามเวลาล่าสุดก่อน — แต่ละ query ดึงมาเกินจำนวน
 // ที่จะโชว์จริงเล็กน้อยอยู่แล้ว (ดู dashboard.repository.js) พอผสมกันแล้วค่อยตัดเหลือ limit สุดท้ายอีกที
-function buildRecentActivity({ recentBorrows, recentReturns, recentRepairs }, limit) {
+function buildRecentActivity(
+  { recentBorrows, recentReturns, recentRepairs, recentRoomBookings },
+  limit,
+) {
   const combined = [
     ...recentBorrows.map((row) => ({
       type: 'borrow',
@@ -34,6 +37,14 @@ function buildRecentActivity({ recentBorrows, recentReturns, recentRepairs }, li
       actor_name: row.actor_name,
       equipment_name: row.equipment_name,
       status: row.status,
+    })),
+    ...recentRoomBookings.map((row) => ({
+      type: 'room',
+      occurred_at: row.occurred_at,
+      actor_name: row.actor_name,
+      room_name: row.room_name,
+      start_at: row.start_at,
+      end_at: row.end_at,
     })),
   ];
 
@@ -59,6 +70,7 @@ export async function getDashboardSummary() {
       recentBorrows,
       recentReturns,
       recentRepairs,
+      recentRoomBookings,
     ] = await Promise.all([
       dashboardRepository.countEquipmentByStatus(),
       dashboardRepository.countUsers(),
@@ -72,6 +84,7 @@ export async function getDashboardSummary() {
       dashboardRepository.findRecentBorrows(5),
       dashboardRepository.findRecentReturns(5),
       dashboardRepository.findRecentRepairs(5),
+      dashboardRepository.findRecentRoomBookings(5),
     ]);
 
     const statusCounts = { ...EMPTY_STATUS_COUNTS };
@@ -108,7 +121,7 @@ export async function getDashboardSummary() {
     }));
 
     const recentActivity = buildRecentActivity(
-      { recentBorrows, recentReturns, recentRepairs },
+      { recentBorrows, recentReturns, recentRepairs, recentRoomBookings },
       8,
     );
 
