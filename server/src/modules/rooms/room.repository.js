@@ -6,11 +6,9 @@ const bookingInclude = {
   users: { select: { name: true } },
 };
 
-export async function findRooms({ activeOnly }, client = prisma) {
-  return client.rooms.findMany({
-    where: activeOnly ? { is_active: true } : undefined,
-    orderBy: { room_id: 'asc' },
-  });
+// ทุกห้องรวมที่ปิดอยู่ (is_active บอกสถานะ) ตารางเวลาต้องโชว์ห้องที่ปิดด้วย ส่วนดรอปดาวน์จองกรองเองฝั่ง client
+export async function findRooms(client = prisma) {
+  return client.rooms.findMany({ orderBy: { room_id: 'asc' } });
 }
 
 export async function findRoomById(roomId, client = prisma) {
@@ -23,6 +21,15 @@ export async function createRoom(roomName, client = prisma) {
 
 export async function updateRoom(roomId, changes, client = prisma) {
   return client.rooms.update({ where: { room_id: roomId }, data: changes });
+}
+
+// นับรวมการจองที่จบไปแล้วด้วย เพราะเป็นประวัติที่ต้องอ้างอิงห้องได้ (ดู deleteRoom ใน room.service.js)
+export async function countBookingsByRoomId(roomId, client = prisma) {
+  return client.room_bookings.count({ where: { room_id: roomId } });
+}
+
+export async function deleteRoom(roomId, client = prisma) {
+  return client.rooms.delete({ where: { room_id: roomId } });
 }
 
 // การจองทุกห้องที่เริ่มในช่วง [from, to) ใช้แสดงตารางของวันหนึ่ง

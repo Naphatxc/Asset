@@ -1,6 +1,6 @@
-// roomRouter (mount ที่ /api/rooms): รายชื่อห้องที่เปิดให้จอง
+// roomRouter (mount ที่ /api/rooms): รายชื่อทุกห้อง (รวมที่ปิดอยู่ ดู is_active)
 // roomBookingRouter (mount ที่ /api/room-bookings): ทุกคนที่ login ดูตาราง/จอง/ยกเลิกการจองของตัวเองได้
-// adminRoomRouter (mount ที่ /api/admin/rooms): Admin เพิ่ม/แก้ชื่อ/เปิด-ปิดห้อง
+// adminRoomRouter (mount ที่ /api/admin/rooms): Admin เพิ่ม/แก้ชื่อ/เปิด-ปิด/ลบห้อง
 import express from 'express';
 
 import * as roomController from './room.controller.js';
@@ -9,6 +9,7 @@ import {
   validateBookingIdParam,
   validateCreateBooking,
   validateCreateRoom,
+  validateRoomIdParam,
   validateUpdateRoom,
 } from './room.validator.js';
 import {
@@ -25,8 +26,8 @@ roomRouter.use(authenticate);
 roomBookingRouter.use(authenticate);
 adminRoomRouter.use(authenticate, verifyCsrfToken, requireAdmin);
 
-// GET /api/rooms - ห้องที่เปิดให้จอง
-roomRouter.get('/', roomController.getActiveRooms);
+// GET /api/rooms - ทุกห้องรวมที่ปิดอยู่ ดรอปดาวน์จองกรองเฉพาะ is_active ฝั่ง client
+roomRouter.get('/', roomController.getRooms);
 
 // GET /api/room-bookings?date=YYYY-MM-DD - การจองทุกห้องของวันนั้น (ไม่ส่ง date = วันนี้)
 roomBookingRouter.get(
@@ -54,14 +55,14 @@ roomBookingRouter.delete(
   roomController.cancelBooking,
 );
 
-// GET /api/admin/rooms - ทุกห้องรวมที่ปิดอยู่
-adminRoomRouter.get('/', roomController.getAllRooms);
-
 // POST /api/admin/rooms - เพิ่มห้อง
 adminRoomRouter.post('/', validateCreateRoom, roomController.createRoom);
 
 // PATCH /api/admin/rooms/:id - แก้ชื่อ และ/หรือ เปิด-ปิดห้อง ({ room_name?, is_active? })
 adminRoomRouter.patch('/:id', validateUpdateRoom, roomController.updateRoom);
+
+// DELETE /api/admin/rooms/:id - ลบได้เฉพาะห้องที่ไม่เคยถูกจอง (เช็คใน service) ห้องที่มีประวัติให้ปิดแทน
+adminRoomRouter.delete('/:id', validateRoomIdParam, roomController.deleteRoom);
 
 export { adminRoomRouter, roomBookingRouter };
 export default roomRouter;

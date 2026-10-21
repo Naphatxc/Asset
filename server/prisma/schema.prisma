@@ -177,7 +177,7 @@ model users {
 }
 
 // ห้องที่นักเรียนจองได้ (เริ่มต้น 5 ห้อง ใส่ไว้ใน migration) Admin เพิ่ม/แก้ชื่อ/ปิดห้องได้
-// ไม่มีปุ่มลบ เพราะห้องที่เคยถูกจองแล้วต้องอ้างอิงจากประวัติการจองได้ ปิดแทน (is_active = false)
+// ลบได้เฉพาะห้องที่ไม่เคยถูกจอง ห้องที่เคยถูกจองแล้วต้องอ้างอิงจากประวัติการจองได้ จึงปิดแทน (is_active = false)
 model rooms {
   room_id       Int             @id @default(autoincrement()) @db.UnsignedInt
   room_name     String          @unique(map: "uq_room_name") @db.VarChar(100)

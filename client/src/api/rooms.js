@@ -1,8 +1,8 @@
 // รวมคำสั่งติดต่อ Room API — จองห้องแล้วได้ทันที ไม่มีขั้นตอนอนุมัติ (server กันเวลาชนกันให้เอง)
-// getAllRooms/createRoom/updateRoom สงวนให้ Admin ที่เหลือผู้ใช้ทุกคนเรียกได้
+// createRoom/updateRoom/deleteRoom สงวนให้ Admin ที่เหลือผู้ใช้ทุกคนเรียกได้
 import { request } from './http.js';
 
-// ห้องที่เปิดให้จอง
+// ทุกห้องรวมที่ปิดอยู่ (ดู is_active) ใช้ทั้งฟอร์มจอง ตารางเวลา และหน้าจัดการห้อง
 export function getRooms() {
   return request('/api/rooms');
 }
@@ -35,14 +35,17 @@ export function cancelRoomBooking(bookingId) {
   });
 }
 
-export function getAllRooms() {
-  return request('/api/admin/rooms');
-}
-
 export function createRoom(roomName) {
   return request('/api/admin/rooms', {
     method: 'POST',
     body: { room_name: roomName },
+  });
+}
+
+// ลบได้เฉพาะห้องที่ไม่เคยถูกจอง ห้องที่มีประวัติ server ตอบ 409 ให้ปิดห้องแทน
+export function deleteRoom(roomId) {
+  return request(`/api/admin/rooms/${roomId}`, {
+    method: 'DELETE',
   });
 }
 

@@ -24,9 +24,9 @@ function serializeBooking(booking) {
   };
 }
 
-export async function getRooms({ activeOnly }) {
+export async function getRooms() {
   try {
-    return await roomRepository.findRooms({ activeOnly });
+    return await roomRepository.findRooms();
   } catch (error) {
     throw new AppError(500, 'ไม่สามารถโหลดรายชื่อห้องได้', { cause: error });
   }
@@ -57,6 +57,37 @@ export async function updateRoom(roomId, changes) {
     }
 
     throw new AppError(500, 'ไม่สามารถแก้ไขห้องได้', { cause: error });
+  }
+}
+
+// ลบได้เฉพาะห้องที่ไม่เคยถูกจองเลย (เช่น เพิ่มผิด) ห้องที่มีประวัติการจองต้องใช้ "ปิดห้อง" แทน
+// ไม่งั้นประวัติว่าใครใช้ห้องไหนเมื่อไรจะหาย (FK fk_room_booking_room ก็ไม่ยอมให้ลบอยู่แล้ว)
+// เช็คกับลบอยู่ใน transaction เดียวกัน กันมีคนจองห้องนี้แทรกเข้ามาระหว่างนั้น
+export async function deleteRoom(roomId) {
+  try {
+    const result = await runSerializableTransaction(async (tx) => {
+      const room = await roomRepository.findRoomById(roomId, tx);
+      if (!room) return { error: 'ไม่พบห้อง', status: 404 };
+
+      const bookingCount = await roomRepository.countBookingsByRoomId(roomId, tx);
+      if (bookingCount > 0) {
+        return {
+          error: 'ห้องนี้มีประวัติการจองแล้ว จึงลบไม่ได้ ให้ใช้ "ปิดห้อง" แทน',
+          status: 409,
+        };
+      }
+
+      await roomRepository.deleteRoom(roomId, tx);
+      return {};
+    });
+
+    if (result.error) {
+      throw new AppError(result.status, result.error);
+    }
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw new AppError(500, 'ไม่สามารถลบห้องได้', { cause: error });
   }
 }
 

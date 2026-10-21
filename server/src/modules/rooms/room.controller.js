@@ -1,20 +1,9 @@
 import * as roomService from './room.service.js';
 
-// ทุกคนเห็นเฉพาะห้องที่เปิดให้จอง
-export async function getActiveRooms(_request, response, next) {
+// ทุกคนเห็นทุกห้องรวมที่ปิดอยู่ (ตารางเวลาโชว์ห้องที่ปิดเป็นสีเทา, หน้าจัดการห้องใช้เปิดกลับ)
+export async function getRooms(_request, response, next) {
   try {
-    const rooms = await roomService.getRooms({ activeOnly: true });
-
-    response.status(200).json({ rooms });
-  } catch (error) {
-    next(error);
-  }
-}
-
-// Admin เห็นห้องที่ปิดอยู่ด้วย เพื่อเปิดกลับได้
-export async function getAllRooms(_request, response, next) {
-  try {
-    const rooms = await roomService.getRooms({ activeOnly: false });
+    const rooms = await roomService.getRooms();
 
     response.status(200).json({ rooms });
   } catch (error) {
@@ -38,6 +27,16 @@ export async function updateRoom(request, response, next) {
     const room = await roomService.updateRoom(roomId, changes);
 
     response.status(200).json({ message: 'บันทึกข้อมูลห้องแล้ว', room });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function deleteRoom(request, response, next) {
+  try {
+    await roomService.deleteRoom(request.validated.roomId);
+
+    response.status(200).json({ message: 'ลบห้องแล้ว' });
   } catch (error) {
     next(error);
   }

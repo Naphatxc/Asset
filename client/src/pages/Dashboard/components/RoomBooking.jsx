@@ -10,7 +10,7 @@ import {
 import CharCount from '../../../components/CharCount.jsx';
 import ThaiDateInput from '../../../components/ThaiDateInput.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
-import { SLOT_OPTIONS, formatDate, formatTime } from '../../../utils/roomBooking.js';
+import { SLOT_OPTIONS, formatDate, formatTime, isSlotStarted } from '../../../utils/roomBooking.js';
 import MyRoomBookings from './MyRoomBookings.jsx';
 import RoomManager from './RoomManager.jsx';
 import RoomTimeline from './RoomTimeline.jsx';
@@ -32,11 +32,6 @@ function addDays(date, days) {
   const next = new Date(`${date}T00:00:00.000Z`);
   next.setUTCDate(next.getUTCDate() + days);
   return next.toISOString().slice(0, 10);
-}
-
-// ช่วงนี้ของวันนั้นเริ่มไปแล้วหรือยัง (เวลาไทย) server ไม่รับจองช่วงที่เริ่มไปแล้ว จึงไม่ให้เลือกตั้งแต่ในฟอร์ม
-function isSlotStarted(date, start) {
-  return new Date(`${date}T${start}:00.000+07:00`) <= new Date();
 }
 
 // เวลาเริ่มของการจอง (UTC) -> วันที่ตามเวลาไทยแบบ YYYY-MM-DD ไว้สั่งให้ตารางเวลาเลื่อนไปวันนั้น
@@ -148,7 +143,8 @@ export default function RoomBooking({ user }) {
             ห้อง
             <select value={roomId} onChange={(event) => setRoomId(event.target.value)} required>
               <option value="">-- เลือกห้อง --</option>
-              {rooms.map((room) => (
+              {/* รายชื่อห้องมีห้องที่ปิดอยู่ด้วย (ไว้โชว์ในตารางเวลา) แต่จองได้เฉพาะห้องที่เปิด */}
+              {rooms.filter((room) => room.is_active).map((room) => (
                 <option key={room.room_id} value={room.room_id}>{room.room_name}</option>
               ))}
             </select>

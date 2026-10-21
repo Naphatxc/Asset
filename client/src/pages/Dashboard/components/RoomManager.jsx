@@ -1,8 +1,9 @@
-// จัดการห้องจอง (Admin เท่านั้น) — เพิ่มห้อง, แก้ชื่อ, เปิด/ปิดให้จอง ไม่มีปุ่มลบ เพราะห้องที่เคยถูกจองต้องอ้างอิงจากประวัติได้
+// จัดการห้องจอง (Admin เท่านั้น) — เพิ่มห้อง, แก้ชื่อ, เปิด/ปิดให้จอง, ลบ
+// ลบได้เฉพาะห้องที่ไม่เคยถูกจอง (server เช็ค) ห้องที่มีประวัติการจองต้องอ้างอิงได้ จึงให้ปิดแทน
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 
-import { createRoom, getAllRooms, updateRoom } from '../../../api/rooms.js';
+import { createRoom, deleteRoom, getRooms, updateRoom } from '../../../api/rooms.js';
 import { useToast } from '../../../components/ToastProvider.jsx';
 
 export default function RoomManager() {
@@ -14,16 +15,17 @@ export default function RoomManager() {
   // ห้องที่กำลังแก้ชื่อ (null = ไม่มี) กับชื่อที่พิมพ์อยู่
   const [editingId, setEditingId] = useState(null);
   const [editName, setEditName] = useState('');
+  // ห้องที่กำลังรอให้กดยืนยันลบ (null = ไม่ได้เปิด popup)
+  const [confirmDelete, setConfirmDelete] = useState(null);
 
   const roomsQuery = useQuery({
-    queryKey: ['admin-rooms'],
-    queryFn: getAllRooms,
+    queryKey: ['rooms'],
+    queryFn: getRooms,
   });
   const rooms = roomsQuery.data?.rooms ?? [];
 
-  // ห้องเปลี่ยนแล้วต้องโหลดใหม่ 3 ที่: ตารางนี้, ดรอปดาวน์ในฟอร์มจอง และตารางการจอง (แสดงชื่อห้อง)
+  // ห้องเปลี่ยนแล้วต้องโหลดใหม่: รายชื่อห้อง (ตารางนี้ + ดรอปดาวน์ + ตารางเวลา ใช้ query เดียวกัน) และการจอง (แสดงชื่อห้อง)
   function refreshRooms() {
-    queryClient.invalidateQueries({ queryKey: ['admin-rooms'] });
     queryClient.invalidateQueries({ queryKey: ['rooms'] });
     queryClient.invalidateQueries({ queryKey: ['room-bookings'] });
   }
@@ -47,6 +49,17 @@ export default function RoomManager() {
       setEditingId(null);
     },
     onError: (error) => showError(error.message),
+  });
+
+  // ลบไม่ได้ (ห้องมีประวัติการจอง) server ตอบ 409 พร้อมข้อความให้ปิดห้องแทน แสดงเป็น toast แล้วปิด popup
+  const deleteMutation = useMutation({
+    mutationFn: deleteRoom,
+    onSuccess: () => {
+      refreshRooms();
+      showSuccess('ลบห้องแล้ว');
+    },
+    onError: (error) => showError(error.message),
+    onSettled: () => setConfirmDelete(null),
   });
 
   function closeAdd() {
@@ -129,7 +142,7 @@ export default function RoomManager() {
         <p className="loading-message">กำลังโหลดรายชื่อห้อง...</p>
       ) : (
         <div className="table-wrap">
-          <table className="equipment-table responsive-table">
+          <table className="equipment-table responsive-table room-manager-table">
             <thead>
               <tr>
                 <th>ชื่อห้อง</th>
@@ -164,8 +177,10 @@ export default function RoomManager() {
                       <button type="button" onClick={() => startEdit(room)}>
                         แก้ชื่อ
                       </button>
+                      {/* ปิดห้องใช้สีปกติ เก็บสีแดงไว้ให้ "ลบ" ที่ย้อนคืนไม่ได้
+                          room-toggle ล็อกความกว้าง "ปิดห้อง"/"เปิดห้อง" ให้เท่ากัน ปุ่มข้างๆ จะได้ไม่ขยับตอนสลับ */}
                       <button
-                        className={room.is_active ? 'button-danger' : 'button-restore'}
+                        className={`room-toggle${room.is_active ? '' : ' button-restore'}`}
                         type="button"
                         disabled={updateMutation.isPending}
                         onClick={() =>
@@ -177,6 +192,14 @@ export default function RoomManager() {
                       >
                         {room.is_active ? 'ปิดห้อง' : 'เปิดห้อง'}
                       </button>
+                      <button
+                        className="button-danger"
+                        type="button"
+                        disabled={deleteMutation.isPending}
+                        onClick={() => setConfirmDelete(room)}
+                      >
+                        ลบ
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -185,7 +208,40 @@ export default function RoomManager() {
           </table>
         </div>
       )}
-      <p className="loading-message">ปิดห้อง = จองใหม่ไม่ได้ แต่การจองที่มีอยู่แล้วยังอยู่ครบ</p>
+      <p className="loading-message">
+        ปิดห้อง = จองใหม่ไม่ได้ แต่การจองที่มีอยู่แล้วยังอยู่ครบ · ลบได้เฉพาะห้องที่ยังไม่เคยมีใครจอง
+      </p>
+
+      {confirmDelete && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => setConfirmDelete(null)}>
+          <section
+            className="withdraw-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-room-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h2 id="delete-room-title">ยืนยันการลบห้อง</h2>
+            <p>
+              ลบ {confirmDelete.room_name} ออกจากระบบใช่หรือไม่? ลบแล้วย้อนคืนไม่ได้
+              ถ้าแค่ไม่อยากให้จองชั่วคราว ให้ใช้ &quot;ปิดห้อง&quot; แทน
+            </p>
+            <div className="form-actions">
+              <button
+                className="button-primary"
+                type="button"
+                disabled={deleteMutation.isPending}
+                onClick={() => deleteMutation.mutate(confirmDelete.room_id)}
+              >
+                {deleteMutation.isPending ? 'กำลังลบ...' : 'ยืนยันลบ'}
+              </button>
+              <button className="button-secondary" type="button" onClick={() => setConfirmDelete(null)}>
+                กลับ
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </section>
   );
 }

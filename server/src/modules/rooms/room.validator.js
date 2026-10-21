@@ -118,6 +118,17 @@ export function validateCreateRoom(request, _response, next) {
   next();
 }
 
+export function validateRoomIdParam(request, _response, next) {
+  const roomId = Number(request.params.id);
+
+  if (!Number.isInteger(roomId) || roomId <= 0) {
+    return next(new AppError(400, 'รหัสห้องไม่ถูกต้อง'));
+  }
+
+  request.validated = { ...request.validated, roomId };
+  next();
+}
+
 // แก้ได้ทีละอย่างหรือพร้อมกันก็ได้ ส่งมาเฉพาะช่องที่จะเปลี่ยน
 export function validateUpdateRoom(request, _response, next) {
   const body = request.body ?? {};
