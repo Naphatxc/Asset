@@ -133,7 +133,8 @@ export default function RoomTimeline({
                       key={slot.value}
                       title={`${booking.user_name}${booking.purpose ? ` · ${booking.purpose}` : ''}`}
                     >
-                      <strong>{mine ? 'การจองของฉัน' : booking.user_name}</strong>
+                      {/* "ของฉัน" สั้นพอให้อยู่บรรทัดเดียวในช่องแคบบนมือถือ คำอธิบายสีด้านล่างเขียนเต็มว่า "การจองของฉัน" */}
+                      <strong>{mine ? 'ของฉัน' : booking.user_name}</strong>
                       {booking.purpose && <small>{booking.purpose}</small>}
                     </div>
                   );

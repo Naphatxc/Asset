@@ -2674,18 +2674,49 @@ button:disabled {
   border: 1px solid #e2e2e2;
 }
 
+/* มือถือ: บีบให้ครบ 3 ช่วงในจอเดียว ไม่ต้องปัดแนวนอน (เดิมช่วงเย็นตกขอบขวาโดยไม่มีอะไรบอก)
+   ชื่อคนจองที่ยาวเกินช่องจะถูกตัดเป็น "…" อยู่แล้ว ส่วนปุ่มเลื่อนวันขยายเป็น 44px ให้นิ้วกดง่าย */
 @media (max-width: 640px) {
   .room-timeline {
     padding: 10px;
   }
 
   .room-timeline-grid {
-    grid-template-columns: 76px repeat(3, minmax(0, 1fr));
-    min-width: 400px;
+    grid-template-columns: 60px repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    min-width: 0;
   }
 
   .room-timeline-room {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
+  }
+
+  .room-timeline-slot-head {
+    font-size: 0.76rem;
+  }
+
+  .room-timeline-slot-head span {
+    font-size: 0.68rem;
+  }
+
+  .room-timeline-cell {
+    padding: 4px;
+    font-size: 0.76rem;
+  }
+
+  /* ช่องแคบ ให้ชื่อขึ้นบรรทัดใหม่ได้ (ตัดคำภาษาไทยตามพจนานุกรมของเบราว์เซอร์) แทนการตัดเป็น "…" สูงสุด 2 บรรทัด */
+  .room-timeline-cell strong,
+  .room-timeline-cell small {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    white-space: normal;
+  }
+
+  .room-timeline-toolbar .button-secondary {
+    min-width: 44px;
+    min-height: 44px;
   }
 }
 
