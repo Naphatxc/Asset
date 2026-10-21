@@ -31,7 +31,6 @@ export default function MyRoomBookings({ cancelPending, onRequestCancel, onShowD
         <p className="error-message">{myBookingsQuery.error.message}</p>
       ) : (
         <>
-          <h4>กำลังจะมาถึง ({upcoming.length})</h4>
           {upcoming.length === 0 ? (
             <p className="loading-message">ยังไม่มีการจองที่กำลังจะมาถึง</p>
           ) : (

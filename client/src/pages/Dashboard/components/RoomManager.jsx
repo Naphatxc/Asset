@@ -8,6 +8,8 @@ import { useToast } from '../../../components/ToastProvider.jsx';
 export default function RoomManager() {
   const queryClient = useQueryClient();
   const { showError, showSuccess } = useToast();
+  // popup เพิ่มห้อง เปิดอยู่ไหม กับชื่อที่พิมพ์ในนั้น
+  const [addOpen, setAddOpen] = useState(false);
   const [roomName, setRoomName] = useState('');
   // ห้องที่กำลังแก้ชื่อ (null = ไม่มี) กับชื่อที่พิมพ์อยู่
   const [editingId, setEditingId] = useState(null);
@@ -31,8 +33,9 @@ export default function RoomManager() {
     onSuccess: () => {
       refreshRooms();
       showSuccess('เพิ่มห้องสำเร็จ');
-      setRoomName('');
+      closeAdd();
     },
+    // ไม่ปิด popup ตอนพลาด (เช่นชื่อซ้ำ) ให้แก้ชื่อแล้วกดใหม่ได้เลย
     onError: (error) => showError(error.message),
   });
 
@@ -45,6 +48,11 @@ export default function RoomManager() {
     },
     onError: (error) => showError(error.message),
   });
+
+  function closeAdd() {
+    setAddOpen(false);
+    setRoomName('');
+  }
 
   function submitForm(event) {
     event.preventDefault();
@@ -63,28 +71,59 @@ export default function RoomManager() {
 
   return (
     <section className="admin-section">
-      <h3>จัดการห้อง</h3>
+      <div className="section-heading equipment-toolbar">
+        <h3>จัดการห้อง</h3>
+        <button className="button-primary" type="button" onClick={() => setAddOpen(true)}>
+          + เพิ่มห้อง
+        </button>
+      </div>
 
       {roomsQuery.error && <p className="error-message">{roomsQuery.error.message}</p>}
 
-      <form className="equipment-form" onSubmit={submitForm}>
-        <div className="form-grid">
-          <label>
-            ชื่อห้องใหม่
-            <input
-              value={roomName}
-              onChange={(event) => setRoomName(event.target.value)}
-              maxLength={100}
-              required
-            />
-          </label>
+      {/* popup เพิ่มห้อง รูปแบบเดียวกับ CreateUserDialog (เพิ่มผู้ใช้งาน) */}
+      {addOpen && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={closeAdd}>
+          <section
+            className="withdraw-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="add-room-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="form-heading">
+              <div>
+                <p className="section-kicker">Room</p>
+                <h2 id="add-room-title">เพิ่มห้อง</h2>
+              </div>
+            </div>
+
+            <form onSubmit={submitForm}>
+              <div className="form-grid">
+                <label className="field-wide">
+                  ชื่อห้อง
+                  <input
+                    value={roomName}
+                    onChange={(event) => setRoomName(event.target.value)}
+                    maxLength={100}
+                    placeholder="เช่น ห้องประชุม 301"
+                    required
+                    autoFocus
+                  />
+                </label>
+              </div>
+
+              <div className="form-actions">
+                <button className="button-primary" type="submit" disabled={createMutation.isPending}>
+                  {createMutation.isPending ? 'กำลังบันทึก...' : 'เพิ่มห้อง'}
+                </button>
+                <button className="button-secondary" type="button" onClick={closeAdd}>
+                  ยกเลิก
+                </button>
+              </div>
+            </form>
+          </section>
         </div>
-        <div className="form-actions">
-          <button className="button-primary" type="submit" disabled={createMutation.isPending}>
-            + เพิ่มห้อง
-          </button>
-        </div>
-      </form>
+      )}
 
       {roomsQuery.isLoading ? (
         <p className="loading-message">กำลังโหลดรายชื่อห้อง...</p>
