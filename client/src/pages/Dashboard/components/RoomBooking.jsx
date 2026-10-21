@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
   cancelRoomBooking,
@@ -10,15 +10,10 @@ import {
 import CharCount from '../../../components/CharCount.jsx';
 import ThaiDateInput from '../../../components/ThaiDateInput.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
+import { SLOT_OPTIONS, formatDate, formatTime } from '../../../utils/roomBooking.js';
+import MyRoomBookings from './MyRoomBookings.jsx';
 import RoomManager from './RoomManager.jsx';
 import RoomTimeline from './RoomTimeline.jsx';
-
-// ช่วงเวลาที่จองได้ value/start ต้องตรงกับ SLOTS ใน server (room.validator.js)
-const SLOT_OPTIONS = [
-  { value: 'morning', start: '09:00', label: 'ช่วงเช้า 09:00–12:00 น.' },
-  { value: 'afternoon', start: '13:00', label: 'ช่วงบ่าย 13:00–16:00 น.' },
-  { value: 'evening', start: '16:00', label: 'ช่วงเย็น 16:00–18:00 น.' },
-];
 
 // ต้องตรงกับ server (room.validator.js): จองล่วงหน้าได้ไม่เกิน 30 วัน, วัตถุประสงค์ไม่เกิน 2000 ตัวอักษร
 const MAX_DAYS_AHEAD = 30;
@@ -44,22 +39,9 @@ function isSlotStarted(date, start) {
   return new Date(`${date}T${start}:00.000+07:00`) <= new Date();
 }
 
-// เวลาจาก server เป็น UTC เช่น "2026-10-18T03:00:00.000Z" -> "10:00" ตามเวลาไทย
-function formatTime(value) {
-  return new Date(value).toLocaleTimeString('th-TH', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'Asia/Bangkok',
-  });
-}
-
-function formatDate(value) {
-  return new Date(value).toLocaleDateString('th-TH', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-    timeZone: 'Asia/Bangkok',
-  });
+// เวลาเริ่มของการจอง (UTC) -> วันที่ตามเวลาไทยแบบ YYYY-MM-DD ไว้สั่งให้ตารางเวลาเลื่อนไปวันนั้น
+function bangkokDateOf(value) {
+  return new Date(new Date(value).getTime() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
 }
 
 export default function RoomBooking({ user }) {
@@ -74,6 +56,7 @@ export default function RoomBooking({ user }) {
   const [purpose, setPurpose] = useState('');
   // การจองที่กำลังรอให้กดยืนยันยกเลิก (null = ไม่ได้เปิด popup)
   const [confirmBooking, setConfirmBooking] = useState(null);
+  const timelineRef = useRef(null);
 
   const today = todayDateInput();
   const maxDate = addDays(today, MAX_DAYS_AHEAD);
@@ -118,6 +101,12 @@ export default function RoomBooking({ user }) {
     if (selected && isSlotStarted(nextDate, selected.start)) setSlot('');
   }
 
+  // "ดูในตาราง" จากการจองของฉัน: เลื่อนตารางเวลาไปวันนั้นแล้วเลื่อนจอขึ้นไปให้เห็นตาราง
+  function showDate(startAt) {
+    changeDate(bangkokDateOf(startAt));
+    timelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
   // ปุ่มยกเลิกโชว์เฉพาะการจองที่ยังไม่จบ และเป็นของตัวเองหรือเป็น Admin (เงื่อนไขเดียวกับ cancelBooking ใน server)
   function canCancel(booking) {
     const ended = new Date(booking.end_at) <= new Date();
@@ -140,17 +129,19 @@ export default function RoomBooking({ user }) {
 
       {loadError && <p className="error-message">{loadError}</p>}
 
-      <RoomTimeline
-        rooms={rooms}
-        bookings={bookings}
-        date={date}
-        minDate={today}
-        maxDate={maxDate}
-        loading={roomsQuery.isLoading || bookingsQuery.isLoading}
-        failed={Boolean(loadError)}
-        userId={user.user_id}
-        onChangeDate={changeDate}
-      />
+      <div ref={timelineRef}>
+        <RoomTimeline
+          rooms={rooms}
+          bookings={bookings}
+          date={date}
+          minDate={today}
+          maxDate={maxDate}
+          loading={roomsQuery.isLoading || bookingsQuery.isLoading}
+          failed={Boolean(loadError)}
+          userId={user.user_id}
+          onChangeDate={changeDate}
+        />
+      </div>
       <form className="equipment-form" onSubmit={submitForm}>
         <div className="form-grid">
           <label>
@@ -206,51 +197,63 @@ export default function RoomBooking({ user }) {
         </div>
       </form>
 
-      <h3>การจองวันที่เลือก</h3>
-      {bookingsQuery.isLoading ? (
-        <p className="loading-message">กำลังโหลดการจอง...</p>
-      ) : bookingsQuery.isError ? null : bookings.length === 0 ? (
-        <p className="loading-message">ยังไม่มีการจองในวันที่เลือก</p>
-      ) : (
-        <div className="table-wrap">
-          <table className="equipment-table responsive-table">
-            <thead>
-              <tr>
-                <th>ห้อง</th>
-                <th>เวลา</th>
-                <th>ผู้จอง</th>
-                <th>วัตถุประสงค์</th>
-                <th>จัดการ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {bookings.map((booking) => (
-                <tr key={booking.booking_id}>
-                  <td data-label="ห้อง">{booking.room_name}</td>
-                  <td data-label="เวลา">{formatTime(booking.start_at)}–{formatTime(booking.end_at)}</td>
-                  <td data-label="ผู้จอง">{booking.user_name}</td>
-                  <td data-label="วัตถุประสงค์">{booking.purpose || '-'}</td>
-                  <td data-label="จัดการ">
-                    {canCancel(booking) ? (
-                      <div className="row-actions">
-                        <button
-                          className="button-danger"
-                          type="button"
-                          disabled={cancelMutation.isPending}
-                          onClick={() => setConfirmBooking(booking)}
-                        >
-                          ยกเลิก
-                        </button>
-                      </div>
-                    ) : (
-                      '-'
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <MyRoomBookings
+        cancelPending={cancelMutation.isPending}
+        onRequestCancel={setConfirmBooking}
+        onShowDate={showDate}
+      />
+
+      {/* ตารางการจองทั้งหมดของวันที่เลือก ข้อมูลชุดเดียวกับตารางเวลาด้านบน แต่มีปุ่มให้ Admin ยกเลิกการจองของใครก็ได้
+          ผู้ใช้ทั่วไปดูวันนั้นจากตารางเวลา และดู/ยกเลิกของตัวเองจาก "การจองของฉัน" จึงโชว์เฉพาะ Admin */}
+      {user.role === 'admin' && (
+        <>
+          <h3>การจองวันที่เลือก</h3>
+          {bookingsQuery.isLoading ? (
+            <p className="loading-message">กำลังโหลดการจอง...</p>
+          ) : bookingsQuery.isError ? null : bookings.length === 0 ? (
+            <p className="loading-message">ยังไม่มีการจองในวันที่เลือก</p>
+          ) : (
+            <div className="table-wrap">
+              <table className="equipment-table responsive-table">
+                <thead>
+                  <tr>
+                    <th>ห้อง</th>
+                    <th>เวลา</th>
+                    <th>ผู้จอง</th>
+                    <th>วัตถุประสงค์</th>
+                    <th>จัดการ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bookings.map((booking) => (
+                    <tr key={booking.booking_id}>
+                      <td data-label="ห้อง">{booking.room_name}</td>
+                      <td data-label="เวลา">{formatTime(booking.start_at)}–{formatTime(booking.end_at)}</td>
+                      <td data-label="ผู้จอง">{booking.user_name}</td>
+                      <td data-label="วัตถุประสงค์">{booking.purpose || '-'}</td>
+                      <td data-label="จัดการ">
+                        {canCancel(booking) ? (
+                          <div className="row-actions">
+                            <button
+                              className="button-danger"
+                              type="button"
+                              disabled={cancelMutation.isPending}
+                              onClick={() => setConfirmBooking(booking)}
+                            >
+                              ยกเลิก
+                            </button>
+                          </div>
+                        ) : (
+                          '-'
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
 
       {/* ถามยืนยันก่อนยกเลิก เพราะยกเลิกแล้วการจองหายเลย ย้อนคืนไม่ได้ (รูปแบบเดียวกับ popup ยืนยันเบิกวัสดุ) */}

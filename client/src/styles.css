@@ -2678,3 +2678,13 @@ button:disabled {
     font-size: 0.82rem;
   }
 }
+
+/* การจองของฉัน (MyRoomBookings.jsx) อยู่ระหว่างฟอร์มจองกับตารางรายวัน */
+.my-room-bookings {
+  margin-bottom: 24px;
+}
+
+.my-room-bookings h4 {
+  margin: 14px 0 8px;
+  color: var(--stat-slate-dark);
+}
