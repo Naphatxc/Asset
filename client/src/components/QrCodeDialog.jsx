@@ -81,20 +81,19 @@ export default function QrCodeDialog({ equipment, onClose }) {
             @page { size: 90mm 110mm; margin: 7mm; }
             * { box-sizing: border-box; }
             body { margin: 0; font-family: Arial, sans-serif; color: #222; }
-            .label { width: 100%; text-align: center; border: 2px solid #ed0082; border-radius: 12px; padding: 14px; }
-            .brand { margin: 0 0 8px; color: #b43b6b; font-size: 12px; font-weight: 700; }
-            img { width: 62mm; height: 62mm; object-fit: contain; }
-            h1 { margin: 5px 0; font-size: 18px; }
-            p { margin: 4px 0; font-size: 13px; }
+            /* สูงไม่เกินพื้นที่พิมพ์ (110 - 7 - 7 = 96mm) และตัดส่วนเกินทิ้ง ฉลากจึงออกมาหน้าเดียวเสมอ */
+            .label { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2mm; height: 94mm; overflow: hidden; text-align: center; }
+            img { display: block; width: 62mm; height: 62mm; object-fit: contain; }
+            h1 { margin: 0; color: #b43b6b; font-size: 18px; overflow-wrap: anywhere; }
+            /* ชื่อครุภัณฑ์ยาวสุดเกือบ 200 ตัวอักษร แสดงไม่เกิน 4 บรรทัด */
+            p { display: -webkit-box; margin: 0; overflow: hidden; font-size: 13px; line-height: 1.35; -webkit-box-orient: vertical; -webkit-line-clamp: 4; }
           </style>
         </head>
         <body>
           <section class="label">
-            <p class="brand">MATERIAL &amp; ASSET MANAGEMENT</p>
             <img src="${qrDataUrl}" alt="QR Code" />
             <h1>${escapeHtml(equipment.equipment_code)}</h1>
             <p>${escapeHtml(equipment.equipment_name)}</p>
-            <p>ภาควิชาสถิติประยุกต์</p>
           </section>
           <script>window.addEventListener('load', () => { window.print(); });<\/script>
         </body>
