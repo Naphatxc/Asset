@@ -58,6 +58,8 @@ export default function Dashboard({ user, onLogout }) {
   const { showError, showSuccess } = useToast();
   const admin = user.role === 'admin';
   const student = user.role === 'student';
+  // อีเมลยาวเกินความกว้าง sidebar ให้ขึ้นบรรทัดใหม่หลัง @
+  const emailBreak = user.email.indexOf('@') + 1;
   const tabs = student ? studentTabs : admin ? adminTabs : userTabs;
   const defaultTab = student ? 'room' : admin ? 'overview' : 'equipment';
   const [searchParams, setSearchParams] = useSearchParams();
@@ -162,7 +164,12 @@ export default function Dashboard({ user, onLogout }) {
           <p className="eyebrow">Material & Asset Management</p>
           <h1>{user.name}</h1>
           <div className="account-summary">
-            <span>{user.email}</span>
+            {/* ใช้ <wbr> ไม่ใช่ zero-width space เพราะ <wbr> ไม่ติดไปตอน copy อีเมล */}
+            <span className="account-email">
+              {user.email.slice(0, emailBreak)}
+              <wbr />
+              {user.email.slice(emailBreak)}
+            </span>
             <span className="role-badge">
               {student ? 'นักเรียน' : admin ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน'}
             </span>

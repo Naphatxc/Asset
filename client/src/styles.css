@@ -377,6 +377,12 @@ button:disabled {
   gap: 6px;
 }
 
+/* อีเมลไม่มีช่องว่างให้ตัดบรรทัด ถ้ายาวเกิน sidebar จะล้นขอบ ตัดหลัง @ ก่อน (<wbr>) ยังยาวเกินค่อยตัดกลางคำ */
+.account-email {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .dashboard-nav {
   display: flex;
   flex: 1;
