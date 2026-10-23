@@ -10,7 +10,14 @@ import {
 import CharCount from '../../../components/CharCount.jsx';
 import ThaiDateInput from '../../../components/ThaiDateInput.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
-import { SLOT_OPTIONS, formatDate, formatTime, isSlotStarted } from '../../../utils/roomBooking.js';
+import {
+  HOURS,
+  findBookingAt,
+  formatDate,
+  formatTime,
+  hourLabel,
+  isHourStarted,
+} from '../../../utils/roomBooking.js';
 import MyRoomBookings from './MyRoomBookings.jsx';
 import RoomManager from './RoomManager.jsx';
 import RoomTimeline from './RoomTimeline.jsx';
@@ -47,7 +54,9 @@ export default function RoomBooking({ user }) {
   const rooms = roomsQuery.data?.rooms ?? [];
   const [roomId, setRoomId] = useState('');
   const [date, setDate] = useState(todayDateInput);
-  const [slot, setSlot] = useState('');
+  // ชั่วโมงเริ่ม/สิ้นสุดที่เลือก (ตัวเลข 9..19) '' = ยังไม่ได้เลือก เลือกได้จากตารางเวลาหรือจากช่องเลือกในฟอร์ม
+  const [startHour, setStartHour] = useState('');
+  const [endHour, setEndHour] = useState('');
   const [purpose, setPurpose] = useState('');
   // การจองที่กำลังรอให้กดยืนยันยกเลิก (null = ไม่ได้เปิด popup)
   const [confirmBooking, setConfirmBooking] = useState(null);
@@ -72,7 +81,7 @@ export default function RoomBooking({ user }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['room-bookings'] });
       showSuccess('จองห้องสำเร็จ');
-      setSlot('');
+      clearSelection();
       setPurpose('');
     },
     onError: (error) => showError(error.message),
@@ -89,11 +98,42 @@ export default function RoomBooking({ user }) {
     onSettled: () => setConfirmBooking(null),
   });
 
-  // เปลี่ยนวันแล้วช่วงที่เลือกไว้อาจเริ่มไปแล้วในวันใหม่ (เช่นย้อนมาวันนี้ตอนบ่าย) -> ล้างให้เลือกใหม่
+  function clearSelection() {
+    setStartHour('');
+    setEndHour('');
+  }
+
+  // เปลี่ยนวันแล้วช่วงที่เลือกไว้อาจเริ่มไปแล้วหรือชนการจองของวันใหม่ -> ล้างให้เลือกใหม่
   function changeDate(nextDate) {
     setDate(nextDate);
-    const selected = SLOT_OPTIONS.find((option) => option.value === slot);
-    if (selected && isSlotStarted(nextDate, selected.start)) setSlot('');
+    clearSelection();
+  }
+
+  // เปลี่ยนเวลาเริ่มจากช่องเลือกในฟอร์ม ถ้าเวลาสิ้นสุดเดิมไม่หลังเวลาเริ่มใหม่ ให้ขยับเป็น +1 ชั่วโมง
+  function changeStartHour(value) {
+    if (value === '') return clearSelection();
+
+    const nextStart = Number(value);
+    setStartHour(nextStart);
+    if (endHour === '' || endHour <= nextStart) setEndHour(nextStart + 1);
+  }
+
+  // กดช่องว่างในตารางเวลา: กดครั้งแรก (หรือกดห้องอื่น/ก่อนเวลาเริ่ม) = เริ่มเลือกใหม่ที่ชั่วโมงนั้น 1 ชั่วโมง
+  // กดช่องว่างทางขวาในห้องเดิม = ขยายเวลาสิ้นสุด แต่ต้องว่างต่อเนื่องจากเวลาเริ่ม ถ้ามีคนจองคั่นอยู่ให้เริ่มเลือกใหม่
+  // กดช่องเริ่มซ้ำตอนเลือกอยู่ชั่วโมงเดียว = ยกเลิกการเลือก
+  function pickHour(pickedRoomId, hour) {
+    if (Number(roomId) === pickedRoomId && startHour !== '' && hour >= startHour) {
+      if (hour === startHour && endHour === startHour + 1) return clearSelection();
+
+      const hoursBetween = HOURS.filter((item) => item >= startHour && item <= hour);
+      if (hoursBetween.every((item) => !findBookingAt(bookings, pickedRoomId, item))) {
+        return setEndHour(hour + 1);
+      }
+    }
+
+    setRoomId(String(pickedRoomId));
+    setStartHour(hour);
+    setEndHour(hour + 1);
   }
 
   // "ดูในตาราง" จากการจองของฉัน: เลื่อนตารางเวลาไปวันนั้นแล้วเลื่อนจอขึ้นไปให้เห็นตาราง
@@ -113,7 +153,8 @@ export default function RoomBooking({ user }) {
     bookMutation.mutate({
       roomId: Number(roomId),
       date: date,
-      slot: slot,
+      start: hourLabel(startHour),
+      end: hourLabel(endHour),
       purpose: purpose,
     });
   }
@@ -134,7 +175,11 @@ export default function RoomBooking({ user }) {
           loading={roomsQuery.isLoading || bookingsQuery.isLoading}
           failed={Boolean(loadError)}
           userId={user.user_id}
+          selection={
+            startHour === '' ? null : { roomId: Number(roomId), startHour, endHour }
+          }
           onChangeDate={changeDate}
+          onPickHour={pickHour}
         />
       </div>
       <form className="equipment-form" onSubmit={submitForm}>
@@ -160,19 +205,34 @@ export default function RoomBooking({ user }) {
             />
           </label>
           <label>
-            ช่วงเวลา
-            <select value={slot} onChange={(event) => setSlot(event.target.value)} required>
-              <option value="">-- เลือกช่วงเวลา --</option>
-              {SLOT_OPTIONS.map((option) => {
-                const started = isSlotStarted(date, option.start);
+            เวลาเริ่ม
+            <select value={startHour} onChange={(event) => changeStartHour(event.target.value)} required>
+              <option value="">-- เลือกเวลาเริ่ม --</option>
+              {HOURS.map((hour) => {
+                const started = isHourStarted(date, hour);
 
                 return (
-                  <option key={option.value} value={option.value} disabled={started}>
-                    {option.label}
-                    {started ? ' (เลยเวลาแล้ว)' : ''}
+                  <option key={hour} value={hour} disabled={started}>
+                    {hourLabel(hour)} น.{started ? ' (เลยเวลาแล้ว)' : ''}
                   </option>
                 );
               })}
+            </select>
+          </label>
+          <label>
+            เวลาสิ้นสุด
+            <select
+              value={endHour}
+              onChange={(event) => setEndHour(Number(event.target.value))}
+              disabled={startHour === ''}
+              required
+            >
+              <option value="">-- เลือกเวลาสิ้นสุด --</option>
+              {HOURS.filter((hour) => startHour !== '' && hour >= startHour).map((hour) => (
+                <option key={hour + 1} value={hour + 1}>
+                  {hourLabel(hour + 1)} น. ({hour + 1 - startHour} ชั่วโมง)
+                </option>
+              ))}
             </select>
           </label>
           <label className="field-wide">
