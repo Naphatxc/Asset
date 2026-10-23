@@ -54,7 +54,7 @@ export default function RoomBooking({ user }) {
   const rooms = roomsQuery.data?.rooms ?? [];
   const [roomId, setRoomId] = useState('');
   const [date, setDate] = useState(todayDateInput);
-  // ชั่วโมงเริ่ม/สิ้นสุดที่เลือก (ตัวเลข 9..19) '' = ยังไม่ได้เลือก เลือกได้จากตารางเวลาหรือจากช่องเลือกในฟอร์ม
+  // ช่วงชั่วโมงที่เลือกด้วยปุ่มชั่วโมงในฟอร์ม (ตัวเลข 9..19, เช่น 14 ถึง 17 = 14:00–17:00) '' = ยังไม่ได้เลือก
   const [startHour, setStartHour] = useState('');
   const [endHour, setEndHour] = useState('');
   const [purpose, setPurpose] = useState('');
@@ -109,31 +109,34 @@ export default function RoomBooking({ user }) {
     clearSelection();
   }
 
-  // เปลี่ยนเวลาเริ่มจากช่องเลือกในฟอร์ม ถ้าเวลาสิ้นสุดเดิมไม่หลังเวลาเริ่มใหม่ ให้ขยับเป็น +1 ชั่วโมง
-  function changeStartHour(value) {
-    if (value === '') return clearSelection();
-
-    const nextStart = Number(value);
-    setStartHour(nextStart);
-    if (endHour === '' || endHour <= nextStart) setEndHour(nextStart + 1);
+  // เปลี่ยนห้องแล้วล้างช่วงที่เลือก เพราะแต่ละห้องว่างไม่ตรงกัน
+  function changeRoom(nextRoomId) {
+    setRoomId(nextRoomId);
+    clearSelection();
   }
 
-  // กดช่องว่างในตารางเวลา: กดครั้งแรก (หรือกดห้องอื่น/ก่อนเวลาเริ่ม) = เริ่มเลือกใหม่ที่ชั่วโมงนั้น 1 ชั่วโมง
-  // กดช่องว่างทางขวาในห้องเดิม = ขยายเวลาสิ้นสุด แต่ต้องว่างต่อเนื่องจากเวลาเริ่ม ถ้ามีคนจองคั่นอยู่ให้เริ่มเลือกใหม่
-  // กดช่องเริ่มซ้ำตอนเลือกอยู่ชั่วโมงเดียว = ยกเลิกการเลือก
-  function pickHour(pickedRoomId, hour) {
-    if (Number(roomId) === pickedRoomId && startHour !== '' && hour >= startHour) {
-      if (hour === startHour && endHour === startHour + 1) return clearSelection();
-
-      const hoursBetween = HOURS.filter((item) => item >= startHour && item <= hour);
-      if (hoursBetween.every((item) => !findBookingAt(bookings, pickedRoomId, item))) {
-        return setEndHour(hour + 1);
-      }
+  // กดปุ่มชั่วโมง: เลือกได้เฉพาะชั่วโมงที่ต่อเนื่องกัน
+  // - ยังไม่ได้เลือก หรือกดชั่วโมงที่ไม่ติดกับช่วงที่เลือก = เริ่มเลือกใหม่ที่ชั่วโมงนั้น
+  // - กดชั่วโมงถัดจากท้ายช่วง/ก่อนต้นช่วง = ขยายช่วง
+  // - กดชั่วโมงหัว/ท้ายช่วงที่เลือกอยู่ = ตัดชั่วโมงนั้นออก (เหลือชั่วโมงเดียวแล้วกดซ้ำ = ยกเลิกทั้งหมด)
+  function toggleHour(hour) {
+    if (startHour === '') {
+      setStartHour(hour);
+      setEndHour(hour + 1);
+    } else if (hour === startHour && endHour === startHour + 1) {
+      clearSelection();
+    } else if (hour === endHour) {
+      setEndHour(hour + 1);
+    } else if (hour === startHour - 1) {
+      setStartHour(hour);
+    } else if (hour === startHour) {
+      setStartHour(hour + 1);
+    } else if (hour === endHour - 1) {
+      setEndHour(hour);
+    } else {
+      setStartHour(hour);
+      setEndHour(hour + 1);
     }
-
-    setRoomId(String(pickedRoomId));
-    setStartHour(hour);
-    setEndHour(hour + 1);
   }
 
   // "ดูในตาราง" จากการจองของฉัน: เลื่อนตารางเวลาไปวันนั้นแล้วเลื่อนจอขึ้นไปให้เห็นตาราง
@@ -150,6 +153,11 @@ export default function RoomBooking({ user }) {
 
   function submitForm(event) {
     event.preventDefault();
+    if (startHour === '') {
+      showError('กรุณาเลือกเวลาที่ต้องการจอง');
+      return;
+    }
+
     bookMutation.mutate({
       roomId: Number(roomId),
       date: date,
@@ -179,14 +187,13 @@ export default function RoomBooking({ user }) {
             startHour === '' ? null : { roomId: Number(roomId), startHour, endHour }
           }
           onChangeDate={changeDate}
-          onPickHour={pickHour}
         />
       </div>
       <form className="equipment-form" onSubmit={submitForm}>
         <div className="form-grid">
           <label>
             ห้อง
-            <select value={roomId} onChange={(event) => setRoomId(event.target.value)} required>
+            <select value={roomId} onChange={(event) => changeRoom(event.target.value)} required>
               <option value="">-- เลือกห้อง --</option>
               {/* รายชื่อห้องมีห้องที่ปิดอยู่ด้วย (ไว้โชว์ในตารางเวลา) แต่จองได้เฉพาะห้องที่เปิด */}
               {rooms.filter((room) => room.is_active).map((room) => (
@@ -204,37 +211,42 @@ export default function RoomBooking({ user }) {
               required
             />
           </label>
-          <label>
-            เวลาเริ่ม
-            <select value={startHour} onChange={(event) => changeStartHour(event.target.value)} required>
-              <option value="">-- เลือกเวลาเริ่ม --</option>
-              {HOURS.map((hour) => {
-                const started = isHourStarted(date, hour);
+          <div className="field-wide hour-picker">
+            <span className="hour-picker-label">เวลา (กดเลือกได้หลายชั่วโมงที่ติดกัน)</span>
+            {roomId === '' ? (
+              <p className="hour-picker-hint">เลือกห้องก่อน แล้วจะแสดงชั่วโมงที่ว่าง</p>
+            ) : (
+              <>
+                <div className="hour-picker-grid" role="group" aria-label="เลือกชั่วโมงที่ต้องการจอง">
+                  {HOURS.map((hour) => {
+                    const booked = findBookingAt(bookings, Number(roomId), hour);
+                    const started = isHourStarted(date, hour);
+                    const selected = startHour !== '' && hour >= startHour && hour < endHour;
 
-                return (
-                  <option key={hour} value={hour} disabled={started}>
-                    {hourLabel(hour)} น.{started ? ' (เลยเวลาแล้ว)' : ''}
-                  </option>
-                );
-              })}
-            </select>
-          </label>
-          <label>
-            เวลาสิ้นสุด
-            <select
-              value={endHour}
-              onChange={(event) => setEndHour(Number(event.target.value))}
-              disabled={startHour === ''}
-              required
-            >
-              <option value="">-- เลือกเวลาสิ้นสุด --</option>
-              {HOURS.filter((hour) => startHour !== '' && hour >= startHour).map((hour) => (
-                <option key={hour + 1} value={hour + 1}>
-                  {hourLabel(hour + 1)} น. ({hour + 1 - startHour} ชั่วโมง)
-                </option>
-              ))}
-            </select>
-          </label>
+                    return (
+                      <button
+                        className={`hour-chip${selected ? ' selected' : ''}${booked ? ' booked' : ''}`}
+                        type="button"
+                        key={hour}
+                        disabled={Boolean(booked) || started}
+                        aria-pressed={selected}
+                        onClick={() => toggleHour(hour)}
+                      >
+                        {hourLabel(hour)}–{hourLabel(hour + 1)}
+                        {booked && <small>จองแล้ว</small>}
+                        {!booked && started && <small>เลยเวลา</small>}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="hour-picker-summary">
+                  {startHour === ''
+                    ? 'ยังไม่ได้เลือกเวลา'
+                    : `เลือกแล้ว ${hourLabel(startHour)}–${hourLabel(endHour)} น. (${endHour - startHour} ชั่วโมง)`}
+                </p>
+              </>
+            )}
+          </div>
           <label className="field-wide">
             วัตถุประสงค์ (ไม่บังคับ)
             <textarea

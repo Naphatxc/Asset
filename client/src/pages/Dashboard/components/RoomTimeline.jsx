@@ -1,6 +1,5 @@
-// ตารางเวลาของทุกห้องในวันที่เลือก แถว = ห้อง, คอลัมน์ = ชั่วโมง 09:00–19:00
-// ช่องหนึ่งคือ 1 ชั่วโมง มีได้ "ว่าง" (กดเพื่อเลือกจอง) "มีคนจอง" หรือ "เลยเวลา/ห้องปิด"
-// กดช่องว่างช่องแรก = เวลาเริ่ม แล้วกดช่องว่างที่อยู่ห้องเดียวกันทางขวา = ขยายเวลาสิ้นสุด (ต้องว่างต่อเนื่องกัน)
+// ตารางเวลาของทุกห้องในวันที่เลือก (ดูภาพรวมอย่างเดียว) แถว = ห้อง, คอลัมน์ = ชั่วโมง 09:00–19:00
+// ช่องหนึ่งคือ 1 ชั่วโมง มีได้ "ว่าง" "มีคนจอง" หรือ "เลยเวลา/ห้องปิด" ส่วนการเลือกเวลาจองทำที่ปุ่มชั่วโมงในฟอร์ม (RoomBooking.jsx)
 import { HOURS, findBookingAt, hourLabel, isHourStarted } from '../../../utils/roomBooking.js';
 
 // "2026-10-18" + 1 วัน -> "2026-10-19" (คำนวณแบบ UTC กันวันเพี้ยนตามเขตเวลาของเครื่อง)
@@ -20,7 +19,7 @@ function formatThaiDate(date) {
 }
 
 // minDate/maxDate = ช่วงวันที่เลื่อนดูได้ (ตรงกับช่วงที่จองได้) loading/failed มาจาก query ใน RoomBooking.jsx
-// selection = { roomId, startHour, endHour } ช่วงที่กำลังเลือกในฟอร์ม (ไฮไลต์ในตาราง) ส่วน onPickHour(roomId, hour) ถูกเรียกเมื่อกดช่องว่าง
+// selection = { roomId, startHour, endHour } ช่วงที่กำลังเลือกในฟอร์ม ไฮไลต์ให้เห็นในตาราง
 export default function RoomTimeline({
   rooms,
   bookings,
@@ -32,7 +31,6 @@ export default function RoomTimeline({
   userId,
   selection,
   onChangeDate,
-  onPickHour,
 }) {
   const isToday = date === minDate;
 
@@ -115,13 +113,10 @@ export default function RoomTimeline({
                     }
 
                     return (
-                      <button
+                      <div
                         className={`room-timeline-cell free${selected ? ' selected' : ''}`}
-                        type="button"
                         key={hour}
-                        aria-pressed={selected}
-                        aria-label={`${room.room_name} ${hourLabel(hour)}–${hourLabel(hour + 1)}`}
-                        onClick={() => onPickHour(room.room_id, hour)}
+                        title={`${room.room_name} ${hourLabel(hour)}–${hourLabel(hour + 1)} ว่าง`}
                       />
                     );
                   }
@@ -149,7 +144,7 @@ export default function RoomTimeline({
       )}
 
       <div className="room-timeline-legend">
-        <span><i className="legend-free" />ว่าง (กดเพื่อเลือก)</span>
+        <span><i className="legend-free" />ว่าง</span>
         <span><i className="legend-selected" />ช่วงที่เลือก</span>
         <span><i className="legend-booked" />มีการจอง</span>
         <span><i className="legend-mine" />การจองของฉัน</span>

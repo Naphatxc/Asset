@@ -2616,15 +2616,7 @@ button:disabled {
   text-overflow: ellipsis;
 }
 
-/* ช่องว่างเป็นปุ่มกดเลือกเวลา */
-.room-timeline-cell.free {
-  cursor: pointer;
-}
-
-.room-timeline-cell.free:hover {
-  border-color: var(--stat-pink);
-}
-
+/* ช่วงที่เลือกในฟอร์ม (ปุ่มชั่วโมง) ไฮไลต์ในตารางด้วย */
 .room-timeline-cell.free.selected {
   border-color: var(--stat-pink);
   background: #ffe3ee;
@@ -2721,6 +2713,76 @@ button:disabled {
     min-width: 44px;
     min-height: 44px;
   }
+}
+
+/* ปุ่มเลือกชั่วโมงในฟอร์มจองห้อง (RoomBooking.jsx) กดต่อเนื่องกันเพื่อเลือกหลายชั่วโมง ปุ่มที่จองแล้ว/เลยเวลากดไม่ได้ */
+.hour-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.hour-picker-label {
+  font-weight: 600;
+}
+
+.hour-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+
+.hour-chip {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid #cfe3d6;
+  border-radius: 8px;
+  background: #eaf6ee;
+  color: #3f6b52;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.hour-chip:hover:not(:disabled) {
+  border-color: var(--stat-pink);
+}
+
+.hour-chip.selected {
+  border-color: var(--stat-pink);
+  background: var(--stat-pink);
+  color: #ffffff;
+}
+
+.hour-chip:disabled {
+  border-color: #e2e2e2;
+  background: #f3f3f3;
+  color: #9a9a9a;
+  cursor: not-allowed;
+}
+
+.hour-chip.booked:disabled {
+  border-color: #f1a8c2;
+  background: #fbd5e3;
+  color: #7a1f48;
+}
+
+.hour-chip small {
+  font-size: 0.72rem;
+}
+
+.hour-picker-hint,
+.hour-picker-summary {
+  margin: 0;
+  color: var(--stat-slate-dark);
+  font-size: 0.88rem;
+}
+
+.hour-picker-summary {
+  font-weight: 600;
 }
 
 /* การจองของฉัน (MyRoomBookings.jsx) อยู่ระหว่างฟอร์มจองกับตารางรายวัน */
