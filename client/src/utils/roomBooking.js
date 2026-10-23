@@ -1,17 +1,21 @@
-// ค่าคงที่และตัวจัดรูปแบบเวลาที่หน้าจองห้อง (RoomBooking.jsx) กับการจองของฉัน (MyRoomBookings.jsx) ใช้ร่วมกัน
+// ค่าคงที่และตัวจัดรูปแบบเวลาที่หน้าจองห้อง (RoomBooking.jsx) ตารางเวลา (RoomTimeline.jsx) และการจองของฉัน (MyRoomBookings.jsx) ใช้ร่วมกัน
 
-// ช่วงเวลาที่จองได้ value/start/end ต้องตรงกับ SLOTS ใน server (room.validator.js)
-// name = ชื่อสั้นไว้เป็นหัวคอลัมน์ในตารางเวลา, label = ชื่อเต็มในดรอปดาวน์/รายการ
-export const SLOT_OPTIONS = [
-  { value: 'morning', name: 'ช่วงเช้า', start: '09:00', end: '12:00', label: 'ช่วงเช้า 09:00–12:00 น.' },
-  { value: 'afternoon', name: 'ช่วงบ่าย', start: '13:00', end: '16:00', label: 'ช่วงบ่าย 13:00–16:00 น.' },
-  { value: 'evening', name: 'ช่วงเย็น', start: '16:00', end: '18:00', label: 'ช่วงเย็น 16:00–18:00 น.' },
-];
+// จองได้ 09:00–19:00 ทีละชั่วโมงเต็ม ต้องตรงกับ OPEN_HOUR/CLOSE_HOUR ใน server (room.validator.js)
+export const OPEN_HOUR = 9;
+export const CLOSE_HOUR = 19;
 
-// ช่วงนี้ของวันนั้นเริ่มไปแล้วหรือยัง (เวลาไทย) server ไม่รับจองช่วงที่เริ่มไปแล้ว
-// ฟอร์มใช้ปิดตัวเลือก ตารางเวลาใช้ทำช่องว่างที่เลยเวลาเป็นสีเทา
-export function isSlotStarted(date, start) {
-  return new Date(`${date}T${start}:00.000+07:00`) <= new Date();
+// ชั่วโมงเริ่มที่จองได้ 9..18 (ชั่วโมงสุดท้าย 18:00–19:00)
+export const HOURS = Array.from({ length: CLOSE_HOUR - OPEN_HOUR }, (_, index) => OPEN_HOUR + index);
+
+// 9 -> "09:00" (รูปแบบเดียวกับที่ส่งให้ server)
+export function hourLabel(hour) {
+  return `${String(hour).padStart(2, '0')}:00`;
+}
+
+// ชั่วโมงนี้ของวันนั้นเริ่มไปแล้วหรือยัง (เวลาไทย) server ไม่รับจองช่วงที่เริ่มไปแล้ว
+// ฟอร์มใช้ปิดตัวเลือก ตารางเวลาใช้ทำช่องที่เลยเวลาเป็นสีเทา
+export function isHourStarted(date, hour) {
+  return new Date(`${date}T${hourLabel(hour)}:00.000+07:00`) <= new Date();
 }
 
 // เวลาจาก server เป็น UTC เช่น "2026-10-18T03:00:00.000Z" -> "10:00" ตามเวลาไทย
@@ -33,11 +37,24 @@ export function formatDate(value) {
   });
 }
 
-// ชื่อช่วงของการจอง เช่น "ช่วงเช้า 09:00–12:00 น." ถ้าเวลาไม่ตรงช่วงไหน (ข้อมูลเก่า) แสดงเวลาตรงๆ แทน
+// "10:00–13:00 น." ตามเวลาไทย (การจองเก่าแบบเช้า/บ่าย/เย็นก็แสดงเป็นเวลาตรงๆ แบบเดียวกัน)
 export function formatSlot(startAt, endAt) {
-  const start = formatTime(startAt);
-  const end = formatTime(endAt);
-  const slot = SLOT_OPTIONS.find((option) => option.start === start && option.end === end);
+  return `${formatTime(startAt)}–${formatTime(endAt)} น.`;
+}
 
-  return slot ? slot.label : `${start}–${end} น.`;
+// เวลาของ server (UTC) -> จำนวนนาทีนับจาก 00:00 ตามเวลาไทย ไว้เทียบทับกับชั่วโมงในตาราง
+function bangkokMinutes(value) {
+  const date = new Date(new Date(value).getTime() + 7 * 60 * 60 * 1000);
+  return date.getUTCHours() * 60 + date.getUTCMinutes();
+}
+
+// การจองของห้องนี้ที่ทับชั่วโมง hour (hour..hour+1) ใช้เงื่อนไขทับกันแทนการเทียบเท่ากันเป๊ะ
+// เพื่อให้การจองเก่าที่เวลาไม่ตรงชั่วโมงเต็มก็ยังโชว์ในช่องที่ทับ
+export function findBookingAt(bookings, roomId, hour) {
+  return bookings.find(
+    (booking) =>
+      booking.room_id === roomId &&
+      bangkokMinutes(booking.start_at) < (hour + 1) * 60 &&
+      bangkokMinutes(booking.end_at) > hour * 60,
+  );
 }

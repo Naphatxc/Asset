@@ -1,6 +1,6 @@
-// ตารางเวลาของทุกห้องในวันที่เลือก (ดูอย่างเดียว ไม่มีปุ่มจอง) แถว = ห้อง, คอลัมน์ = ช่วงเวลา เช้า/บ่าย/เย็น
-// จองได้ทีละช่วงเต็ม ช่องหนึ่งจึงมีได้แค่ "ว่าง" หรือ "มีคนจอง" (หรือ "เลยเวลาแล้ว" สำหรับช่องว่างของวันนี้ที่เริ่มไปแล้ว)
-import { SLOT_OPTIONS, formatTime, isSlotStarted } from '../../../utils/roomBooking.js';
+// ตารางเวลาของทุกห้องในวันที่เลือก (ดูภาพรวมอย่างเดียว) แถว = ห้อง, คอลัมน์ = ชั่วโมง 09:00–19:00
+// ช่องหนึ่งคือ 1 ชั่วโมง มีได้ "ว่าง" "มีคนจอง" หรือ "เลยเวลา/ห้องปิด" ส่วนการเลือกเวลาจองทำที่ปุ่มชั่วโมงในฟอร์ม (RoomBooking.jsx)
+import { HOURS, findBookingAt, hourLabel, isHourStarted } from '../../../utils/roomBooking.js';
 
 // "2026-10-18" + 1 วัน -> "2026-10-19" (คำนวณแบบ UTC กันวันเพี้ยนตามเขตเวลาของเครื่อง)
 function shiftDate(date, days) {
@@ -18,18 +18,8 @@ function formatThaiDate(date) {
   });
 }
 
-// การจองที่อยู่ในช่วงนี้ของห้องนี้ เทียบเวลาแบบ "HH:MM" ตามเวลาไทย (สองหลักเสมอ เทียบแบบข้อความได้)
-// ใช้เงื่อนไขทับกันแทนการเทียบเท่ากันเป๊ะ เผื่อข้อมูลเก่าที่เวลาไม่ตรงช่วงก็ยังโชว์ในช่องที่ทับ
-function findBooking(bookings, roomId, slot) {
-  return bookings.find(
-    (booking) =>
-      booking.room_id === roomId &&
-      formatTime(booking.start_at) < slot.end &&
-      formatTime(booking.end_at) > slot.start,
-  );
-}
-
 // minDate/maxDate = ช่วงวันที่เลื่อนดูได้ (ตรงกับช่วงที่จองได้) loading/failed มาจาก query ใน RoomBooking.jsx
+// selection = { roomId, startHour, endHour } ช่วงที่กำลังเลือกในฟอร์ม ไฮไลต์ให้เห็นในตาราง
 export default function RoomTimeline({
   rooms,
   bookings,
@@ -39,10 +29,10 @@ export default function RoomTimeline({
   loading,
   failed,
   userId,
+  selection,
   onChangeDate,
 }) {
   const isToday = date === minDate;
-
 
   return (
     <div className="room-timeline">
@@ -89,12 +79,9 @@ export default function RoomTimeline({
         <div className="room-timeline-scroll">
           <div className="room-timeline-grid">
             <div className="room-timeline-room" />
-            {SLOT_OPTIONS.map((slot) => (
-              <div className="room-timeline-slot-head" key={slot.value}>
-                <strong>{slot.name}</strong>
-                <span>
-                  {slot.start}–{slot.end}
-                </span>
+            {HOURS.map((hour) => (
+              <div className="room-timeline-slot-head" key={hour}>
+                <strong>{hourLabel(hour)}</strong>
               </div>
             ))}
 
@@ -104,38 +91,49 @@ export default function RoomTimeline({
                   {room.room_name}
                   {!room.is_active && ' (ปิดอยู่)'}
                 </div>
-                {SLOT_OPTIONS.map((slot) => {
-                  const booking = findBooking(bookings, room.room_id, slot);
+                {HOURS.map((hour) => {
+                  const booking = findBookingAt(bookings, room.room_id, hour);
 
-                  // ช่องว่างที่จองไม่ได้ (ห้องปิดอยู่ หรือช่วงของวันนี้ที่เริ่มไปแล้ว) เป็นสีเทา ไม่ขึ้นว่า "ว่าง" ให้เข้าใจผิด
+                  // ช่องว่างที่จองไม่ได้ (ห้องปิดอยู่ หรือชั่วโมงของวันนี้ที่เริ่มไปแล้ว) เป็นสีเทา ไม่ขึ้นว่า "ว่าง" ให้เข้าใจผิด
                   if (!booking) {
-                    const unavailable = !room.is_active
-                      ? 'ปิดอยู่'
-                      : isSlotStarted(date, slot.start)
-                        ? 'เลยเวลาแล้ว'
-                        : null;
+                    const unavailable = !room.is_active || isHourStarted(date, hour);
+                    const selected =
+                      selection?.roomId === room.room_id &&
+                      hour >= selection.startHour &&
+                      hour < selection.endHour;
+
+                    if (unavailable) {
+                      return (
+                        <div
+                          className="room-timeline-cell past"
+                          key={hour}
+                          title={room.is_active ? 'เลยเวลาแล้ว' : 'ห้องปิดอยู่'}
+                        />
+                      );
+                    }
 
                     return (
                       <div
-                        className={`room-timeline-cell${unavailable ? ' past' : ''}`}
-                        key={slot.value}
-                      >
-                        {unavailable ?? 'ว่าง'}
-                      </div>
+                        className={`room-timeline-cell free${selected ? ' selected' : ''}`}
+                        key={hour}
+                        title={`${room.room_name} ${hourLabel(hour)}–${hourLabel(hour + 1)} ว่าง`}
+                      />
                     );
                   }
 
                   const mine = booking.user_id === userId;
+                  // การจองหลายชั่วโมงติดกัน เขียนชื่อแค่ช่องแรกของการจอง ช่องที่เหลือเป็นสีเดียวกันเฉยๆ
+                  const previous = findBookingAt(bookings, room.room_id, hour - 1);
+                  const isFirstCell = previous?.booking_id !== booking.booking_id;
 
                   return (
                     <div
                       className={`room-timeline-cell booked${mine ? ' mine' : ''}`}
-                      key={slot.value}
+                      key={hour}
                       title={`${booking.user_name}${booking.purpose ? ` · ${booking.purpose}` : ''}`}
                     >
-                      {/* "ของฉัน" สั้นพอให้อยู่บรรทัดเดียวในช่องแคบบนมือถือ คำอธิบายสีด้านล่างเขียนเต็มว่า "การจองของฉัน" */}
-                      <strong>{mine ? 'ของฉัน' : booking.user_name}</strong>
-                      {booking.purpose && <small>{booking.purpose}</small>}
+                      {/* "ของฉัน" สั้นพอให้อยู่ในช่องแคบ คำอธิบายสีด้านล่างเขียนเต็มว่า "การจองของฉัน" */}
+                      {isFirstCell && <strong>{mine ? 'ของฉัน' : booking.user_name}</strong>}
                     </div>
                   );
                 })}
@@ -147,6 +145,7 @@ export default function RoomTimeline({
 
       <div className="room-timeline-legend">
         <span><i className="legend-free" />ว่าง</span>
+        <span><i className="legend-selected" />ช่วงที่เลือก</span>
         <span><i className="legend-booked" />มีการจอง</span>
         <span><i className="legend-mine" />การจองของฉัน</span>
         <span><i className="legend-past" />จองไม่ได้ (เลยเวลา/ห้องปิด)</span>

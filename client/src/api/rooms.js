@@ -16,14 +16,15 @@ export function getMyRoomBookings() {
   return request('/api/room-bookings/mine');
 }
 
-// slot = 'morning' | 'afternoon' | 'evening' (ช่วงเวลาจริงกำหนดที่ SLOTS ใน room.validator.js)
-export function createRoomBooking({ roomId, date, slot, purpose }) {
+// start/end = "HH:00" ชั่วโมงเต็มตามเวลาไทย ระหว่าง 09:00–19:00 (กติกาอยู่ที่ room.validator.js)
+export function createRoomBooking({ roomId, date, start, end, purpose }) {
   return request('/api/room-bookings', {
     method: 'POST',
     body: {
       room_id: roomId,
       date,
-      slot,
+      start,
+      end,
       purpose,
     },
   });

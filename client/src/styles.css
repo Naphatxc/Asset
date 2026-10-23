@@ -2532,7 +2532,7 @@ button:disabled {
   background: var(--stat-pink);
 }
 
-/* ตารางเวลาห้องจอง (RoomTimeline.jsx) แถว = ห้อง, คอลัมน์ = ช่วงเวลา เช้า/บ่าย/เย็น (ตาม SLOT_OPTIONS) */
+/* ตารางเวลาห้องจอง (RoomTimeline.jsx) แถว = ห้อง, คอลัมน์ = ชั่วโมง 09:00–19:00 (ตาม HOURS ใน utils/roomBooking.js) */
 .room-timeline {
   margin-top: 16px;
   padding: 14px;
@@ -2557,13 +2557,13 @@ button:disabled {
   overflow-x: auto;
 }
 
-/* grid เดียวทั้งตาราง คอลัมน์แรกชื่อห้อง + 3 ช่วง แต่ละแถว (.room-timeline-row) ใช้ display: contents
+/* grid เดียวทั้งตาราง คอลัมน์แรกชื่อห้อง + 10 ชั่วโมง แต่ละแถว (.room-timeline-row) ใช้ display: contents
    ให้ช่องข้างในเรียงเข้า grid หลักตรงกันทุกแถว */
 .room-timeline-grid {
   display: grid;
-  grid-template-columns: 120px repeat(3, minmax(0, 1fr));
-  gap: 6px;
-  min-width: 520px;
+  grid-template-columns: 150px repeat(10, minmax(48px, 1fr));
+  gap: 4px;
+  min-width: 700px;
 }
 
 .room-timeline-row {
@@ -2591,17 +2591,14 @@ button:disabled {
   font-size: 0.82rem;
 }
 
-.room-timeline-slot-head span {
-  font-size: 0.76rem;
-}
-
 .room-timeline-cell {
   display: grid;
   align-content: center;
   justify-items: center;
   gap: 2px;
-  min-height: 46px;
-  padding: 6px 8px;
+  min-height: 40px;
+  padding: 4px;
+  font: inherit;
   overflow: hidden;
   border: 1px solid #cfe3d6;
   border-radius: 8px;
@@ -2617,6 +2614,13 @@ button:disabled {
   overflow: hidden;
   white-space: nowrap;
   text-overflow: ellipsis;
+}
+
+/* ช่วงที่เลือกในฟอร์ม (ปุ่มชั่วโมง) ไฮไลต์ในตารางด้วย */
+.room-timeline-cell.free.selected {
+  border-color: var(--stat-pink);
+  background: #ffe3ee;
+  box-shadow: inset 0 0 0 2px var(--stat-pink);
 }
 
 .room-timeline-cell.booked {
@@ -2660,6 +2664,11 @@ button:disabled {
   border: 1px solid #cfe3d6;
 }
 
+.room-timeline-legend .legend-selected {
+  background: #ffe3ee;
+  border: 2px solid var(--stat-pink);
+}
+
 .room-timeline-legend .legend-booked {
   background: #fbd5e3;
   border: 1px solid #f1a8c2;
@@ -2674,50 +2683,106 @@ button:disabled {
   border: 1px solid #e2e2e2;
 }
 
-/* มือถือ: บีบให้ครบ 3 ช่วงในจอเดียว ไม่ต้องปัดแนวนอน (เดิมช่วงเย็นตกขอบขวาโดยไม่มีอะไรบอก)
-   ชื่อคนจองที่ยาวเกินช่องจะถูกตัดเป็น "…" อยู่แล้ว ส่วนปุ่มเลื่อนวันขยายเป็น 44px ให้นิ้วกดง่าย */
+/* มือถือ: 10 ชั่วโมงบีบในจอเดียวไม่ไหว จึงให้ปัดตารางแนวนอน (.room-timeline-scroll) โดยชื่อห้องค้างซ้ายอยู่แล้ว
+   ปุ่มเลื่อนวันขยายเป็น 44px ให้นิ้วกดง่าย */
 @media (max-width: 640px) {
   .room-timeline {
     padding: 10px;
   }
 
   .room-timeline-grid {
-    grid-template-columns: 60px repeat(3, minmax(0, 1fr));
+    grid-template-columns: 84px repeat(10, 52px);
     gap: 4px;
     min-width: 0;
   }
 
   .room-timeline-room {
-    font-size: 0.8rem;
+    font-size: 0.76rem;
   }
 
   .room-timeline-slot-head {
-    font-size: 0.76rem;
-  }
-
-  .room-timeline-slot-head span {
-    font-size: 0.68rem;
+    font-size: 0.72rem;
   }
 
   .room-timeline-cell {
-    padding: 4px;
-    font-size: 0.76rem;
-  }
-
-  /* ช่องแคบ ให้ชื่อขึ้นบรรทัดใหม่ได้ (ตัดคำภาษาไทยตามพจนานุกรมของเบราว์เซอร์) แทนการตัดเป็น "…" สูงสุด 2 บรรทัด */
-  .room-timeline-cell strong,
-  .room-timeline-cell small {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    white-space: normal;
+    min-height: 44px;
+    font-size: 0.72rem;
   }
 
   .room-timeline-toolbar .button-secondary {
     min-width: 44px;
     min-height: 44px;
   }
+}
+
+/* ปุ่มเลือกชั่วโมงในฟอร์มจองห้อง (RoomBooking.jsx) กดต่อเนื่องกันเพื่อเลือกหลายชั่วโมง ปุ่มที่จองแล้ว/เลยเวลากดไม่ได้ */
+.hour-picker {
+  display: grid;
+  gap: 8px;
+}
+
+.hour-picker-label {
+  font-weight: 600;
+}
+
+.hour-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+  gap: 8px;
+}
+
+.hour-chip {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 6px 8px;
+  border: 1px solid #cfe3d6;
+  border-radius: 8px;
+  background: #eaf6ee;
+  color: #3f6b52;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.hour-chip:hover:not(:disabled) {
+  border-color: var(--stat-pink);
+}
+
+.hour-chip.selected {
+  border-color: var(--stat-pink);
+  background: var(--stat-pink);
+  color: #ffffff;
+}
+
+.hour-chip:disabled {
+  border-color: #e2e2e2;
+  background: #f3f3f3;
+  color: #9a9a9a;
+  cursor: not-allowed;
+}
+
+.hour-chip.booked:disabled {
+  border-color: #f1a8c2;
+  background: #fbd5e3;
+  color: #7a1f48;
+}
+
+.hour-chip small {
+  font-size: 0.72rem;
+}
+
+.hour-picker-hint,
+.hour-picker-summary {
+  margin: 0;
+  color: var(--stat-slate-dark);
+  font-size: 0.88rem;
+}
+
+.hour-picker-summary {
+  font-weight: 600;
 }
 
 /* การจองของฉัน (MyRoomBookings.jsx) อยู่ระหว่างฟอร์มจองกับตารางรายวัน */
