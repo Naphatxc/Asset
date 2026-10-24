@@ -483,7 +483,7 @@ export default function EquipmentManager({ user }) {
           value={locationFilter}
           onChange={(event) => changeLocationFilter(event.target.value)}
           options={locationOptions}
-          emptyLabel="ทุกสถานที่"
+          emptyLabel="ชั้น 5"
           createLabel="+ เพิ่มสถานที่ใหม่..."
           createFields={locationCreateFields}
           onCreate={(fields) => handleCreateLocation(fields)}
