@@ -58,3 +58,21 @@ export function findBookingAt(bookings, roomId, hour) {
       bangkokMinutes(booking.end_at) > hour * 60,
   );
 }
+
+// จองล่วงหน้าได้ไม่เกิน 30 วัน (ต้องตรงกับ server: room.validator.js)
+export const MAX_DAYS_AHEAD = 30;
+
+// วันนี้แบบ YYYY-MM-DD (ใช้เป็นค่าเริ่มต้นและวันแรกที่เลือกได้ในช่องวันที่)
+export function todayDateInput() {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${mm}-${dd}`;
+}
+
+// "2026-10-21" + 30 วัน -> "2026-11-20" (คำนวณแบบ UTC กันวันเพี้ยนตามเขตเวลาของเครื่อง)
+export function addDays(date, days) {
+  const next = new Date(`${date}T00:00:00.000Z`);
+  next.setUTCDate(next.getUTCDate() + days);
+  return next.toISOString().slice(0, 10);
+}

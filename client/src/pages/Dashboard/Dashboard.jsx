@@ -207,7 +207,7 @@ export default function Dashboard({ user, onLogout }) {
       </aside>
 
       <main className="dashboard-content">
-        {activeTab === 'overview' && admin && <DashboardOverview />}
+        {activeTab === 'overview' && admin && <DashboardOverview user={user} />}
 
         {activeTab === 'equipment' && <EquipmentManager user={user} />}
 

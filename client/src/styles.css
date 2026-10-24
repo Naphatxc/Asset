@@ -1224,67 +1224,84 @@ button:disabled {
   background: #fffaf0;
 }
 
-/* ===== ภาพรวม Dashboard: stat card + กราฟ ===== */
-.stat-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 12px;
-  margin: 14px 0;
+/* ===== ภาพรวม Dashboard: ต้องดำเนินการ + stat card + กราฟ ===== */
+.overview-date {
+  margin: 0;
+  color: var(--stat-slate-dark);
+  font-size: 0.88rem;
 }
 
+.overview-label {
+  margin: 22px 0 10px;
+  color: var(--stat-slate-dark);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.stat-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+/* การ์ดตัวเลขสรุป: พื้นขาว + แถบสีด้านซ้าย เบากว่าการ์ดสีเต็ม ให้การ์ด "ต้องดำเนินการ" ด้านบนเด่นกว่า */
 .stat-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   padding: 16px 18px;
+  border: 1px solid #ead9df;
+  border-left: 5px solid var(--stat-slate);
   border-radius: 12px;
-  color: #ffffff;
+  background: #ffffff;
 }
 
 .stat-card-value {
-  font-size: 1.9rem;
+  font-size: 2rem;
   font-weight: 700;
   line-height: 1.1;
+  color: #333333;
 }
 
 .stat-card-label {
   font-size: 0.85rem;
-  opacity: 0.92;
+  color: #6b6b6b;
 }
 
 .stat-card-total {
-  background: linear-gradient(135deg, var(--stat-slate-dark), var(--stat-slate));
+  border-left-color: var(--stat-slate-dark);
 }
 
 .stat-card-available {
-  background: linear-gradient(135deg, #176b4d, #22a06b);
+  border-left-color: #22a06b;
 }
 
 .stat-card-borrowed {
-  background: linear-gradient(135deg, #b98600, var(--stat-gold));
+  border-left-color: var(--stat-gold);
 }
 
 .stat-card-users {
-  background: linear-gradient(135deg, var(--stat-plum), var(--stat-pink));
+  border-left-color: var(--stat-pink);
 }
 
-/* การ์ดคลิกได้ "ต้องดำเนินการ" (คำขอยืมรออนุมัติ/ครุภัณฑ์รอซ่อม/เลยกำหนดคืน) — สีเทาเมื่อค่าเป็น 0
-   (ไม่มีอะไรต้องทำ) เปลี่ยนเป็นสีเตือนเมื่อมีรายการค้างจริง ให้กวาดตาเห็นได้ทันทีว่าต้องรีบดูอันไหนก่อน */
+/* การ์ดคลิกได้ "ต้องดำเนินการ" — สีเทาเมื่อค่าเป็น 0 (ไม่มีอะไรต้องทำ) เปลี่ยนเป็นเหลือง/แดงเมื่อมีรายการค้างจริง
+   ให้กวาดตาเห็นได้ทันทีว่าต้องรีบดูอันไหนก่อน */
 .attention-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
-  margin-bottom: 14px;
 }
 
 .attention-card {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 14px;
   padding: 16px 18px;
-  border: 1px solid #ead9df;
-  border-radius: 12px;
-  background: #fffbfd;
+  border: 1px solid #e6e6e6;
+  border-radius: 14px;
+  background: #fafafa;
   color: #333333;
   text-decoration: none;
   transition: transform 160ms ease, box-shadow 160ms ease;
@@ -1293,6 +1310,13 @@ button:disabled {
 .attention-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 10px 22px rgba(180, 59, 107, 0.15);
+}
+
+.attention-card-text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
 }
 
 .attention-card-value {
@@ -1307,17 +1331,32 @@ button:disabled {
   color: #6b6b6b;
 }
 
-.attention-card-active .attention-card-value {
-  color: var(--stat-plum);
+.attention-card-arrow {
+  font-size: 1.6rem;
+  color: #b5b5b5;
 }
 
-.attention-card-overdue.attention-card-active {
+.attention-card-warn {
+  border-color: #f3dc8a;
+  background: #fffaf0;
+}
+
+.attention-card-warn .attention-card-value {
+  color: #8a6200;
+}
+
+.attention-card-danger {
   border-color: #f3b4c4;
   background: #fff0f4;
 }
 
-.attention-card-overdue.attention-card-active .attention-card-value {
+.attention-card-danger .attention-card-value {
   color: #a61b43;
+}
+
+.attention-card-warn .attention-card-arrow,
+.attention-card-danger .attention-card-arrow {
+  color: var(--stat-plum);
 }
 
 /* กิจกรรมล่าสุด (ยืม/คืน/แจ้งซ่อม) เรียงตามเวลา ดู DashboardOverview.jsx buildRecentActivity ฝั่ง backend */
@@ -1385,8 +1424,20 @@ button:disabled {
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  align-items: start;
   gap: 16px;
-  margin-bottom: 16px;
+  margin-top: 16px;
+}
+
+/* แถวกราฟ: กราฟรายเดือนกว้างกว่าแถบสถานะ (บนจอแคบ ตกเป็นคอลัมน์เดียวเอง) */
+.overview-grid-wide {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+
+@media (min-width: 1000px) {
+  .overview-grid-wide {
+    grid-template-columns: 3fr 2fr;
+  }
 }
 
 .overview-panel {
@@ -1394,8 +1445,30 @@ button:disabled {
   padding: 18px 20px;
   border: 1px solid #ead9df;
   border-radius: 14px;
-  background: #fffbfd;
-  margin-bottom: 16px;
+  background: #ffffff;
+}
+
+.overview-panel-spaced {
+  margin-top: 16px;
+}
+
+.overview-panel-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.overview-panel-heading h3 {
+  margin: 0;
+}
+
+.overview-panel-heading a {
+  color: var(--stat-plum);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: none;
 }
 
 .overview-panel h3 {
@@ -1404,33 +1477,123 @@ button:disabled {
   color: var(--stat-plum);
 }
 
-.pie-chart-wrap {
+/* แถบสถานะครุภัณฑ์: segment ยืดตามจำนวน (flex-grow) ไม่ต้องคำนวณความกว้างเอง */
+.status-bar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 20px;
+  gap: 3px;
+  height: 20px;
+  overflow: hidden;
+  border-radius: 999px;
 }
 
-.pie-legend {
+.status-bar-segment {
+  flex-basis: 0;
+  min-width: 6px;
+}
+
+.status-list {
+  display: grid;
+  gap: 4px;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+  color: #454545;
+}
+
+.status-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px dashed #efe3e8;
+}
+
+.status-list li:last-child {
+  border-bottom: 0;
+}
+
+.status-list-swatch {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  border-radius: 4px;
+}
+
+.status-list-label {
+  flex: 1;
+}
+
+.status-list-percent {
+  min-width: 3ch;
+  text-align: right;
+  color: var(--stat-slate-dark);
+  font-size: 0.8rem;
+}
+
+/* รายการเลยกำหนดคืน: รวมครุภัณฑ์+วัสดุในกล่องเดียว แต่ละรายการเป็นแถวสั้นๆ ไม่ใช้ตาราง (เล็กลงและไม่ต้องสลับเป็นการ์ดบนมือถือ) */
+.overdue-group {
+  margin: 14px 0 6px;
+  color: var(--stat-slate-dark);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.overdue-group:first-of-type {
+  margin-top: 0;
+}
+
+.overdue-list {
   display: grid;
   gap: 8px;
   margin: 0;
   padding: 0;
   list-style: none;
-  font-size: 0.88rem;
-  color: #454545;
 }
 
-.pie-legend li {
+.overdue-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-left: 4px solid #e2574c;
+  border-radius: 8px;
+  background: #fff0f4;
+}
+
+.overdue-main {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
+  align-items: baseline;
   gap: 8px;
+  overflow-wrap: anywhere;
 }
 
-.pie-legend-swatch {
-  width: 12px;
-  height: 12px;
-  border-radius: 3px;
+.overdue-title {
+  font-weight: 600;
+}
+
+.overdue-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 12px;
+  color: #6b6b6b;
+  font-size: 0.82rem;
+}
+
+.overdue-due {
+  color: #a61b43;
+  font-weight: 600;
+}
+
+.overdue-more {
+  margin: 8px 0 0;
+  color: #6b6b6b;
+  font-size: 0.85rem;
+}
+
+.overdue-empty {
+  color: #1d7a52;
 }
 
 .user-table select {

@@ -12,34 +12,21 @@ import ThaiDateInput from '../../../components/ThaiDateInput.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import {
   HOURS,
+  MAX_DAYS_AHEAD,
+  addDays,
   findBookingAt,
   formatDate,
   formatTime,
   hourLabel,
   isHourStarted,
+  todayDateInput,
 } from '../../../utils/roomBooking.js';
 import MyRoomBookings from './MyRoomBookings.jsx';
 import RoomManager from './RoomManager.jsx';
 import RoomTimeline from './RoomTimeline.jsx';
 
-// ต้องตรงกับ server (room.validator.js): จองล่วงหน้าได้ไม่เกิน 30 วัน, วัตถุประสงค์ไม่เกิน 2000 ตัวอักษร
-const MAX_DAYS_AHEAD = 30;
+// ต้องตรงกับ server (room.validator.js): วัตถุประสงค์ไม่เกิน 2000 ตัวอักษร
 const MAX_PURPOSE_LENGTH = 2000;
-
-// วันนี้แบบ YYYY-MM-DD (ใช้เป็นค่าเริ่มต้นและวันแรกที่เลือกได้ในช่องวันที่)
-function todayDateInput() {
-  const now = new Date();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}-${mm}-${dd}`;
-}
-
-// "2026-10-21" + 30 วัน -> "2026-11-20" (คำนวณแบบ UTC กันวันเพี้ยนตามเขตเวลาของเครื่อง)
-function addDays(date, days) {
-  const next = new Date(`${date}T00:00:00.000Z`);
-  next.setUTCDate(next.getUTCDate() + days);
-  return next.toISOString().slice(0, 10);
-}
 
 // เวลาเริ่มของการจอง (UTC) -> วันที่ตามเวลาไทยแบบ YYYY-MM-DD ไว้สั่งให้ตารางเวลาเลื่อนไปวันนั้น
 function bangkokDateOf(value) {
