@@ -1,10 +1,14 @@
-// ภาพรวม Dashboard (เฉพาะ Admin) — stat card + การ์ดสิ่งที่ต้องดำเนินการ + กราฟแท่งรายเดือน + กราฟวงกลมสถานะ
-// + รายการเลยกำหนดคืน + กิจกรรมล่าสุด
-// กราฟวาดเองด้วย SVG ธรรมดา ไม่ใช้ library เพิ่ม เพราะข้อมูลมีแค่ 12 เดือน/4 สถานะ ไม่คุ้มเพิ่ม dependency
+// ภาพรวม Dashboard (เฉพาะ Admin) — เรียงจากสิ่งที่ต้องทำก่อน: การ์ดต้องดำเนินการ -> ตัวเลขสรุป
+// -> แถบสถานะครุภัณฑ์ + กราฟยืมรายเดือน -> ตารางจองห้อง -> รายการเลยกำหนดคืน + กิจกรรมล่าสุด
+// กราฟวาดเองด้วย SVG/CSS ธรรมดา ไม่ใช้ library เพิ่ม เพราะข้อมูลมีแค่ 12 เดือน/5 สถานะ ไม่คุ้มเพิ่ม dependency
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { getDashboardSummary } from '../../../api/dashboard.js';
+import { getRoomBookings, getRooms } from '../../../api/rooms.js';
+import { MAX_DAYS_AHEAD, addDays, todayDateInput } from '../../../utils/roomBooking.js';
+import RoomTimeline from './RoomTimeline.jsx';
 
 const monthLabels = [
   'ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
@@ -76,6 +80,8 @@ function MonthlyBarChart({ data }) {
   const max = Math.max(1, ...data);
   const slot = width / data.length;
   const barWidth = slot - 10;
+  // เดือนปัจจุบันเข้มกว่าเดือนอื่น ให้รู้ทันทีว่าตอนนี้อยู่ตรงไหนของปี
+  const currentMonth = new Date().getMonth();
 
   return (
     <svg
@@ -84,10 +90,24 @@ function MonthlyBarChart({ data }) {
       aria-label="กราฟจำนวนการยืมรายเดือน"
       style={{ width: '100%', height: 'auto' }}
     >
+      {[0.5, 1].map((fraction) => (
+        <line
+          key={fraction}
+          x1="0"
+          x2={width}
+          y1={height - fraction * height}
+          y2={height - fraction * height}
+          stroke="#efe3e8"
+          strokeDasharray="4 4"
+        />
+      ))}
+      <line x1="0" x2={width} y1={height} y2={height} stroke="#ead9df" />
+
       {data.map((value, index) => {
         const barHeight = (value / max) * height;
         const x = index * slot + 5;
         const y = height - barHeight;
+        const isCurrent = index === currentMonth;
 
         return (
           <g key={monthLabels[index]}>
@@ -96,8 +116,9 @@ function MonthlyBarChart({ data }) {
               y={y}
               width={barWidth}
               height={Math.max(barHeight, value > 0 ? 2 : 0)}
-              fill="var(--stat-pink)"
-              rx="3"
+              fill={isCurrent ? 'var(--stat-pink)' : 'var(--stat-pink-soft)'}
+              opacity={isCurrent ? 1 : 0.55}
+              rx="4"
             />
             {value > 0 && (
               <text
@@ -115,7 +136,8 @@ function MonthlyBarChart({ data }) {
               y={height + 18}
               textAnchor="middle"
               fontSize="11"
-              fill="#637f84"
+              fontWeight={isCurrent ? 700 : 400}
+              fill={isCurrent ? '#b43b6b' : '#637f84'}
             >
               {monthLabels[index]}
             </text>
@@ -126,11 +148,8 @@ function MonthlyBarChart({ data }) {
   );
 }
 
-function StatusPieChart({ statusCounts }) {
-  const size = 180;
-  const outerRadius = 80;
-  const pathRadius = outerRadius / 2;
-  const circumference = 2 * Math.PI * pathRadius;
+// แถบสัดส่วนสถานะเส้นเดียว + รายการเรียงใต้แถบ อ่านตัวเลขได้ตรงกว่ากราฟวงกลม และไม่กินที่แนวตั้ง
+function StatusBar({ statusCounts }) {
   const segments = statusMeta
     .map((meta) => ({ ...meta, value: statusCounts[meta.key] ?? 0 }))
     .filter((segment) => segment.value > 0);
@@ -140,49 +159,35 @@ function StatusPieChart({ statusCounts }) {
     return <p className="loading-message">ยังไม่มีข้อมูลครุภัณฑ์</p>;
   }
 
-  let cumulative = 0;
-
   return (
-    <div className="pie-chart-wrap">
-      <svg
-        width={size}
-        height={size}
-        viewBox={`0 0 ${size} ${size}`}
+    <div>
+      <div
+        className="status-bar"
         role="img"
         aria-label="สัดส่วนสถานะครุภัณฑ์"
       >
-        <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
-          {segments.map((segment) => {
-            const fraction = segment.value / total;
-            const dash = fraction * circumference;
-            const element = (
-              <circle
-                key={segment.key}
-                cx={size / 2}
-                cy={size / 2}
-                r={pathRadius}
-                fill="none"
-                stroke={segment.color}
-                strokeWidth={outerRadius}
-                strokeDasharray={`${dash} ${circumference - dash}`}
-                strokeDashoffset={-cumulative}
-              />
-            );
+        {segments.map((segment) => (
+          <span
+            key={segment.key}
+            className="status-bar-segment"
+            style={{ flexGrow: segment.value, background: segment.color }}
+            title={`${segment.label} ${segment.value}`}
+          />
+        ))}
+      </div>
 
-            cumulative += dash;
-            return element;
-          })}
-        </g>
-      </svg>
-
-      <ul className="pie-legend">
+      <ul className="status-list">
         {segments.map((segment) => (
           <li key={segment.key}>
             <span
-              className="pie-legend-swatch"
+              className="status-list-swatch"
               style={{ background: segment.color }}
             />
-            {segment.label} ({segment.value})
+            <span className="status-list-label">{segment.label}</span>
+            <strong>{segment.value}</strong>
+            <span className="status-list-percent">
+              {Math.round((segment.value / total) * 100)}%
+            </span>
           </li>
         ))}
       </ul>
@@ -190,7 +195,51 @@ function StatusPieChart({ statusCounts }) {
   );
 }
 
-export default function DashboardOverview() {
+function AttentionCard({ to, value, label, tone }) {
+  // tone: 'warn' = มีงานค้างที่ต้องตอบ, 'danger' = เลยกำหนด; ค่าเป็น 0 เทาเสมอ (ไม่มีอะไรต้องทำ)
+  const active = value > 0;
+
+  return (
+    <Link
+      to={to}
+      className={`attention-card${active ? ` attention-card-${tone}` : ''}`}
+    >
+      <span className="attention-card-text">
+        <span className="attention-card-value">{value}</span>
+        <span className="attention-card-label">{label}</span>
+      </span>
+      <span className="attention-card-arrow" aria-hidden="true">›</span>
+    </Link>
+  );
+}
+
+function OverdueRow({ code, title, who, dueDate }) {
+  return (
+    <li className="overdue-item">
+      <div className="overdue-main">
+        <span className="equipment-code">{code}</span>
+        <span className="overdue-title">{title}</span>
+      </div>
+      <div className="overdue-meta">
+        <span>{who}</span>
+        <span className="overdue-due">กำหนด {formatDate(dueDate)}</span>
+      </div>
+    </li>
+  );
+}
+
+export default function DashboardOverview({ user }) {
+  const today = todayDateInput();
+  const [roomDate, setRoomDate] = useState(today);
+
+  // queryKey เดียวกับหน้าจองห้อง (RoomBooking.jsx) จึงแชร์ cache กัน และจองใหม่แล้วตารางนี้ก็รีเฟรชตาม
+  const roomsQuery = useQuery({ queryKey: ['rooms'], queryFn: getRooms });
+  const bookingsQuery = useQuery({
+    queryKey: ['room-bookings', roomDate],
+    queryFn: () => getRoomBookings(roomDate),
+  });
+  const roomLoadError = roomsQuery.error?.message || bookingsQuery.error?.message;
+
   const summaryQuery = useQuery({
     queryKey: ['dashboard', 'summary'],
     queryFn: getDashboardSummary,
@@ -198,13 +247,19 @@ export default function DashboardOverview() {
 
   const summary = summaryQuery.data;
 
+  const todayLabel = new Intl.DateTimeFormat('th-TH', {
+    dateStyle: 'full',
+    timeZone: 'Asia/Bangkok',
+  }).format(new Date());
+
   return (
-    <section className="equipment-section">
+    <section className="equipment-section overview-page">
       <div className="section-heading equipment-toolbar">
         <div>
           <p className="section-kicker">Overview</p>
           <h2>ภาพรวมระบบ</h2>
         </div>
+        <p className="overview-date">{todayLabel}</p>
       </div>
 
       {summaryQuery.error && (
@@ -215,191 +270,179 @@ export default function DashboardOverview() {
         <p className="loading-message">กำลังโหลดข้อมูลภาพรวม...</p>
       ) : summary ? (
         <>
+          <h3 className="overview-label">ต้องดำเนินการ</h3>
+          <div className="attention-grid">
+            <AttentionCard
+              to="/?tab=borrow"
+              value={summary.pendingBorrowCount}
+              label="คำขอยืมรออนุมัติ"
+              tone="warn"
+            />
+            <AttentionCard
+              to="/?tab=repair"
+              value={summary.pendingRepairCount}
+              label="ครุภัณฑ์รอซ่อม"
+              tone="warn"
+            />
+            <AttentionCard
+              to="/?tab=borrow"
+              value={summary.overdueCount}
+              label="ครุภัณฑ์เลยกำหนดคืน"
+              tone="danger"
+            />
+            <AttentionCard
+              to="/?tab=materials&view=withdrawals&outstanding=1"
+              value={summary.overdueMaterialCount}
+              label="วัสดุเลยกำหนดคืน"
+              tone="danger"
+            />
+          </div>
+
+          <h3 className="overview-label">สรุปคลัง</h3>
           <div className="stat-cards">
             <div className="stat-card stat-card-total">
-              <span className="stat-card-value">{summary.totalEquipment}</span>
               <span className="stat-card-label">ครุภัณฑ์ทั้งหมด</span>
+              <span className="stat-card-value">{summary.totalEquipment}</span>
             </div>
             <div className="stat-card stat-card-available">
+              <span className="stat-card-label">พร้อมใช้งาน</span>
               <span className="stat-card-value">
                 {summary.statusCounts.available}
               </span>
-              <span className="stat-card-label">พร้อมใช้งาน</span>
             </div>
             <div className="stat-card stat-card-borrowed">
+              <span className="stat-card-label">ถูกยืมอยู่</span>
               <span className="stat-card-value">
                 {summary.statusCounts.borrowed}
               </span>
-              <span className="stat-card-label">ถูกยืมอยู่</span>
             </div>
             <div className="stat-card stat-card-users">
-              <span className="stat-card-value">{summary.userCount}</span>
               <span className="stat-card-label">ผู้ใช้งานทั้งหมด</span>
+              <span className="stat-card-value">{summary.userCount}</span>
             </div>
           </div>
 
-          <div className="attention-grid">
-            <Link
-              to="/?tab=borrow"
-              className={`attention-card${
-                summary.pendingBorrowCount > 0 ? ' attention-card-active' : ''
-              }`}
-            >
-              <span className="attention-card-value">
-                {summary.pendingBorrowCount}
-              </span>
-              <span className="attention-card-label">คำขอยืมรออนุมัติ</span>
-            </Link>
-            <Link
-              to="/?tab=repair"
-              className={`attention-card${
-                summary.pendingRepairCount > 0 ? ' attention-card-active' : ''
-              }`}
-            >
-              <span className="attention-card-value">
-                {summary.pendingRepairCount}
-              </span>
-              <span className="attention-card-label">ครุภัณฑ์รอซ่อม</span>
-            </Link>
-            <Link
-              to="/?tab=borrow"
-              className={`attention-card${
-                summary.overdueCount > 0 ? ' attention-card-overdue' : ''
-              }`}
-            >
-              <span className="attention-card-value">{summary.overdueCount}</span>
-              <span className="attention-card-label">เลยกำหนดคืน</span>
-            </Link>
-            <Link
-              to="/?tab=materials&view=withdrawals&outstanding=1"
-              className={`attention-card${
-                summary.overdueMaterialCount > 0 ? ' attention-card-overdue' : ''
-              }`}
-            >
-              <span className="attention-card-value">{summary.overdueMaterialCount}</span>
-              <span className="attention-card-label">วัสดุเลยกำหนดคืน</span>
-            </Link>
-          </div>
-
-          <div className="overview-panel">
-            <h3>รายการเลยกำหนดคืน</h3>
-            {summary.overdueBorrows.length === 0 && summary.overdueMaterials.length === 0 && (
-              <div className="empty-state">
-                <p>ไม่มีรายการเลยกำหนดคืนตอนนี้</p>
-              </div>
-            )}
-
-            {summary.overdueBorrows.length > 0 && (
-              <div className="table-wrap">
-                <table className="user-table responsive-table">
-                  <thead>
-                    <tr>
-                      <th>ครุภัณฑ์</th>
-                      <th>ผู้ยืม</th>
-                      <th>ครบกำหนดคืน</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.overdueBorrows.map((item) => (
-                      <tr key={item.borrow_detail_id}>
-                        <td data-label="ครุภัณฑ์">
-                          <span className="equipment-code">
-                            {item.equipment_code}
-                          </span>{' '}
-                          {item.equipment_name}
-                        </td>
-                        <td data-label="ผู้ยืม">{item.borrower_name}</td>
-                        <td data-label="ครบกำหนดคืน">{formatDate(item.return_date)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {summary.overdueCount > summary.overdueBorrows.length && (
-                  <p className="loading-message">
-                    และอีก {summary.overdueCount - summary.overdueBorrows.length}{' '}
-                    รายการ —{' '}
-                    <Link to="/?tab=borrow">ดูทั้งหมดที่หน้ายืม-คืน</Link>
-                  </p>
-                )}
-              </div>
-            )}
-
-            {summary.overdueMaterials.length > 0 && (
-              <div className="table-wrap">
-                <table className="user-table responsive-table">
-                  <thead>
-                    <tr>
-                      <th>วัสดุ</th>
-                      <th>ผู้เบิก</th>
-                      <th>ครบกำหนดคืน</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {summary.overdueMaterials.map((item) => (
-                      <tr key={item.withdrawal_id}>
-                        <td data-label="วัสดุ">
-                          <span className="equipment-code">{item.material_code}</span>{' '}
-                          {item.material_name} ({item.outstanding_quantity} {item.unit_name})
-                        </td>
-                        <td data-label="ผู้เบิก">{item.borrower_name}</td>
-                        <td data-label="ครบกำหนดคืน">{formatDate(item.due_date)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {summary.overdueMaterialCount > summary.overdueMaterials.length && (
-                  <p className="loading-message">
-                    และอีก {summary.overdueMaterialCount - summary.overdueMaterials.length}{' '}
-                    รายการ —{' '}
-                    <Link to="/?tab=materials&view=withdrawals&outstanding=1">
-                      ดูทั้งหมดที่หน้าวัสดุ
-                    </Link>
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="overview-grid">
+          <div className="overview-grid overview-grid-wide">
             <div className="overview-panel">
               <h3>จำนวนการยืมรายเดือน</h3>
               <MonthlyBarChart data={summary.monthlyBorrows} />
             </div>
 
             <div className="overview-panel">
-              <h3>สัดส่วนสถานะครุภัณฑ์</h3>
-              <StatusPieChart statusCounts={summary.statusCounts} />
+              <h3>สถานะครุภัณฑ์</h3>
+              <StatusBar statusCounts={summary.statusCounts} />
             </div>
           </div>
 
-          <div className="overview-panel">
-            <h3>กิจกรรมล่าสุด</h3>
-            {summary.recentActivity.length === 0 ? (
-              <div className="empty-state">
-                <p>ยังไม่มีกิจกรรม</p>
-              </div>
-            ) : (
-              <ul className="activity-list">
-                {summary.recentActivity.map((activity, index) => (
-                  <li key={index} className="activity-item">
-                    <span
-                      className={`activity-icon ${activityMeta[activity.type].className}`}
-                      aria-hidden="true"
-                    >
-                      {activityMeta[activity.type].icon}
-                    </span>
-                    <div className="activity-body">
-                      <p className="activity-text">
-                        {formatActivityText(activity)}
-                      </p>
-                      <span className="activity-time">
-                        {formatDateTime(activity.occurred_at)}
+          <div className="overview-panel overview-panel-spaced">
+            <div className="overview-panel-heading">
+              <h3>ตารางการใช้ห้อง</h3>
+              <Link to="/?tab=room">จองห้อง ›</Link>
+            </div>
+            <RoomTimeline
+              rooms={roomsQuery.data?.rooms ?? []}
+              bookings={bookingsQuery.data?.bookings ?? []}
+              date={roomDate}
+              minDate={today}
+              maxDate={addDays(today, MAX_DAYS_AHEAD)}
+              loading={roomsQuery.isLoading || bookingsQuery.isLoading}
+              failed={Boolean(roomLoadError)}
+              userId={user.user_id}
+              selection={null}
+              onChangeDate={setRoomDate}
+            />
+          </div>
+
+          <div className="overview-grid">
+            <div className="overview-panel">
+              <h3>รายการเลยกำหนดคืน</h3>
+              {summary.overdueBorrows.length === 0 && summary.overdueMaterials.length === 0 ? (
+                <div className="empty-state overdue-empty">
+                  <p>✅ ไม่มีรายการเลยกำหนดคืนตอนนี้</p>
+                </div>
+              ) : (
+                <>
+                  {summary.overdueBorrows.length > 0 && (
+                    <>
+                      <p className="overdue-group">ครุภัณฑ์</p>
+                      <ul className="overdue-list">
+                        {summary.overdueBorrows.map((item) => (
+                          <OverdueRow
+                            key={item.borrow_detail_id}
+                            code={item.equipment_code}
+                            title={item.equipment_name}
+                            who={item.borrower_name}
+                            dueDate={item.return_date}
+                          />
+                        ))}
+                      </ul>
+                      {summary.overdueCount > summary.overdueBorrows.length && (
+                        <p className="overdue-more">
+                          และอีก {summary.overdueCount - summary.overdueBorrows.length}{' '}
+                          รายการ — <Link to="/?tab=borrow">ดูทั้งหมด</Link>
+                        </p>
+                      )}
+                    </>
+                  )}
+
+                  {summary.overdueMaterials.length > 0 && (
+                    <>
+                      <p className="overdue-group">วัสดุ</p>
+                      <ul className="overdue-list">
+                        {summary.overdueMaterials.map((item) => (
+                          <OverdueRow
+                            key={item.withdrawal_id}
+                            code={item.material_code}
+                            title={`${item.material_name} (${item.outstanding_quantity} ${item.unit_name})`}
+                            who={item.borrower_name}
+                            dueDate={item.due_date}
+                          />
+                        ))}
+                      </ul>
+                      {summary.overdueMaterialCount > summary.overdueMaterials.length && (
+                        <p className="overdue-more">
+                          และอีก {summary.overdueMaterialCount - summary.overdueMaterials.length}{' '}
+                          รายการ —{' '}
+                          <Link to="/?tab=materials&view=withdrawals&outstanding=1">
+                            ดูทั้งหมด
+                          </Link>
+                        </p>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className="overview-panel">
+              <h3>กิจกรรมล่าสุด</h3>
+              {summary.recentActivity.length === 0 ? (
+                <div className="empty-state">
+                  <p>ยังไม่มีกิจกรรม</p>
+                </div>
+              ) : (
+                <ul className="activity-list">
+                  {summary.recentActivity.map((activity, index) => (
+                    <li key={index} className="activity-item">
+                      <span
+                        className={`activity-icon ${activityMeta[activity.type].className}`}
+                        aria-hidden="true"
+                      >
+                        {activityMeta[activity.type].icon}
                       </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
+                      <div className="activity-body">
+                        <p className="activity-text">
+                          {formatActivityText(activity)}
+                        </p>
+                        <span className="activity-time">
+                          {formatDateTime(activity.occurred_at)}
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </>
       ) : null}
