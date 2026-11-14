@@ -1,7 +1,7 @@
 // ตรวจรูปแบบ input สำหรับ endpoint จัดการบัญชีผู้ใช้ของ Admin
 import { AppError } from '../../utils/AppError.js';
 
-const allowedRoles = ['admin', 'user', 'student'];
+const allowedRoles = ['admin', 'user'];
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function validateUpdateUserRole(request, _response, next) {
@@ -15,7 +15,7 @@ export function validateUpdateUserRole(request, _response, next) {
   }
 
   if (!allowedRoles.includes(role)) {
-    return next(new AppError(400, 'Role ต้องเป็น admin, user หรือ student'));
+    return next(new AppError(400, 'Role ต้องเป็น admin หรือ user'));
   }
 
   request.validated = { userId, role };
@@ -46,7 +46,7 @@ export function validateCreateUser(request, _response, next) {
   }
 
   if (!allowedRoles.includes(role)) {
-    return next(new AppError(400, 'Role ต้องเป็น admin, user หรือ student'));
+    return next(new AppError(400, 'Role ต้องเป็น admin หรือ user'));
   }
 
   request.validated = { name, email, password, role };

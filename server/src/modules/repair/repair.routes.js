@@ -11,7 +11,6 @@ import {
 } from './repair.validator.js';
 import {
   authenticate,
-  blockStudent,
   requireAdmin,
 } from '../../middlewares/auth.middleware.js';
 import { verifyCsrfToken } from '../../middlewares/csrf.middleware.js';
@@ -26,7 +25,7 @@ function limitToOwnRepairs(request, _response, next) {
   next();
 }
 
-repairRouter.use(authenticate, blockStudent, limitToOwnRepairs);
+repairRouter.use(authenticate, limitToOwnRepairs);
 
 // GET /api/repairs/mine - รายการแจ้งซ่อมที่ตัวเองแจ้ง
 repairRouter.get('/mine', repairController.getMyRepairList);

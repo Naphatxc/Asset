@@ -356,12 +356,9 @@ enum equipment_items_status {
   damaged
 }
 
-// student = นักเรียน ใช้ได้แค่จองห้อง (ดู blockStudent ใน auth.middleware.js) สมัครเองจากหน้า login ได้ role นี้
-// user = บุคลากร ยืม-คืน/เบิก/แจ้งซ่อม/จองห้องได้ Admin เป็นคนเปลี่ยน role ให้
 enum users_role {
   admin
   user
-  student
 }
 
 enum borrows_status {

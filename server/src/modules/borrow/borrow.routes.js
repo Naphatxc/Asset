@@ -11,7 +11,6 @@ import {
 } from './borrow.validator.js';
 import {
   authenticate,
-  blockStudent,
   requireAdmin,
 } from '../../middlewares/auth.middleware.js';
 import { verifyCsrfToken } from '../../middlewares/csrf.middleware.js';
@@ -19,7 +18,7 @@ import { verifyCsrfToken } from '../../middlewares/csrf.middleware.js';
 const borrowRouter = express.Router();
 const adminBorrowRouter = express.Router();
 
-borrowRouter.use(authenticate, blockStudent);
+borrowRouter.use(authenticate);
 adminBorrowRouter.use(authenticate, verifyCsrfToken, requireAdmin);
 
 // GET /api/borrows/mine - ใบยืมของตัวเอง

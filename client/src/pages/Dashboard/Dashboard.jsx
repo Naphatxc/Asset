@@ -49,19 +49,14 @@ const userTabs = [
   { key: 'repair', label: 'แจ้งซ่อม' },
 ];
 
-const studentTabs = [
-  { key: 'room', label: 'จองห้อง' },
-];
-
 export default function Dashboard({ user, onLogout }) {
   const queryClient = useQueryClient();
   const { showError, showSuccess } = useToast();
   const admin = user.role === 'admin';
-  const student = user.role === 'student';
   // อีเมลยาวเกินความกว้าง sidebar ให้ขึ้นบรรทัดใหม่หลัง @
   const emailBreak = user.email.indexOf('@') + 1;
-  const tabs = student ? studentTabs : admin ? adminTabs : userTabs;
-  const defaultTab = student ? 'room' : admin ? 'overview' : 'equipment';
+  const tabs = admin ? adminTabs : userTabs;
+  const defaultTab = admin ? 'overview' : 'equipment';
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab');
   // เผื่อ URL ถูกแก้มือเป็นแท็บที่ role นี้ไม่มีสิทธิ์เห็น (เช่น user ทั่วไปใส่ ?tab=users เอง)
@@ -171,7 +166,7 @@ export default function Dashboard({ user, onLogout }) {
               {user.email.slice(emailBreak)}
             </span>
             <span className="role-badge">
-              {student ? 'นักเรียน' : admin ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน'}
+              {admin ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน'}
             </span>
           </div>
         </div>

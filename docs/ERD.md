@@ -25,7 +25,6 @@ damaged damaged
         users_role {
             admin admin
 user user
-student student
         }
     
 
