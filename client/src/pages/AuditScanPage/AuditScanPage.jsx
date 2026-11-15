@@ -500,6 +500,7 @@ export default function AuditScanPage({ user }) {
         <form className="audit-search" onSubmit={submitSearch}>
           <input
             type="search"
+            aria-label="ค้นหา หรือพิมพ์รหัสแล้วกดเปิด (กรณีป้าย QR หาย)"
             value={search}
             onChange={(event) => {
               setSearch(event.target.value);

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 
 import { buildEquipmentUrl } from '../utils/equipment-qr.js';
+import { useModal } from '../hooks/useModal.js';
 
 function escapeHtml(value) {
   return String(value)
@@ -101,12 +102,16 @@ export default function QrCodeDialog({ equipment, onClose }) {
     printWindow.document.close();
   }
 
+  const dialogRef = useModal(onClose);
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section
         className="qr-dialog"
         role="dialog"
         aria-modal="true"
+        ref={dialogRef}
+        tabIndex={-1}
         aria-labelledby="qr-dialog-title"
         onMouseDown={(event) => event.stopPropagation()}
       >

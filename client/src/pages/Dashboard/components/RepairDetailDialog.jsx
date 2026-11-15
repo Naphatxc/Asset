@@ -13,6 +13,7 @@ import {
 } from '../../../api/repair.js';
 import FileDropInput from '../../../components/FileDropInput.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
+import { useModal } from '../../../hooks/useModal.js';
 
 const statusLabels = {
   pending_repair: 'รอซ่อม',
@@ -97,12 +98,16 @@ export default function RepairDetailDialog({ repairId, mine = false, onClose }) 
     cancelMutation.isPending ||
     addFilesMutation.isPending;
 
+  const dialogRef = useModal(onClose);
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section
         className="repair-dialog"
         role="dialog"
         aria-modal="true"
+        ref={dialogRef}
+        tabIndex={-1}
         aria-labelledby="repair-dialog-title"
         onMouseDown={(event) => event.stopPropagation()}
       >

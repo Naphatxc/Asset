@@ -13,6 +13,7 @@ import {
   downloadImportTemplate,
   readImportExcel,
 } from '../../../utils/importExcel.js';
+import { useModal } from '../../../hooks/useModal.js';
 
 const EXPECTED_JSON_FORMAT = 'asset-equipment-v1';
 
@@ -142,6 +143,10 @@ export default function ImportDialog({ kind, onClose }) {
   const rowErrors = mutation.error?.data?.errors ?? [];
   const sheetRow = (row) => preview?.sourceRows?.[row - 1] ?? row;
 
+  const dialogRef = useModal(() => {
+    if (!mutation.isPending) onClose();
+  });
+
   return (
     <div
       className="modal-backdrop"
@@ -154,6 +159,8 @@ export default function ImportDialog({ kind, onClose }) {
         className="repair-dialog"
         role="dialog"
         aria-modal="true"
+        ref={dialogRef}
+        tabIndex={-1}
         aria-labelledby="import-dialog-title"
         onMouseDown={(event) => event.stopPropagation()}
       >

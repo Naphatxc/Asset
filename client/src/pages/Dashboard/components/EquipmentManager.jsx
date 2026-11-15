@@ -451,6 +451,7 @@ export default function EquipmentManager({ user }) {
       <div className="equipment-filters">
         <input
           type="search"
+          aria-label="ค้นหารหัสหรือชื่อครุภัณฑ์"
           value={searchInput}
           onChange={(event) => setSearchInput(event.target.value)}
           placeholder="ค้นหารหัสหรือชื่อครุภัณฑ์"

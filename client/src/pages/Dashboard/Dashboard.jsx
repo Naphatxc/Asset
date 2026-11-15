@@ -159,6 +159,10 @@ export default function Dashboard({ user, onLogout }) {
 
   return (
     <div className="dashboard-shell">
+      {/* ซ่อนไว้จนกด Tab ครั้งแรก ให้คนใช้คีย์บอร์ดข้ามเมนูซ้ายไปที่เนื้อหาได้เลย */}
+      <a className="skip-link" href="#main-content">
+        ข้ามไปเนื้อหาหลัก
+      </a>
       <aside className="dashboard-sidebar">
         <div className="dashboard-account">
           <img className="brand-logo" src="/logo.png" alt="สถิติประยุกต์ Applied Statistics" />
@@ -177,11 +181,13 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        <nav className="dashboard-nav">
+        <nav className="dashboard-nav" aria-label="เมนูหลัก">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               type="button"
+              // บอกโปรแกรมอ่านหน้าจอว่าแท็บไหนเปิดอยู่ (สีพื้นอย่างเดียวคนตาบอดไม่รู้)
+              aria-current={tab.key === activeTab ? 'page' : undefined}
               className={
                 tab.key === activeTab
                   ? 'dashboard-nav-item active'
@@ -207,7 +213,7 @@ export default function Dashboard({ user, onLogout }) {
         </button>
       </aside>
 
-      <main className="dashboard-content">
+      <main className="dashboard-content" id="main-content" tabIndex={-1}>
         {activeTab === 'overview' && admin && <DashboardOverview user={user} />}
 
         {activeTab === 'equipment' && <EquipmentManager user={user} />}
@@ -235,6 +241,7 @@ export default function Dashboard({ user, onLogout }) {
             <div className="equipment-filters">
               <input
                 type="search"
+                aria-label="ค้นหาชื่อหรืออีเมล"
                 value={userSearch}
                 onChange={(event) => {
                   setUserSearch(event.target.value);

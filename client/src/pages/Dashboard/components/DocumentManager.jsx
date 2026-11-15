@@ -116,6 +116,7 @@ export default function DocumentManager() {
       <div className="equipment-filters">
         <input
           type="search"
+          aria-label="ค้นหาผู้ส่ง ชื่อไฟล์ หรือหมายเหตุ"
           value={search}
           onChange={(event) => changeFilter(setSearch, event.target.value)}
           placeholder="ค้นหาผู้ส่ง ชื่อไฟล์ หรือหมายเหตุ"

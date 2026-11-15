@@ -16,6 +16,7 @@ import {
   formatDateTime,
 } from '../../../utils/documents.js';
 import DocumentReviewResult from './DocumentReviewResult.jsx';
+import { useModal } from '../../../hooks/useModal.js';
 
 export default function DocumentReviewDialog({ submission, onClose }) {
   const queryClient = useQueryClient();
@@ -56,12 +57,16 @@ export default function DocumentReviewDialog({ submission, onClose }) {
     reviewMutation.mutate();
   }
 
+  const dialogRef = useModal(onClose);
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section
         className="repair-dialog"
         role="dialog"
         aria-modal="true"
+        ref={dialogRef}
+        tabIndex={-1}
         aria-labelledby="document-review-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
