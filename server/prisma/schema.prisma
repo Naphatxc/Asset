@@ -87,6 +87,7 @@ model locations {
   audit_records_expected audit_records[] @relation("audit_expected_location")
   audit_records_found    audit_records[] @relation("audit_found_location")
   audit_records_moved    audit_records[] @relation("audit_moved_from_location")
+  audit_rounds           audit_rounds[]
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -318,13 +319,18 @@ model audit_rounds {
   title         String              @db.VarChar(100)
   status        audit_rounds_status @default(open)
   opened_by     Int                 @db.UnsignedInt
+  // สถานที่ที่รอบนี้ตรวจ (null = ตรวจทุกสถานที่) ใช้ตอนเปิดรอบเท่านั้น เลือกแล้วสร้างรายการเฉพาะครุภัณฑ์ที่อยู่สถานที่นั้น
+  // เปลี่ยนทีหลังไม่ได้ เพราะรายการ audit_records ถูกสร้างตามขอบเขตนี้ไปแล้ว (ดู openRound ใน audit.service.js)
+  location_id   Int?                @db.UnsignedInt
   opened_at     DateTime            @default(now()) @db.DateTime(0)
   closed_by     Int?                @db.UnsignedInt
   closed_at     DateTime?           @db.DateTime(0)
   audit_records audit_records[]
   opened_user   users               @relation("audit_round_opened_by", fields: [opened_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_round_opened_by")
   closed_user   users?              @relation("audit_round_closed_by", fields: [closed_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_round_closed_by")
+  locations     locations?          @relation(fields: [location_id], references: [location_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_audit_round_location")
 
+  @@index([location_id], map: "fk_audit_round_location")
   @@index([opened_by], map: "fk_audit_round_opened_by")
   @@index([closed_by], map: "fk_audit_round_closed_by")
 }

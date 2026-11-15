@@ -15,6 +15,7 @@ import {
   formatDateTime,
   locationLabel,
   outcomeLabels,
+  roundScopeLabel,
 } from '../../utils/audit.js';
 import { parseEquipmentCode } from '../../utils/equipment-qr.js';
 
@@ -327,6 +328,7 @@ export default function AuditScanPage({ user }) {
         </Link>
         <p className="eyebrow">ตรวจนับครุภัณฑ์</p>
         <h1>{round.title}</h1>
+        {round.location_id && <p className="audit-round-meta">ตรวจ{roundScopeLabel(round)}</p>}
         <ProgressBar done={checkedCount} total={records.length} />
         {!roundOpen && (
           <p className="audit-closed-note">รอบนี้ปิดแล้ว ดูผลได้อย่างเดียว</p>

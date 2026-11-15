@@ -24,3 +24,10 @@ export async function create({ locationName, building, room }, client = prisma) 
     },
   });
 }
+
+export async function findById(locationId, client = prisma) {
+  return client.locations.findUnique({
+    where: { location_id: locationId },
+    select: { location_id: true },
+  });
+}

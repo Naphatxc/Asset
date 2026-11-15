@@ -13,6 +13,7 @@ import { runSerializableTransaction } from '../../utils/transaction.js';
 import * as equipmentHistoryRepository from '../equipment/equipment-history.repository.js';
 import * as equipmentRepository from '../equipment/equipment.repository.js';
 import { getSerializedByItemId } from '../equipment/equipment.service.js';
+import * as locationRepository from '../options/location.repository.js';
 import * as repairRepository from '../repair/repair.repository.js';
 
 function serializeRound(round, counts = null) {
@@ -24,6 +25,10 @@ function serializeRound(round, counts = null) {
     opened_at: round.opened_at,
     closed_by_name: round.closed_user?.name ?? null,
     closed_at: round.closed_at,
+    // null = ตรวจทุกสถานที่ ไม่ใช่ null = รอบนี้ตรวจเฉพาะสถานที่นั้น
+    location_id: round.location_id,
+    location_name: round.locations?.location_name ?? null,
+    location_room: round.locations?.room ?? null,
     ...(counts ? { counts } : {}),
   };
 }
@@ -109,7 +114,8 @@ export async function getRound(roundId) {
   }
 }
 
-export async function openRound(title, actorId) {
+// locationId: ส่งมา = รอบนี้ตรวจเฉพาะครุภัณฑ์ที่อยู่สถานที่นั้น ไม่ส่ง (null) = ตรวจทุกชิ้นเหมือนเดิม
+export async function openRound(title, locationId, actorId) {
   try {
     const result = await runSerializableTransaction(async (tx) => {
       const openRound = await auditRepository.findOpenRound(tx);
@@ -120,11 +126,21 @@ export async function openRound(title, actorId) {
         };
       }
 
+      if (locationId) {
+        const location = await locationRepository.findById(locationId, tx);
+        if (!location) return { error: 'ไม่พบสถานที่ที่เลือก', status: 400 };
+      }
+
+      const items = await auditRepository.findActiveItemsForSnapshot(locationId, tx);
+      // เช็คก่อนสร้างรอบ: ผลที่ return (ไม่ throw) ถือว่า transaction สำเร็จ ถ้าสร้างรอบไปแล้วจะค้างรอบเปล่าที่ไม่มีรายการ
+      if (locationId && items.length === 0) {
+        return { error: 'ไม่มีครุภัณฑ์ในสถานที่ที่เลือก จึงเปิดรอบตรวจนับไม่ได้', status: 400 };
+      }
+
       const round = await auditRepository.createRound(
-        { title, opened_by: actorId },
+        { title, opened_by: actorId, location_id: locationId },
         tx,
       );
-      const items = await auditRepository.findActiveItemsForSnapshot(tx);
 
       await auditRepository.createRecords(
         items.map((item) => ({

@@ -306,6 +306,7 @@ returned returned
     "audit_rounds" |o--|| "audit_rounds_status" : "enum:status"
     "audit_rounds" }o--|| "users" : "opened_user"
     "audit_rounds" }o--|o "users" : "closed_user"
+    "audit_rounds" }o--|o "locations" : "locations"
     "audit_records" |o--|o "audit_records_result" : "enum:result"
     "audit_records" |o--|o "audit_closing_outcome" : "enum:closing_outcome"
     "audit_records" }o--|| "audit_rounds" : "audit_rounds"
