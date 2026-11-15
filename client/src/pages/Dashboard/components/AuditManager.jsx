@@ -10,8 +10,14 @@ import {
   getAuditRounds,
   openAuditRound,
 } from '../../../api/audit.js';
+import { getLocations } from '../../../api/equipment.js';
 import { useToast } from '../../../components/ToastProvider.jsx';
-import { defaultRoundTitle, formatDateTime } from '../../../utils/audit.js';
+import {
+  defaultRoundTitle,
+  formatDateTime,
+  locationLabel,
+  roundScopeLabel,
+} from '../../../utils/audit.js';
 import AuditSummary from './AuditSummary.jsx';
 
 const MAX_TITLE_LENGTH = 100;
@@ -39,12 +45,21 @@ export default function AuditManager() {
 
   const [formOpen, setFormOpen] = useState(false);
   const [title, setTitle] = useState('');
+  // '' = ตรวจทุกสถานที่ ไม่ใช่ '' = รหัสสถานที่ที่จะตรวจเฉพาะที่นั้น
+  const [locationId, setLocationId] = useState('');
   const [confirmingClose, setConfirmingClose] = useState(false);
   // รอบที่กำลังถามยืนยันการลบ (เก็บทั้ง object เพราะข้อความต่างกันระหว่างรอบเปิด/ปิดแล้ว)
   const [confirmingDelete, setConfirmingDelete] = useState(null);
   const [summaryRoundId, setSummaryRoundId] = useState(null);
 
   const roundsQuery = useQuery({ queryKey: ['audit-rounds'], queryFn: getAuditRounds });
+  // รายชื่อสถานที่ไว้เป็นตัวเลือกขอบเขตของรอบ โหลดเมื่อเปิดฟอร์มเท่านั้น
+  const locationsQuery = useQuery({
+    queryKey: ['locations'],
+    queryFn: getLocations,
+    enabled: formOpen,
+  });
+  const locations = locationsQuery.data?.locations ?? [];
   const rounds = roundsQuery.data?.rounds ?? [];
   const openRound = rounds.find((round) => round.status === 'open') ?? null;
   const pastRounds = rounds.filter((round) => round.status === 'closed');
@@ -55,7 +70,7 @@ export default function AuditManager() {
   }
 
   const openMutation = useMutation({
-    mutationFn: () => openAuditRound(title),
+    mutationFn: () => openAuditRound(title, locationId),
     onSuccess: (data) => {
       invalidateRounds(data.round.round_id);
       setFormOpen(false);
@@ -124,6 +139,7 @@ export default function AuditManager() {
 
   function startForm() {
     setTitle(defaultRoundTitle());
+    setLocationId('');
     setFormOpen(true);
   }
 
@@ -180,10 +196,24 @@ export default function AuditManager() {
                 required
               />
             </label>
+
+            <label className="field-wide">
+              ขอบเขตการตรวจ
+              <select value={locationId} onChange={(event) => setLocationId(event.target.value)}>
+                <option value="">ทุกสถานที่</option>
+                {locations.map((location) => (
+                  <option key={location.location_id} value={location.location_id}>
+                    เฉพาะ {locationLabel(location)}
+                  </option>
+                ))}
+              </select>
+            </label>
           </div>
           <p className="user-note">
-            ระบบจะใช้ครุภัณฑ์ทุกชิ้นที่มีอยู่ตอนนี้เป็นรายการที่ต้องตรวจ โดยจำห้องของแต่ละชิ้น ณ ตอนเปิดรอบไว้
-            เปิดได้ครั้งละหนึ่งรอบเท่านั้น
+            {locationId
+              ? 'ระบบจะใช้เฉพาะครุภัณฑ์ที่อยู่สถานที่นี้ตอนนี้เป็นรายการที่ต้องตรวจ ชิ้นที่อยู่สถานที่อื่นจะไม่ถูกนับว่าไม่พบ'
+              : 'ระบบจะใช้ครุภัณฑ์ทุกชิ้นที่มีอยู่ตอนนี้เป็นรายการที่ต้องตรวจ'}{' '}
+            โดยจำห้องของแต่ละชิ้น ณ ตอนเปิดรอบไว้ เปิดได้ครั้งละหนึ่งรอบเท่านั้น
           </p>
 
           <div className="form-actions">
@@ -205,7 +235,8 @@ export default function AuditManager() {
             <p className="section-kicker">กำลังตรวจ</p>
             <h3>{openRound.title}</h3>
             <p className="audit-round-meta">
-              เปิดโดย {openRound.opened_by_name} · {formatDateTime(openRound.opened_at)}
+              {roundScopeLabel(openRound)} · เปิดโดย {openRound.opened_by_name} ·{' '}
+              {formatDateTime(openRound.opened_at)}
             </p>
           </div>
 
@@ -293,6 +324,7 @@ export default function AuditManager() {
               <thead>
                 <tr>
                   <th>รอบ</th>
+                  <th>ขอบเขต</th>
                   <th>ช่วงเวลา</th>
                   <th>ผล</th>
                   <th>การกระทำ</th>
@@ -302,6 +334,7 @@ export default function AuditManager() {
                 {pastRounds.map((round) => (
                   <tr key={round.round_id}>
                     <td data-label="รอบ">{round.title}</td>
+                    <td data-label="ขอบเขต">{roundScopeLabel(round)}</td>
                     <td data-label="ช่วงเวลา">
                       {formatDateTime(round.opened_at)}
                       <br />

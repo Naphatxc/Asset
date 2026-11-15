@@ -4,6 +4,7 @@ import { prisma } from '../../config/prisma.js';
 const roundInclude = {
   opened_user: { select: { name: true } },
   closed_user: { select: { name: true } },
+  locations: { select: { location_name: true, building: true, room: true } },
 };
 
 // ข้อมูลที่หน้าสแกน/สรุปต้องใช้ต่อหนึ่งแถว — status/ห้องปัจจุบันดึงสดจากครุภัณฑ์ ไม่ได้ snapshot ไว้
@@ -67,9 +68,13 @@ export async function countRecordsByRound(client = prisma) {
 }
 
 // ครุภัณฑ์ทุกชิ้นที่ยังไม่ถูกลบ ณ ตอนเปิดรอบ พร้อมห้องตอนนั้น ใช้สร้างรายการที่ต้องตรวจ
-export async function findActiveItemsForSnapshot(client = prisma) {
+// locationId: ส่งมา = เฉพาะชิ้นที่อยู่สถานที่นั้น ไม่ส่ง (null) = ทุกสถานที่
+export async function findActiveItemsForSnapshot(locationId = null, client = prisma) {
   return client.equipment_items.findMany({
-    where: { deleted_at: null },
+    where: {
+      deleted_at: null,
+      ...(locationId ? { equipment: { location_id: locationId } } : {}),
+    },
     select: { item_id: true, equipment: { select: { location_id: true } } },
   });
 }

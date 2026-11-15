@@ -46,7 +46,16 @@ export function validateOpenRound(request, _response, next) {
     );
   }
 
-  request.validated = { ...request.validated, title };
+  // ไม่ส่ง/ส่งค่าว่าง = ตรวจทุกสถานที่ ส่งมาแล้วต้องเป็นรหัสสถานที่ที่ถูกต้อง (ว่ามีอยู่จริงเช็คใน service)
+  const rawLocationId = request.body?.location_id;
+  const locationId =
+    rawLocationId == null || rawLocationId === '' ? null : parsePositiveInt(rawLocationId);
+
+  if (rawLocationId != null && rawLocationId !== '' && !locationId) {
+    return next(new AppError(400, 'รหัสสถานที่ไม่ถูกต้อง'));
+  }
+
+  request.validated = { ...request.validated, title, locationId };
   next();
 }
 

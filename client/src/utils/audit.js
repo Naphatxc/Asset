@@ -32,6 +32,12 @@ export function classifyRecord(record, roundClosed) {
   return 'unchecked';
 }
 
+// ขอบเขตของรอบตรวจนับ: ตรวจทุกสถานที่ หรือเฉพาะสถานที่เดียว (round.location_id เป็น null = ทุกสถานที่)
+export function roundScopeLabel(round) {
+  if (!round.location_id) return 'ทุกสถานที่';
+  return `เฉพาะ ${locationLabel({ location_name: round.location_name, room: round.location_room })}`;
+}
+
 export function locationLabel(location) {
   if (!location) return 'ไม่ระบุห้อง';
   return `${location.location_name}${location.room ? ` · ห้อง ${location.room}` : ''}`;

@@ -9,8 +9,12 @@ export function getAuditRound(roundId) {
   return request(`/api/admin/audits/${roundId}`);
 }
 
-export function openAuditRound(title) {
-  return request('/api/admin/audits', { method: 'POST', body: { title } });
+// locationId: ตรวจเฉพาะครุภัณฑ์ที่อยู่สถานที่นั้น ว่าง/null = ตรวจทุกสถานที่
+export function openAuditRound(title, locationId) {
+  return request('/api/admin/audits', {
+    method: 'POST',
+    body: { title, location_id: locationId || null },
+  });
 }
 
 export function closeAuditRound(roundId) {

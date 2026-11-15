@@ -12,6 +12,7 @@ import {
   formatDateTime,
   locationLabel,
   outcomeLabels,
+  roundScopeLabel,
 } from '../../../utils/audit.js';
 
 const PAGE_SIZE = 50;
@@ -111,6 +112,7 @@ export default function AuditSummary({ roundId }) {
         <div>
           <p className="section-kicker">Summary</p>
           <h3>ผลการตรวจ: {round.title}</h3>
+          <p className="audit-round-meta">ขอบเขต: {roundScopeLabel(round)}</p>
         </div>
         <button
           type="button"

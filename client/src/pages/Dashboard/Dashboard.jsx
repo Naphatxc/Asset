@@ -15,7 +15,7 @@ import {
 } from '../../api/admin-users.js';
 import ChangePasswordDialog from '../../components/ChangePasswordDialog.jsx';
 import CreateUserDialog from '../../components/CreateUserDialog.jsx';
-import { SortSelect, sortRows } from '../../components/ListFilters.jsx';
+import { SortSelect, matchesSearch, sortRows } from '../../components/ListFilters.jsx';
 import PaginationBar, { paginateRows } from '../../components/PaginationBar.jsx';
 import { useToast } from '../../components/ToastProvider.jsx';
 import AuditManager from './components/AuditManager.jsx';
@@ -74,6 +74,8 @@ export default function Dashboard({ user, onLogout }) {
 
   const [updatingUserId, setUpdatingUserId] = useState(null);
   const [userSearch, setUserSearch] = useState('');
+  // '' = ทุก role
+  const [userRoleFilter, setUserRoleFilter] = useState('');
   const [userPage, setUserPage] = useState(1);
   const [userSort, setUserSort] = useState({ key: 'name', dir: 'asc' });
   const [changingPassword, setChangingPassword] = useState(false);
@@ -88,11 +90,11 @@ export default function Dashboard({ user, onLogout }) {
   });
   const users = usersData?.users ?? [];
   // รายชื่อผู้ใช้ทั้งระบบมีไม่มาก (หลักสิบ) จึงกรองฝั่ง client พอ ไม่ต้องเพิ่ม search param ที่ backend
-  const filteredUsers = userSearch.trim()
-    ? users.filter((item) =>
-        item.name.toLowerCase().includes(userSearch.trim().toLowerCase()),
-      )
-    : users;
+  const filteredUsers = users.filter(
+    (item) =>
+      (!userRoleFilter || item.role === userRoleFilter) &&
+      matchesSearch(userSearch, item.name, item.email),
+  );
   const { rows: pageUsers, pagination: userPagination } = paginateRows(
     sortRows(filteredUsers, userSortColumns, userSort),
     userPage,
@@ -238,8 +240,20 @@ export default function Dashboard({ user, onLogout }) {
                   setUserSearch(event.target.value);
                   setUserPage(1);
                 }}
-                placeholder="ค้นหาชื่อผู้ใช้งาน"
+                placeholder="ค้นหาชื่อหรืออีเมล"
               />
+              <select
+                value={userRoleFilter}
+                onChange={(event) => {
+                  setUserRoleFilter(event.target.value);
+                  setUserPage(1);
+                }}
+                aria-label="กรองตามสิทธิ์"
+              >
+                <option value="">ทุกสิทธิ์</option>
+                <option value="admin">Admin</option>
+                <option value="user">User</option>
+              </select>
               <SortSelect
                 sortColumns={userSortColumns}
                 sort={userSort}
@@ -251,7 +265,7 @@ export default function Dashboard({ user, onLogout }) {
             </div>
             {filteredUsers.length === 0 ? (
               <div className="empty-state">
-                <p>ไม่พบผู้ใช้งานที่ตรงกับคำค้นหา</p>
+                <p>ไม่พบผู้ใช้งานที่ตรงกับตัวกรอง</p>
               </div>
             ) : (
               <UserTable

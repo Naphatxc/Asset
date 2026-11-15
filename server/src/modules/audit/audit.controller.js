@@ -23,8 +23,8 @@ export async function getRound(request, response, next) {
 
 export async function openRound(request, response, next) {
   try {
-    const { title } = request.validated;
-    const data = await auditService.openRound(title, Number(request.user.sub));
+    const { title, locationId } = request.validated;
+    const data = await auditService.openRound(title, locationId, Number(request.user.sub));
 
     response.status(201).json({ message: 'เปิดรอบตรวจนับแล้ว', ...data });
   } catch (error) {
