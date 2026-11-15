@@ -67,6 +67,22 @@ in_repair in_repair
 deleted deleted
         }
     
+
+
+        document_submissions_doc_type {
+            idp idp
+obe3 obe3
+obe5 obe5
+        }
+    
+
+
+        document_submissions_status {
+            pending pending
+approved approved
+returned returned
+        }
+    
   "categories" {
     Int category_id "🗝️"
     String category_name 
@@ -178,6 +194,24 @@ deleted deleted
     }
   
 
+  "document_submissions" {
+    Int submission_id "🗝️"
+    document_submissions_doc_type doc_type 
+    Int academic_year 
+    String note "❓"
+    String file_name 
+    String file_path 
+    String file_type 
+    DateTime submitted_at 
+    document_submissions_status status "❓"
+    DateTime reviewed_at "❓"
+    String review_note "❓"
+    String review_file_name "❓"
+    String review_file_path "❓"
+    String review_file_type "❓"
+    }
+  
+
   "password_reset_tokens" {
     Int token_id "🗝️"
     String token_hash 
@@ -255,6 +289,10 @@ deleted deleted
     "users" |o--|| "users_role" : "enum:role"
     "room_bookings" }o--|| "rooms" : "rooms"
     "room_bookings" }o--|| "users" : "users"
+    "document_submissions" |o--|| "document_submissions_doc_type" : "enum:doc_type"
+    "document_submissions" |o--|o "document_submissions_status" : "enum:status"
+    "document_submissions" }o--|| "users" : "users"
+    "document_submissions" }o--|o "users" : "reviewer"
     "password_reset_tokens" }o--|| "users" : "users"
     "borrow_details" }o--|| "borrows" : "borrows"
     "borrow_details" }o--|| "equipment_items" : "equipment_items"

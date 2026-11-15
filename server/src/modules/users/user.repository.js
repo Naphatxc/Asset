@@ -83,6 +83,14 @@ export async function findMany(client = prisma) {
   });
 }
 
+// Admin ทุกคน ใช้ส่งอีเมลแจ้งงานที่รอ Admin จัดการ (เช่น IDP รอตรวจ ดู modules/documents/document.mail.js)
+export async function findAdmins(client = prisma) {
+  return client.users.findMany({
+    where: { role: 'admin' },
+    select: { user_id: true, name: true, email: true },
+  });
+}
+
 export async function create(data, client = prisma) {
   return client.users.create({
     data,
