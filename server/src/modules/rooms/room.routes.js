@@ -1,15 +1,17 @@
 // roomRouter (mount ที่ /api/rooms): รายชื่อทุกห้อง (รวมที่ปิดอยู่ ดู is_active)
 // roomBookingRouter (mount ที่ /api/room-bookings): ทุกคนที่ login ดูตาราง/จอง/ยกเลิกการจองของตัวเองได้
-// adminRoomRouter (mount ที่ /api/admin/rooms): Admin เพิ่ม/แก้ชื่อ/เปิด-ปิด/ลบห้อง
+// adminRoomRouter (mount ที่ /api/admin/rooms): Admin เพิ่ม/แก้ชื่อ/เปิด-ปิด/ลบห้อง และจองต่อเนื่องเป็นชุด
 import express from 'express';
 
 import * as roomController from './room.controller.js';
 import {
   validateBookingDateQuery,
   validateBookingIdParam,
+  validateBookingSeries,
   validateCreateBooking,
   validateCreateRoom,
   validateRoomIdParam,
+  validateSeriesIdParam,
   validateUpdateRoom,
 } from './room.validator.js';
 import {
@@ -54,6 +56,16 @@ roomBookingRouter.delete(
   validateBookingIdParam,
   roomController.cancelBooking,
 );
+
+// POST /api/admin/rooms/series/preview - ดูตัวอย่างการจองต่อเนื่อง (จองได้กี่ครั้ง วันไหนชน) ไม่สร้างอะไร
+// body เหมือน POST /series: { room_id, start_date, end_date, weekdays: [0-6], start, end, purpose? }
+adminRoomRouter.post('/series/preview', validateBookingSeries, roomController.previewBookingSeries);
+
+// POST /api/admin/rooms/series - จองต่อเนื่องทุกวันที่ว่าง วันที่ชนข้ามไป ผู้จองคือ Admin ที่กด
+adminRoomRouter.post('/series', validateBookingSeries, roomController.createBookingSeries);
+
+// DELETE /api/admin/rooms/series/:seriesId - ยกเลิกทุกรายการในชุดที่ยังไม่จบ
+adminRoomRouter.delete('/series/:seriesId', validateSeriesIdParam, roomController.cancelBookingSeries);
 
 // POST /api/admin/rooms - เพิ่มห้อง
 adminRoomRouter.post('/', validateCreateRoom, roomController.createRoom);

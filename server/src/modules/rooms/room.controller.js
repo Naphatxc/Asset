@@ -90,3 +90,37 @@ export async function cancelBooking(request, response, next) {
     next(error);
   }
 }
+
+export async function previewBookingSeries(request, response, next) {
+  try {
+    const preview = await roomService.previewBookingSeries(request.validated);
+
+    response.status(200).json(preview);
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function createBookingSeries(request, response, next) {
+  try {
+    const result = await roomService.createBookingSeries(Number(request.user.sub), request.validated);
+    const skipped = result.skipped.length;
+
+    response.status(201).json({
+      message: `จองต่อเนื่องแล้ว ${result.created.length} ครั้ง${skipped ? ` (ข้าม ${skipped} วันที่มีการจองอยู่แล้ว)` : ''}`,
+      ...result,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function cancelBookingSeries(request, response, next) {
+  try {
+    const { cancelled } = await roomService.cancelBookingSeries(request.validated.seriesId);
+
+    response.status(200).json({ message: `ยกเลิกการจองในชุดนี้แล้ว ${cancelled} รายการ`, cancelled });
+  } catch (error) {
+    next(error);
+  }
+}

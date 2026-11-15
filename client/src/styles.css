@@ -3112,3 +3112,100 @@ textarea:focus-visible,
 .dashboard-content:focus {
   outline: none;
 }
+
+/* ===== จองต่อเนื่อง (RoomSeriesDialog.jsx) ===== */
+/* เลือกวันในสัปดาห์: ช่องติ๊กเรียงแถวเดียว ขึ้นบรรทัดใหม่เองบนจอแคบ */
+.weekday-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.weekday-picker legend {
+  margin-bottom: 7px;
+  padding: 0;
+  color: #454545;
+  font-weight: 600;
+}
+
+.form-grid .weekday-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #d7cbcf;
+  border-radius: 9px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.form-grid .weekday-option input {
+  width: auto;
+}
+
+.form-grid .weekday-option:has(input:checked) {
+  border-color: var(--stat-pink);
+  color: var(--stat-plum);
+  background: #fff0f7;
+}
+
+.series-preview {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid #ead9df;
+  border-radius: 12px;
+  background: #fffbfd;
+}
+
+.series-preview-summary {
+  margin: 0 0 10px;
+}
+
+/* วันที่จะจองเป็นป้ายเล็กๆ เรียงต่อกัน ชุดยาวหลายสิบวันจะได้ไม่กินที่ทั้งจอ */
+.series-date-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 160px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.series-date-list li {
+  padding: 4px 9px;
+  border-radius: 999px;
+  color: #176b4d;
+  background: #e8fff5;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.series-conflict-heading {
+  margin: 14px 0 6px;
+  color: #a33a16;
+  font-size: 1rem;
+}
+
+.series-conflict-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #a33a16;
+}
+
+/* ป้าย "จองต่อเนื่อง" ต่อท้ายวัตถุประสงค์ในตารางการจองของ Admin */
+.series-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #315b84;
+  background: #eaf4ff;
+  font-size: 0.75rem;
+  font-weight: 700;
+}

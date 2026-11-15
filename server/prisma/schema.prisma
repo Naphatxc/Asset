@@ -198,11 +198,15 @@ model room_bookings {
   start_at   DateTime @db.DateTime(0)
   end_at     DateTime @db.DateTime(0)
   purpose    String?  @db.Text
+  // การจองที่ Admin สร้างพร้อมกันเป็นชุด (จองต่อเนื่อง เช่น ทุกวันจันทร์เช้า 3 เดือน) ได้รหัสชุดเดียวกัน
+  // ไว้ยกเลิกทั้งชุดในครั้งเดียว null = จองปกติทีละครั้ง (ดู createBookingSeries ใน room.service.js)
+  series_id  String?  @db.Char(36)
   created_at DateTime @default(now()) @db.DateTime(0)
   rooms      rooms    @relation(fields: [room_id], references: [room_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_room_booking_room")
   users      users    @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_room_booking_user")
 
   @@index([room_id, start_at], map: "idx_room_bookings_room_start")
+  @@index([series_id], map: "idx_room_bookings_series")
   @@index([user_id], map: "fk_room_booking_user")
 }
 

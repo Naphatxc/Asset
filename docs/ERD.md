@@ -190,6 +190,7 @@ returned returned
     DateTime start_at 
     DateTime end_at 
     String purpose "❓"
+    String series_id "❓"
     DateTime created_at 
     }
   

@@ -1,5 +1,7 @@
 // Business Logic สำหรับจองห้อง — จองแล้วได้ทันที ไม่มีขั้นตอนอนุมัติ ระบบกันเวลาชนกันเอง
 // เช็คชน + สร้างการจองต้องอยู่ใน transaction เดียวกัน ไม่งั้นสองคนกดจองช่วงเดียวกันพร้อมกันจะผ่านทั้งคู่
+import crypto from 'node:crypto';
+
 import * as roomRepository from './room.repository.js';
 import { toBangkokDateTime } from './room.validator.js';
 import { AppError } from '../../utils/AppError.js';
@@ -20,6 +22,7 @@ function serializeBooking(booking) {
     start_at: booking.start_at,
     end_at: booking.end_at,
     purpose: booking.purpose,
+    series_id: booking.series_id ?? null,
     created_at: booking.created_at,
   };
 }
@@ -190,5 +193,128 @@ export async function cancelBooking(bookingId, actorId, isAdmin) {
     if (error instanceof AppError) throw error;
 
     throw new AppError(500, 'ไม่สามารถยกเลิกการจองได้', { cause: error });
+  }
+}
+
+// ===== จองต่อเนื่อง (Admin) =====
+// แยกวันที่จองได้ออกจากวันที่ชนกับการจองที่มีอยู่แล้ว (วันที่ชนจะถูกข้าม ไม่จองทับ)
+// tx ส่งมา = เช็คใน transaction เดียวกับที่จะสร้าง (createBookingSeries) ไม่ส่ง = ดูตัวอย่างอย่างเดียว
+async function splitOccurrences(roomId, occurrences, tx) {
+  const room = await roomRepository.findRoomById(roomId, tx);
+  if (!room) return { error: 'ไม่พบห้อง', status: 404 };
+  if (!room.is_active) return { error: 'ห้องนี้ปิดให้จองชั่วคราว', status: 400 };
+
+  const bookable = [];
+  const conflicts = [];
+
+  for (const occurrence of occurrences) {
+    const overlap = await roomRepository.findOverlappingBooking(
+      roomId,
+      occurrence.startAt,
+      occurrence.endAt,
+      tx,
+    );
+
+    if (overlap) {
+      conflicts.push({ date: occurrence.date, booking: serializeBooking(overlap) });
+    } else {
+      bookable.push(occurrence);
+    }
+  }
+
+  return { room, bookable, conflicts };
+}
+
+function serializeOccurrence(occurrence) {
+  return {
+    date: occurrence.date,
+    start_at: occurrence.startAt,
+    end_at: occurrence.endAt,
+  };
+}
+
+// ดูตัวอย่างก่อนกดจองจริง: จะได้กี่ครั้ง วันไหนชนกับใคร (ไม่สร้างอะไรใน DB)
+export async function previewBookingSeries({ roomId, occurrences }) {
+  try {
+    const result = await splitOccurrences(roomId, occurrences);
+    if (result.error) throw new AppError(result.status, result.error);
+
+    return {
+      room_name: result.room.room_name,
+      bookable: result.bookable.map(serializeOccurrence),
+      conflicts: result.conflicts,
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw new AppError(500, 'ไม่สามารถตรวจสอบตารางห้องได้', { cause: error });
+  }
+}
+
+// จองทุกวันที่ว่างในครั้งเดียว วันที่ชนข้ามไป (ผู้ใช้เลือกแบบนี้เอง ไม่ยกเลิกทั้งชุดเพราะชนวันเดียว)
+// เช็คชน + สร้างอยู่ใน transaction เดียวกัน กันมีคนจองแทรกเข้ามาระหว่างนั้น
+export async function createBookingSeries(adminId, { roomId, purpose, occurrences }) {
+  try {
+    const seriesId = crypto.randomUUID();
+
+    const result = await runSerializableTransaction(async (tx) => {
+      const split = await splitOccurrences(roomId, occurrences, tx);
+      if (split.error) return split;
+      if (split.bookable.length === 0) {
+        return { error: 'ทุกวันที่เลือกมีการจองอยู่แล้ว จึงไม่ได้จองเพิ่ม', status: 409 };
+      }
+
+      await roomRepository.createBookings(
+        split.bookable.map((occurrence) => ({
+          room_id: roomId,
+          user_id: adminId,
+          start_at: occurrence.startAt,
+          end_at: occurrence.endAt,
+          purpose,
+          series_id: seriesId,
+        })),
+        tx,
+      );
+
+      return split;
+    });
+
+    if (result.error) {
+      throw new AppError(result.status, result.error);
+    }
+
+    return {
+      series_id: seriesId,
+      room_name: result.room.room_name,
+      created: result.bookable.map(serializeOccurrence),
+      skipped: result.conflicts,
+    };
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw new AppError(500, 'ไม่สามารถจองต่อเนื่องได้', { cause: error });
+  }
+}
+
+// ยกเลิกทุกรายการในชุดที่ยังไม่จบ (เช่น วิชางดสอนกลางภาค) รายการที่ผ่านไปแล้วยังอยู่เป็นประวัติ
+export async function cancelBookingSeries(seriesId) {
+  try {
+    const result = await runSerializableTransaction(async (tx) => {
+      const total = await roomRepository.countBookingsInSeries(seriesId, tx);
+      if (total === 0) return { error: 'ไม่พบชุดการจอง', status: 404 };
+
+      const { count } = await roomRepository.deleteUpcomingBookingsInSeries(seriesId, new Date(), tx);
+      return { cancelled: count };
+    });
+
+    if (result.error) {
+      throw new AppError(result.status, result.error);
+    }
+
+    return result;
+  } catch (error) {
+    if (error instanceof AppError) throw error;
+
+    throw new AppError(500, 'ไม่สามารถยกเลิกชุดการจองได้', { cause: error });
   }
 }
