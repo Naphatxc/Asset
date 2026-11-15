@@ -57,3 +57,32 @@ export function updateRoom(roomId, changes) {
     body: changes,
   });
 }
+
+// ===== จองต่อเนื่อง (Admin) =====
+// series = { roomId, startDate, endDate, weekdays: [0-6] (0 = อาทิตย์), start: "HH:00", end: "HH:00", purpose }
+function seriesBody({ roomId, startDate, endDate, weekdays, start, end, purpose }) {
+  return {
+    room_id: roomId,
+    start_date: startDate,
+    end_date: endDate,
+    weekdays,
+    start,
+    end,
+    purpose,
+  };
+}
+
+// ดูตัวอย่างก่อนจองจริง: { bookable: [{ date, start_at, end_at }], conflicts: [{ date, booking }] }
+export function previewRoomBookingSeries(series) {
+  return request('/api/admin/rooms/series/preview', { method: 'POST', body: seriesBody(series) });
+}
+
+// จองทุกวันที่ว่าง วันที่ชนข้ามไป: { series_id, created, skipped, message }
+export function createRoomBookingSeries(series) {
+  return request('/api/admin/rooms/series', { method: 'POST', body: seriesBody(series) });
+}
+
+// ยกเลิกทุกรายการในชุดที่ยังไม่จบ
+export function cancelRoomBookingSeries(seriesId) {
+  return request(`/api/admin/rooms/series/${seriesId}`, { method: 'DELETE' });
+}

@@ -58,6 +58,7 @@ export async function findOverlappingBooking(roomId, startAt, endAt, client = pr
       start_at: { lt: endAt },
       end_at: { gt: startAt },
     },
+    include: bookingInclude,
   });
 }
 
@@ -74,4 +75,20 @@ export async function createBooking(data, client = prisma) {
 
 export async function deleteBookingById(bookingId, client = prisma) {
   return client.room_bookings.delete({ where: { booking_id: bookingId } });
+}
+
+// การจองต่อเนื่องทั้งชุดสร้างพร้อมกันในคำสั่งเดียว (ผู้เรียกเช็คเวลาชนครบทุกรายการแล้วใน transaction เดียวกัน)
+export async function createBookings(rows, client = prisma) {
+  return client.room_bookings.createMany({ data: rows });
+}
+
+export async function countBookingsInSeries(seriesId, client = prisma) {
+  return client.room_bookings.count({ where: { series_id: seriesId } });
+}
+
+// ยกเลิกทั้งชุด = ลบเฉพาะรายการที่ยังไม่จบ รายการที่ใช้ห้องไปแล้วเก็บไว้เป็นประวัติ (เหมือนยกเลิกทีละรายการ)
+export async function deleteUpcomingBookingsInSeries(seriesId, now, client = prisma) {
+  return client.room_bookings.deleteMany({
+    where: { series_id: seriesId, end_at: { gt: now } },
+  });
 }

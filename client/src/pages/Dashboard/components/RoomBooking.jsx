@@ -3,6 +3,7 @@ import { useRef, useState } from 'react';
 
 import {
   cancelRoomBooking,
+  cancelRoomBookingSeries,
   createRoomBooking,
   getRoomBookings,
   getRooms,
@@ -23,6 +24,7 @@ import {
 } from '../../../utils/roomBooking.js';
 import MyRoomBookings from './MyRoomBookings.jsx';
 import RoomManager from './RoomManager.jsx';
+import RoomSeriesDialog from './RoomSeriesDialog.jsx';
 import RoomTimeline from './RoomTimeline.jsx';
 import { useModal } from '../../../hooks/useModal.js';
 
@@ -48,6 +50,9 @@ export default function RoomBooking({ user }) {
   const [purpose, setPurpose] = useState('');
   // การจองที่กำลังรอให้กดยืนยันยกเลิก (null = ไม่ได้เปิด popup)
   const [confirmBooking, setConfirmBooking] = useState(null);
+  // Admin: เปิด popup จองต่อเนื่องอยู่ไหม และการจองที่กำลังถามยืนยัน "ยกเลิกทั้งชุด" (null = ไม่ได้เปิด)
+  const [seriesOpen, setSeriesOpen] = useState(false);
+  const [confirmSeries, setConfirmSeries] = useState(null);
   const timelineRef = useRef(null);
 
   const today = todayDateInput();
@@ -84,6 +89,17 @@ export default function RoomBooking({ user }) {
     },
     onError: (error) => showError(error.message),
     onSettled: () => setConfirmBooking(null),
+  });
+
+  // ยกเลิกทุกวันในชุดจองต่อเนื่องที่ยังไม่จบ (เช่น วิชางดสอน) วันที่ผ่านไปแล้วยังอยู่เป็นประวัติ
+  const cancelSeriesMutation = useMutation({
+    mutationFn: cancelRoomBookingSeries,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['room-bookings'] });
+      showSuccess(data.message);
+    },
+    onError: (error) => showError(error.message),
+    onSettled: () => setConfirmSeries(null),
   });
 
   function clearSelection() {
@@ -156,10 +172,21 @@ export default function RoomBooking({ user }) {
   }
 
   const confirmRef = useModal(confirmBooking ? () => setConfirmBooking(null) : null);
+  const confirmSeriesRef = useModal(confirmSeries ? () => setConfirmSeries(null) : null);
 
   return (
     <section className="admin-section">
-      <h2>จองห้อง</h2>
+      <div className="section-heading equipment-toolbar">
+        <h2>จองห้อง</h2>
+        {/* จองยาวเป็นชุด เช่น วิชาที่เรียนทุกวันจันทร์เช้าทั้งภาคเรียน สงวนให้ Admin (server เช็คสิทธิ์ซ้ำ) */}
+        {user.role === 'admin' && (
+          <div className="toolbar-actions">
+            <button className="button-primary" type="button" onClick={() => setSeriesOpen(true)}>
+              + จองต่อเนื่อง
+            </button>
+          </div>
+        )}
+      </div>
 
       {loadError && <p className="error-message">{loadError}</p>}
 
@@ -288,7 +315,10 @@ export default function RoomBooking({ user }) {
                       <td data-label="ห้อง">{booking.room_name}</td>
                       <td data-label="เวลา">{formatTime(booking.start_at)}–{formatTime(booking.end_at)}</td>
                       <td data-label="ผู้จอง">{booking.user_name}</td>
-                      <td data-label="วัตถุประสงค์">{booking.purpose || '-'}</td>
+                      <td data-label="วัตถุประสงค์">
+                        {booking.purpose || '-'}
+                        {booking.series_id && <span className="series-tag">จองต่อเนื่อง</span>}
+                      </td>
                       <td data-label="จัดการ">
                         {canCancel(booking) ? (
                           <div className="row-actions">
@@ -300,6 +330,16 @@ export default function RoomBooking({ user }) {
                             >
                               ยกเลิก
                             </button>
+                            {booking.series_id && (
+                              <button
+                                className="button-danger"
+                                type="button"
+                                disabled={cancelSeriesMutation.isPending}
+                                onClick={() => setConfirmSeries(booking)}
+                              >
+                                ยกเลิกทั้งชุด
+                              </button>
+                            )}
                           </div>
                         ) : (
                           '-'
@@ -348,6 +388,43 @@ export default function RoomBooking({ user }) {
           </section>
         </div>
       )}
+
+      {/* ยืนยันยกเลิกทั้งชุด ลบทุกวันที่ยังไม่ถึงในชุดนี้ ย้อนคืนไม่ได้ */}
+      {confirmSeries && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => setConfirmSeries(null)}>
+          <section
+            className="withdraw-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            ref={confirmSeriesRef}
+            tabIndex={-1}
+            aria-labelledby="cancel-series-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <h2 id="cancel-series-title">ยกเลิกการจองทั้งชุด</h2>
+            <p>
+              ยกเลิกทุกวันที่ยังไม่ถึงของการจองต่อเนื่อง {confirmSeries.room_name} เวลา{' '}
+              {formatTime(confirmSeries.start_at)}–{formatTime(confirmSeries.end_at)} น.
+              {confirmSeries.purpose && ` (${confirmSeries.purpose})`} ใช่หรือไม่? วันที่ผ่านไปแล้วยังเก็บเป็นประวัติ
+            </p>
+            <div className="form-actions">
+              <button
+                className="button-primary"
+                type="button"
+                disabled={cancelSeriesMutation.isPending}
+                onClick={() => cancelSeriesMutation.mutate(confirmSeries.series_id)}
+              >
+                {cancelSeriesMutation.isPending ? 'กำลังยกเลิก...' : 'ยืนยันยกเลิกทั้งชุด'}
+              </button>
+              <button className="button-secondary" type="button" onClick={() => setConfirmSeries(null)}>
+                กลับ
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {seriesOpen && <RoomSeriesDialog rooms={rooms} onClose={() => setSeriesOpen(false)} />}
 
       {user.role === 'admin' && <RoomManager />}
     </section>

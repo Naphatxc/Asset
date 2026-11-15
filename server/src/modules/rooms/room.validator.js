@@ -170,3 +170,94 @@ export function validateUpdateRoom(request, _response, next) {
   request.validated = { roomId, changes };
   next();
 }
+
+// ===== จองต่อเนื่อง (Admin) — เช่น ทุกวันจันทร์ 09:00–12:00 ตั้งแต่ 1 พ.ย. ถึง 31 ม.ค. =====
+// Admin จองล่วงหน้าได้ไกลกว่าคนทั่วไป (ทั้งภาคเรียน) แต่จำกัดไว้กันพิมพ์ปีผิดแล้วได้การจองหลายร้อยรายการ
+const MAX_SERIES_DAYS_AHEAD = 183;
+const MAX_SERIES_OCCURRENCES = 200;
+
+// วันในสัปดาห์ของวันที่ "YYYY-MM-DD" (0 = อาทิตย์ ... 6 = เสาร์) ตามปฏิทิน ไม่ขึ้นกับเขตเวลาของ server
+function weekdayOf(dateString) {
+  return new Date(`${dateString}T00:00:00.000Z`).getUTCDay();
+}
+
+// body: { room_id, start_date, end_date, weekdays: [0-6...], start: "HH:00", end: "HH:00", purpose? }
+// ได้ request.validated.occurrences = ทุกวันในช่วงที่ตรงกับวันในสัปดาห์ที่เลือก พร้อมเวลาเริ่ม/จบจริง (UTC)
+// วันที่ช่วงเวลาเริ่มไปแล้ว (เช่น วันนี้แต่เลยเวลาแล้ว) ไม่นับ เพราะจองย้อนหลังไม่ได้อยู่แล้ว
+export function validateBookingSeries(request, _response, next) {
+  const body = request.body ?? {};
+  const roomId = Number(body.room_id);
+  const startDate = String(body.start_date ?? '');
+  const endDate = String(body.end_date ?? '');
+  const startHour = parseHour(body.start);
+  const endHour = parseHour(body.end);
+  const purpose = String(body.purpose ?? '').trim() || null;
+  const weekdays = Array.isArray(body.weekdays) ? [...new Set(body.weekdays.map(Number))] : [];
+  const today = todayInBangkok();
+
+  if (!Number.isInteger(roomId) || roomId <= 0) {
+    return next(new AppError(400, 'กรุณาเลือกห้อง'));
+  }
+  if (!isValidDateString(startDate) || !isValidDateString(endDate)) {
+    return next(new AppError(400, 'กรุณาระบุวันเริ่มและวันสิ้นสุด'));
+  }
+  if (startDate < today) {
+    return next(new AppError(400, 'วันเริ่มต้องเป็นวันนี้หรือหลังจากนี้'));
+  }
+  if (endDate < startDate) {
+    return next(new AppError(400, 'วันสิ้นสุดต้องไม่ก่อนวันเริ่ม'));
+  }
+  if (endDate > addDays(today, MAX_SERIES_DAYS_AHEAD)) {
+    return next(new AppError(400, `จองต่อเนื่องล่วงหน้าได้ไม่เกิน ${MAX_SERIES_DAYS_AHEAD} วัน (ประมาณ 6 เดือน)`));
+  }
+  if (weekdays.length === 0 || weekdays.some((day) => !Number.isInteger(day) || day < 0 || day > 6)) {
+    return next(new AppError(400, 'กรุณาเลือกวันในสัปดาห์อย่างน้อย 1 วัน'));
+  }
+  if (startHour === null || endHour === null) {
+    return next(new AppError(400, 'กรุณาเลือกเวลาเริ่มและเวลาสิ้นสุด (ชั่วโมงเต็ม)'));
+  }
+  if (startHour < OPEN_HOUR || endHour > CLOSE_HOUR) {
+    return next(new AppError(400, `จองได้ระหว่าง ${OPEN_HOUR}:00–${CLOSE_HOUR}:00 น. เท่านั้น`));
+  }
+  if (endHour <= startHour) {
+    return next(new AppError(400, 'เวลาสิ้นสุดต้องหลังเวลาเริ่มอย่างน้อย 1 ชั่วโมง'));
+  }
+  if (purpose && purpose.length > MAX_PURPOSE_LENGTH) {
+    return next(new AppError(400, `วัตถุประสงค์ต้องไม่เกิน ${MAX_PURPOSE_LENGTH} ตัวอักษร`));
+  }
+
+  const now = new Date();
+  const occurrences = [];
+  for (let date = startDate; date <= endDate; date = addDays(date, 1)) {
+    if (!weekdays.includes(weekdayOf(date))) continue;
+
+    const startAt = toBangkokDateTime(date, body.start);
+    if (startAt <= now) continue;
+
+    occurrences.push({ date, startAt, endAt: toBangkokDateTime(date, body.end) });
+  }
+
+  if (occurrences.length === 0) {
+    return next(new AppError(400, 'ไม่มีวันที่ตรงกับวันในสัปดาห์ที่เลือกในช่วงนี้'));
+  }
+  if (occurrences.length > MAX_SERIES_OCCURRENCES) {
+    return next(new AppError(400, `จองต่อเนื่องได้ไม่เกิน ${MAX_SERIES_OCCURRENCES} ครั้งต่อชุด`));
+  }
+
+  request.validated = { roomId, purpose, occurrences };
+  next();
+}
+
+// รหัสชุดเป็น UUID ที่ server สร้าง (crypto.randomUUID) รูปแบบอื่นไม่ต้องไปค้นใน DB
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+export function validateSeriesIdParam(request, _response, next) {
+  const seriesId = String(request.params.seriesId ?? '').toLowerCase();
+
+  if (!UUID_PATTERN.test(seriesId)) {
+    return next(new AppError(400, 'รหัสชุดการจองไม่ถูกต้อง'));
+  }
+
+  request.validated = { ...request.validated, seriesId };
+  next();
+}
