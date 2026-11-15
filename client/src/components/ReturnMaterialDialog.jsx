@@ -1,6 +1,7 @@
 // Dialog ให้ Admin รับคืนวัสดุที่ต้องคืน — คืนทีละส่วนได้ (เบิก 3 คืน 2 แล้วค่อยคืนอีก 1)
 // ค่าเริ่มต้นคือยอดที่ยังค้างทั้งหมด เพราะส่วนใหญ่คืนครบในครั้งเดียว
 import { useState } from 'react';
+import { useModal } from '../hooks/useModal.js';
 
 export default function ReturnMaterialDialog({
   withdrawal,
@@ -30,12 +31,16 @@ export default function ReturnMaterialDialog({
     onSubmit({ quantity: qty, remark: remark.trim() || null });
   }
 
+  const dialogRef = useModal(onClose);
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section
         className="withdraw-dialog"
         role="dialog"
         aria-modal="true"
+        ref={dialogRef}
+        tabIndex={-1}
         aria-labelledby="return-material-dialog-title"
         onMouseDown={(event) => event.stopPropagation()}
       >

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 
 import ThaiDateInput from './ThaiDateInput.jsx';
+import { useModal } from '../hooks/useModal.js';
 
 // ThaiDateInput ใช้ค่า YYYY-MM-DD (เหมือน MyBorrows.jsx)
 function tomorrowDateInput() {
@@ -65,12 +66,17 @@ export default function WithdrawMaterialDialog({
     });
   }
 
+  const dialogRef = useModal(onClose);
+  const confirmRef = useModal(confirming ? () => setConfirming(false) : null);
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section
         className="withdraw-dialog"
         role="dialog"
         aria-modal="true"
+        ref={dialogRef}
+        tabIndex={-1}
         aria-labelledby="withdraw-dialog-title"
         onMouseDown={(event) => event.stopPropagation()}
       >
@@ -138,6 +144,8 @@ export default function WithdrawMaterialDialog({
                 className="withdraw-dialog"
                 role="alertdialog"
                 aria-modal="true"
+                ref={confirmRef}
+                tabIndex={-1}
                 aria-labelledby="withdraw-confirm-title"
                 onMouseDown={(event) => event.stopPropagation()}
               >

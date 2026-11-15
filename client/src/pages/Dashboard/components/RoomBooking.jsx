@@ -24,6 +24,7 @@ import {
 import MyRoomBookings from './MyRoomBookings.jsx';
 import RoomManager from './RoomManager.jsx';
 import RoomTimeline from './RoomTimeline.jsx';
+import { useModal } from '../../../hooks/useModal.js';
 
 // ต้องตรงกับ server (room.validator.js): วัตถุประสงค์ไม่เกิน 2000 ตัวอักษร
 const MAX_PURPOSE_LENGTH = 2000;
@@ -153,6 +154,8 @@ export default function RoomBooking({ user }) {
       purpose: purpose,
     });
   }
+
+  const confirmRef = useModal(confirmBooking ? () => setConfirmBooking(null) : null);
 
   return (
     <section className="admin-section">
@@ -318,6 +321,8 @@ export default function RoomBooking({ user }) {
             className="withdraw-dialog"
             role="alertdialog"
             aria-modal="true"
+            ref={confirmRef}
+            tabIndex={-1}
             aria-labelledby="cancel-booking-title"
             onMouseDown={(event) => event.stopPropagation()}
           >

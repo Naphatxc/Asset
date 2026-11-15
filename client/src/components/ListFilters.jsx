@@ -97,11 +97,16 @@ export default function ListFilters({
     <div className="equipment-filters">
       <input
         type="search"
+        aria-label={searchPlaceholder}
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder={searchPlaceholder}
       />
-      <select value={status} onChange={(event) => onStatusChange(event.target.value)}>
+      <select
+        value={status}
+        onChange={(event) => onStatusChange(event.target.value)}
+        aria-label="กรองตามสถานะ"
+      >
         <option value="">ทุกสถานะ</option>
         {Object.entries(statusLabels).map(([value, label]) => (
           <option key={value} value={value}>

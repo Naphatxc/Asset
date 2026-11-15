@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { createRoom, deleteRoom, getRooms, updateRoom } from '../../../api/rooms.js';
 import { useToast } from '../../../components/ToastProvider.jsx';
+import { useModal } from '../../../hooks/useModal.js';
 
 export default function RoomManager() {
   const queryClient = useQueryClient();
@@ -96,6 +97,9 @@ export default function RoomManager() {
     }
   }
 
+  const nameDialogRef = useModal(nameDialog ? closeNameDialog : null);
+  const deleteDialogRef = useModal(confirmDelete ? () => setConfirmDelete(null) : null);
+
   return (
     <section className="admin-section">
       <div className="section-heading equipment-toolbar">
@@ -114,6 +118,8 @@ export default function RoomManager() {
             className="withdraw-dialog"
             role="dialog"
             aria-modal="true"
+            ref={nameDialogRef}
+            tabIndex={-1}
             aria-labelledby="room-name-title"
             onMouseDown={(event) => event.stopPropagation()}
           >
@@ -220,6 +226,8 @@ export default function RoomManager() {
             className="withdraw-dialog"
             role="alertdialog"
             aria-modal="true"
+            ref={deleteDialogRef}
+            tabIndex={-1}
             aria-labelledby="delete-room-title"
             onMouseDown={(event) => event.stopPropagation()}
           >

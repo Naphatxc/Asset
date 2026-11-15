@@ -2,6 +2,7 @@
 import { useState } from 'react';
 
 import PasswordInput from './PasswordInput.jsx';
+import { useModal } from '../hooks/useModal.js';
 
 export default function CreateUserDialog({ submitting, error, onSubmit, onClose }) {
   const [name, setName] = useState('');
@@ -14,12 +15,16 @@ export default function CreateUserDialog({ submitting, error, onSubmit, onClose 
     onSubmit({ name: name.trim(), email: email.trim(), password, role });
   }
 
+  const dialogRef = useModal(onClose);
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={onClose}>
       <section
         className="withdraw-dialog"
         role="dialog"
         aria-modal="true"
+        ref={dialogRef}
+        tabIndex={-1}
         aria-labelledby="create-user-title"
         onMouseDown={(event) => event.stopPropagation()}
       >

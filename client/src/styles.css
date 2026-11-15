@@ -11,7 +11,8 @@
   --stat-plum: #b43b6b;
   --stat-gold: #ffbf02;
   --stat-slate: #9db6b9;
-  --stat-slate-dark: #637f84;
+  /* ข้อความรองทั้งเว็บใช้สีนี้ ต้องตัดกับพื้นขาวได้ ≥ 4.5:1 (เดิม #637f84 ได้ ~4.3:1) */
+  --stat-slate-dark: #56707a;
   --stat-paper: #ffffff;
   --stat-pink-paper: #fffbfd;
 }
@@ -906,7 +907,7 @@ button:disabled {
   justify-self: end;
   font-size: 0.75rem;
   font-weight: 400;
-  color: #8a8a8a;
+  color: #6b6b6b;
 }
 
 .char-count-warning {
@@ -2132,8 +2133,10 @@ button:disabled {
   align-items: center;
   max-width: 100%;
   padding: 6px 12px;
+  border: 1px solid #f0c4d8;
   border-radius: 999px;
-  background: var(--stat-pink-soft);
+  /* พื้นอ่อนตัวอักษรเข้ม: เดิมใช้พื้นชมพูเข้ม (--stat-pink-soft) กับตัวอักษรสีม่วงแดง ตัดกันน้อยจนอ่านชื่อไฟล์ยาก */
+  background: #fff5fa;
   color: var(--stat-plum);
   font-size: 0.82rem;
   font-weight: 600;
@@ -2866,16 +2869,16 @@ button:disabled {
   }
 
   .room-timeline-room {
-    font-size: 0.76rem;
+    font-size: 0.8rem;
   }
 
   .room-timeline-slot-head {
-    font-size: 0.72rem;
+    font-size: 0.75rem;
   }
 
   .room-timeline-cell {
     min-height: 44px;
-    font-size: 0.72rem;
+    font-size: 0.75rem;
   }
 
   .room-timeline-toolbar .button-secondary {
@@ -2940,7 +2943,7 @@ button:disabled {
 }
 
 .hour-chip small {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
 }
 
 .hour-picker-hint,
@@ -3050,4 +3053,62 @@ button:disabled {
 /* หมายเหตุที่ผู้ตรวจพิมพ์หลายบรรทัด ให้ขึ้นบรรทัดใหม่ตามที่พิมพ์มา */
 .document-review-note {
   white-space: pre-line;
+}
+
+/* ===== การเข้าถึง (ตรวจตาม UI/UX checklist: focus, motion, ขนาดปุ่มบนจอสัมผัส) ===== */
+/* วงโฟกัสเดียวกันทั้งเว็บเมื่อใช้คีย์บอร์ด (:focus-visible ไม่ขึ้นตอนคลิกเมาส์) ช่องกรอกในฟอร์มมีเงาโฟกัสของตัวเองอยู่แล้ว */
+a:focus-visible,
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+[role="button"]:focus-visible {
+  outline: 3px solid var(--stat-pink);
+  outline-offset: 2px;
+}
+
+/* ผู้ใช้ที่ตั้งค่าเครื่องให้ลดการเคลื่อนไหว: ปิดแอนิเมชัน/ทรานซิชันทั้งหมด (toast, แถบความคืบหน้า, การ์ดลอย) */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* โหมดการ์ด (พื้นที่แคบ มักเป็นมือถือ/แท็บเล็ต) ปุ่มในการ์ดและปุ่มเปลี่ยนหน้าสูงอย่างน้อย 44px ให้นิ้วกดโดนง่าย */
+@container dashboard (max-width: 959px) {
+  .row-actions button,
+  .pagination-controls button {
+    min-height: 44px;
+  }
+}
+
+/* ลิงก์ "ข้ามไปเนื้อหาหลัก" (Dashboard.jsx) อยู่นอกจอจนได้โฟกัสจากคีย์บอร์ด แล้วโผล่มุมซ้ายบน */
+.skip-link {
+  position: absolute;
+  z-index: 1100;
+  top: 8px;
+  left: 8px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: #ffffff;
+  background: var(--stat-plum);
+  font-weight: 700;
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+/* popup และเนื้อหาหลักรับโฟกัสจากโค้ด (useModal, ลิงก์ข้ามเนื้อหา) ไม่ต้องมีกรอบโฟกัสรอบทั้งกล่อง */
+.withdraw-dialog:focus,
+.repair-dialog:focus,
+.qr-dialog:focus,
+.dashboard-content:focus {
+  outline: none;
 }
