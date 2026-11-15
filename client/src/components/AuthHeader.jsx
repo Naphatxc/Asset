@@ -12,7 +12,7 @@ export default function AuthHeader({ title, children }) {
           มหาวิทยาลัยเทคโนโลยีพระจอมเกล้าพระนครเหนือ
         </p>
       </div>
-      <p className="eyebrow">Material & Asset Management</p>
+      <p className="eyebrow">Management & Database System</p>
       <h1>{title}</h1>
       {children}
     </header>
