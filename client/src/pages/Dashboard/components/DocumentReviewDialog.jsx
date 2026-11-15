@@ -8,6 +8,7 @@ import { getDocumentDownloadUrl, reviewDocument } from '../../../api/documents.j
 import CharCount from '../../../components/CharCount.jsx';
 import FileDropInput from '../../../components/FileDropInput.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
+import { useDocumentTypes } from '../../../hooks/useDocumentTypes.js';
 import {
   DOCUMENT_ACCEPT,
   MAX_NOTE_LENGTH,
@@ -27,6 +28,7 @@ export default function DocumentReviewDialog({ submission, onClose }) {
   // FileDropInput เก็บไฟล์เป็น array เสมอ ที่นี่แนบกลับได้ไฟล์เดียว จึงมีได้ 0 หรือ 1 ไฟล์
   const [files, setFiles] = useState([]);
   const pending = submission.status === 'pending';
+  const { label } = useDocumentTypes()[submission.doc_type] ?? { label: 'IDP' };
 
   const reviewMutation = useMutation({
     mutationFn: () =>
@@ -72,8 +74,8 @@ export default function DocumentReviewDialog({ submission, onClose }) {
       >
         <div className="form-heading">
           <div>
-            <p className="section-kicker">IDP</p>
-            <h2 id="document-review-title">{pending ? 'ตรวจ IDP' : 'ผลการตรวจ IDP'}</h2>
+            <p className="section-kicker">{label}</p>
+            <h2 id="document-review-title">{pending ? `ตรวจ ${label}` : `ผลการตรวจ ${label}`}</h2>
           </div>
           <button className="button-secondary" type="button" onClick={onClose}>
             ปิด

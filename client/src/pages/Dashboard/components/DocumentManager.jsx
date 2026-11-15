@@ -13,8 +13,10 @@ import {
   sortRows,
 } from '../../../components/ListFilters.jsx';
 import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
-import { DOCUMENT_TYPES, STATUS_LABELS, formatDateTime } from '../../../utils/documents.js';
+import { useDocumentTypes } from '../../../hooks/useDocumentTypes.js';
+import { STATUS_LABELS, formatDateTime } from '../../../utils/documents.js';
 import DocumentReviewDialog from './DocumentReviewDialog.jsx';
+import DocumentTypeNamesDialog from './DocumentTypeNamesDialog.jsx';
 
 // คอลัมน์ที่คลิกเรียงได้
 const sortColumns = {
@@ -34,6 +36,8 @@ const sortColumns = {
 };
 
 export default function DocumentManager() {
+  // ชื่อที่ Admin ตั้งไว้ของแต่ละประเภท (แก้ได้จากปุ่ม "ตั้งชื่อเอกสาร")
+  const documentTypes = useDocumentTypes();
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -42,6 +46,7 @@ export default function DocumentManager() {
   const [page, setPage] = useState(1);
   // รหัสรายการ IDP ที่เปิด popup อยู่ (null = ไม่ได้เปิด) เก็บแค่รหัสแล้วหาข้อมูลจากรายการล่าสุดทุกครั้ง
   const [openSubmissionId, setOpenSubmissionId] = useState(null);
+  const [namingTypes, setNamingTypes] = useState(false);
 
   const documentsQuery = useQuery({
     queryKey: ['documents', 'all'],
@@ -72,7 +77,7 @@ export default function DocumentManager() {
     (submission) => submission.submission_id === openSubmissionId,
   );
   // สถานะมีเฉพาะ IDP ถ้าเลือกดูเฉพาะ OBE 3 / OBE 5 อยู่ ช่องกรองสถานะจึงใช้ไม่ได้
-  const statusFilterDisabled = Boolean(typeFilter) && !DOCUMENT_TYPES[typeFilter].reviewed;
+  const statusFilterDisabled = Boolean(typeFilter) && !documentTypes[typeFilter].reviewed;
 
   // เปลี่ยนตัวกรองแล้วกลับไปหน้าแรกเสมอ ไม่งั้นอาจค้างอยู่หน้าที่ไม่มีข้อมูลแล้ว
   function changeFilter(setter, value) {
@@ -82,7 +87,7 @@ export default function DocumentManager() {
 
   function changeType(value) {
     changeFilter(setTypeFilter, value);
-    if (value && !DOCUMENT_TYPES[value].reviewed) setStatusFilter('');
+    if (value && !documentTypes[value].reviewed) setStatusFilter('');
   }
 
   function changeSort(nextSort) {
@@ -100,7 +105,7 @@ export default function DocumentManager() {
             เอกสารที่ส่งเข้ามา
             {pendingCount > 0 && (
               <span className="status-badge status-doc-pending" style={{ marginLeft: 8 }}>
-                IDP รอตรวจ {pendingCount}
+                {documentTypes.idp.label} รอตรวจ {pendingCount}
               </span>
             )}
           </h2>
@@ -108,6 +113,9 @@ export default function DocumentManager() {
 
         <div className="toolbar-actions">
           <span className="item-count">{submissions.length} รายการ</span>
+          <button className="button-secondary" type="button" onClick={() => setNamingTypes(true)}>
+            ตั้งชื่อเอกสาร
+          </button>
         </div>
       </div>
 
@@ -127,7 +135,7 @@ export default function DocumentManager() {
           aria-label="ประเภทเอกสาร"
         >
           <option value="">ทุกประเภท</option>
-          {Object.entries(DOCUMENT_TYPES).map(([value, documentType]) => (
+          {Object.entries(documentTypes).map(([value, documentType]) => (
             <option key={value} value={value}>
               {documentType.label}
             </option>
@@ -194,7 +202,7 @@ export default function DocumentManager() {
             </thead>
             <tbody>
               {pageSubmissions.map((submission) => {
-                const documentType = DOCUMENT_TYPES[submission.doc_type];
+                const documentType = documentTypes[submission.doc_type];
 
                 return (
                   <tr key={submission.submission_id}>
@@ -255,6 +263,13 @@ export default function DocumentManager() {
         <DocumentReviewDialog
           submission={openSubmission}
           onClose={() => setOpenSubmissionId(null)}
+        />
+      )}
+
+      {namingTypes && (
+        <DocumentTypeNamesDialog
+          documentTypes={documentTypes}
+          onClose={() => setNamingTypes(false)}
         />
       )}
     </section>

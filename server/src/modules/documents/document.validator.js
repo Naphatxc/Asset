@@ -96,3 +96,27 @@ export function validateReviewDocument(request, _response, next) {
   request.validated = { ...request.validated, decision, reviewNote };
   next();
 }
+
+// ต้องตรงกับ @db.VarChar ของ document_types ใน schema.prisma (ฝั่ง client: DocumentTypeNamesDialog.jsx)
+const MAX_TYPE_LABEL_LENGTH = 50;
+const MAX_TYPE_TITLE_LENGTH = 150;
+
+// PATCH /api/admin/documents/types/:docType  body: { label, title } ต้องส่งมาทั้งสองช่อง
+export function validateUpdateDocumentType(request, _response, next) {
+  const docType = String(request.params.docType ?? '');
+  const label = String(request.body?.label ?? '').trim();
+  const title = String(request.body?.title ?? '').trim();
+
+  if (!DOC_TYPES.includes(docType)) {
+    return next(new AppError(400, 'ประเภทเอกสารไม่ถูกต้อง'));
+  }
+  if (!label || label.length > MAX_TYPE_LABEL_LENGTH) {
+    return next(new AppError(400, `ชื่อสั้นต้องมี 1–${MAX_TYPE_LABEL_LENGTH} ตัวอักษร`));
+  }
+  if (!title || title.length > MAX_TYPE_TITLE_LENGTH) {
+    return next(new AppError(400, `ชื่อเต็มต้องมี 1–${MAX_TYPE_TITLE_LENGTH} ตัวอักษร`));
+  }
+
+  request.validated = { ...request.validated, docType, label, title };
+  next();
+}

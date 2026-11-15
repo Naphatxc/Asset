@@ -213,6 +213,14 @@ returned returned
     }
   
 
+  "document_types" {
+    document_submissions_doc_type doc_type "🗝️"
+    String label 
+    String title 
+    DateTime updated_at 
+    }
+  
+
   "password_reset_tokens" {
     Int token_id "🗝️"
     String token_hash 
@@ -294,6 +302,7 @@ returned returned
     "document_submissions" |o--|o "document_submissions_status" : "enum:status"
     "document_submissions" }o--|| "users" : "users"
     "document_submissions" }o--|o "users" : "reviewer"
+    "document_types" |o--|| "document_submissions_doc_type" : "enum:doc_type"
     "password_reset_tokens" }o--|| "users" : "users"
     "borrow_details" }o--|| "borrows" : "borrows"
     "borrow_details" }o--|| "equipment_items" : "equipment_items"

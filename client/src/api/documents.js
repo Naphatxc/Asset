@@ -41,3 +41,16 @@ export function reviewDocument(submissionId, { decision, note, file }) {
 export function getDocumentDownloadUrl(path) {
   return toApiUrl(path);
 }
+
+// ชื่อที่แสดงของทั้ง 3 ประเภท: { types: [{ doc_type, label, title, reviewed }] }
+export function getDocumentTypes() {
+  return request('/api/documents/types');
+}
+
+// Admin เปลี่ยนชื่อที่แสดง label = ชื่อสั้นบนแท็บ/ปุ่ม, title = ชื่อเต็มบนหัวหน้า/อีเมล
+export function updateDocumentType(docType, { label, title }) {
+  return request(`/api/admin/documents/types/${docType}`, {
+    method: 'PATCH',
+    body: { label, title },
+  });
+}

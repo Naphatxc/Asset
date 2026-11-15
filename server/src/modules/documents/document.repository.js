@@ -37,3 +37,16 @@ export async function update(submissionId, data, client = prisma) {
     include: submissionInclude,
   });
 }
+
+// ===== ชื่อที่แสดงของประเภทเอกสาร (document_types มีครบ 3 แถวเสมอ ใส่ไว้ใน migration) =====
+export async function findTypes(client = prisma) {
+  return client.document_types.findMany();
+}
+
+export async function findType(docType, client = prisma) {
+  return client.document_types.findUnique({ where: { doc_type: docType } });
+}
+
+export async function updateType(docType, { label, title }, client = prisma) {
+  return client.document_types.update({ where: { doc_type: docType }, data: { label, title } });
+}
