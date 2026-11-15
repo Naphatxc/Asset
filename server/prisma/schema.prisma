@@ -244,6 +244,18 @@ model document_submissions {
   @@index([reviewed_by], map: "fk_document_submission_reviewer")
 }
 
+// ชื่อที่แสดงของเอกสารแต่ละประเภท (แท็บเมนู หัวหน้า อีเมล) Admin เปลี่ยนชื่อได้จากแท็บ "เอกสาร"
+// เก็บแค่ชื่อ พฤติกรรมยังผูกกับ doc_type ในโค้ด: idp ส่งไป-กลับมีการตรวจ, obe3/obe5 ส่งอย่างเดียว
+// มีครบ 3 แถวเสมอ (ใส่ไว้ใน migration) ไม่มีการเพิ่ม/ลบประเภทจากหน้าเว็บ
+model document_types {
+  doc_type   document_submissions_doc_type @id
+  // ชื่อสั้นบนแท็บ/ปุ่ม เช่น "IDP"
+  label      String                        @db.VarChar(50)
+  // ชื่อเต็มบนหัวหน้า/อีเมล เช่น "แผนพัฒนาบุคลากรรายบุคคล (IDP)"
+  title      String                        @db.VarChar(150)
+  updated_at DateTime                      @default(now()) @updatedAt @db.DateTime(0)
+}
+
 // ลิงก์ "ลืมรหัสผ่าน" ที่ส่งทางอีเมล เก็บแค่ hash (sha256) ของ token ไม่เก็บตัวจริง
 // DB รั่วก็เอาไปตั้งรหัสแทนเจ้าของไม่ได้ ใช้ได้ครั้งเดียว (used_at) และหมดอายุตาม expires_at
 model password_reset_tokens {

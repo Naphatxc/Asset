@@ -18,6 +18,7 @@ import CreateUserDialog from '../../components/CreateUserDialog.jsx';
 import { SortSelect, matchesSearch, sortRows } from '../../components/ListFilters.jsx';
 import PaginationBar, { paginateRows } from '../../components/PaginationBar.jsx';
 import { useToast } from '../../components/ToastProvider.jsx';
+import { useDocumentTypes } from '../../hooks/useDocumentTypes.js';
 import AuditManager from './components/AuditManager.jsx';
 import BorrowManager from './components/BorrowManager.jsx';
 import DashboardOverview from './components/DashboardOverview.jsx';
@@ -45,6 +46,7 @@ const adminTabs = [
 ];
 
 // แท็บ idp / obe3 / obe5 คือหน้าส่งเอกสาร key ต้องตรงกับประเภทเอกสารใน utils/documents.js (DOCUMENT_TYPES)
+// ป้ายชื่อของสามแท็บนี้แทนด้วยชื่อที่ Admin ตั้งไว้ตอน render (useDocumentTypes) ค่าในนี้เป็นแค่ชื่อเริ่มต้น
 // ฝั่ง Admin เห็นเอกสารที่ทุกคนส่งมารวมกันในแท็บ "เอกสาร" แทน
 const userTabs = [
   { key: 'room', label: 'จองห้อง' },
@@ -59,7 +61,12 @@ export default function Dashboard({ user, onLogout }) {
   const admin = user.role === 'admin';
   // อีเมลยาวเกินความกว้าง sidebar ให้ขึ้นบรรทัดใหม่หลัง @
   const emailBreak = user.email.indexOf('@') + 1;
-  const tabs = admin ? adminTabs : userTabs;
+  const documentTypes = useDocumentTypes();
+  const tabs = admin
+    ? adminTabs
+    : userTabs.map((tab) =>
+        documentTypes[tab.key] ? { ...tab, label: documentTypes[tab.key].label } : tab,
+      );
   const defaultTab = admin ? 'overview' : 'room';
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab');

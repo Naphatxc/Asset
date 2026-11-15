@@ -3209,3 +3209,18 @@ textarea:focus-visible,
   font-size: 0.75rem;
   font-weight: 700;
 }
+
+/* ตั้งชื่อเอกสาร (DocumentTypeNamesDialog.jsx) แต่ละประเภทเป็นกล่องแยก บอกด้วยว่าประเภทนั้นมีการตรวจหรือส่งอย่างเดียว */
+.document-type-names {
+  margin: 0 0 14px;
+  padding: 12px 14px 14px;
+  border: 1px solid #ead9df;
+  border-radius: 12px;
+}
+
+.document-type-names legend {
+  padding: 0 6px;
+  color: var(--stat-plum);
+  font-size: 0.85rem;
+  font-weight: 700;
+}

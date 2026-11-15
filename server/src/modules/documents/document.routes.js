@@ -9,6 +9,7 @@ import {
   validateDocumentTypeQuery,
   validateReviewDocument,
   validateSubmitDocument,
+  validateUpdateDocumentType,
 } from './document.validator.js';
 import {
   authenticate,
@@ -23,6 +24,9 @@ const adminDocumentRouter = express.Router();
 documentRouter.use(authenticate);
 // verifyCsrfToken ก่อน requireAdmin: เป็น check ที่ถูกกว่า (ไม่ query DB) จึงคัดออกก่อน
 adminDocumentRouter.use(authenticate, verifyCsrfToken, requireAdmin);
+
+// GET /api/documents/types - ชื่อที่แสดงของทั้ง 3 ประเภท (แท็บเมนู/หัวหน้า) ทุกคนที่ login อ่านได้
+documentRouter.get('/types', documentController.getDocumentTypes);
 
 // GET /api/documents/mine?type=idp|obe3|obe5 - ประวัติการส่งของตัวเอง ใหม่สุดก่อน (ไม่ส่ง type = ทุกประเภท)
 documentRouter.get('/mine', validateDocumentTypeQuery, documentController.getMyDocuments);
@@ -49,6 +53,13 @@ documentRouter.get(
   '/:id/review-file',
   validateDocumentIdParam,
   documentController.downloadReviewFile,
+);
+
+// PATCH /api/admin/documents/types/:docType - เปลี่ยนชื่อที่แสดง { label, title } (พฤติกรรมของประเภทไม่เปลี่ยน)
+adminDocumentRouter.patch(
+  '/types/:docType',
+  validateUpdateDocumentType,
+  documentController.updateDocumentType,
 );
 
 // GET /api/admin/documents?type=idp|obe3|obe5 - เอกสารของทุกคน ใหม่สุดก่อน

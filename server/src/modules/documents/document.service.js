@@ -167,3 +167,37 @@ export async function getDownload(submissionId, { actorId, isAdmin }, kind) {
 export async function removeUploadedFile(file) {
   await removeStoredFile(documentUploadDir, file?.filename);
 }
+
+// ===== ชื่อที่แสดงของประเภทเอกสาร =====
+// ลำดับตายตัวตามเมนูฝั่งผู้ใช้ reviewed บอกพฤติกรรมที่ผูกกับประเภทในโค้ด (เปลี่ยนชื่อแล้วพฤติกรรมไม่เปลี่ยน)
+const TYPE_ORDER = ['idp', 'obe3', 'obe5'];
+
+function serializeType(type) {
+  return {
+    doc_type: type.doc_type,
+    label: type.label,
+    title: type.title,
+    reviewed: type.doc_type === 'idp',
+  };
+}
+
+export async function getDocumentTypes() {
+  try {
+    const types = await documentRepository.findTypes();
+    return types
+      .sort((a, b) => TYPE_ORDER.indexOf(a.doc_type) - TYPE_ORDER.indexOf(b.doc_type))
+      .map(serializeType);
+  } catch (error) {
+    throw new AppError(500, 'ไม่สามารถโหลดประเภทเอกสารได้', { cause: error });
+  }
+}
+
+export async function updateDocumentType(docType, names) {
+  try {
+    return serializeType(await documentRepository.updateType(docType, names));
+  } catch (error) {
+    if (error.code === 'P2025') throw new AppError(404, 'ไม่พบประเภทเอกสาร');
+
+    throw new AppError(500, 'ไม่สามารถเปลี่ยนชื่อประเภทเอกสารได้', { cause: error });
+  }
+}

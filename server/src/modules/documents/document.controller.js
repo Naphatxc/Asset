@@ -107,3 +107,24 @@ export function downloadSubmissionFile(request, response, next) {
 export function downloadReviewFile(request, response, next) {
   return sendDownload(request, response, next, 'review');
 }
+
+export async function getDocumentTypes(_request, response, next) {
+  try {
+    const types = await documentService.getDocumentTypes();
+
+    response.status(200).json({ types });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateDocumentType(request, response, next) {
+  try {
+    const { docType, label, title } = request.validated;
+    const type = await documentService.updateDocumentType(docType, { label, title });
+
+    response.status(200).json({ message: `เปลี่ยนชื่อเป็น "${type.label}" แล้ว`, type });
+  } catch (error) {
+    next(error);
+  }
+}

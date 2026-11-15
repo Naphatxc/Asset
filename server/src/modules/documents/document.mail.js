@@ -4,6 +4,7 @@
 // ส่งแบบไม่รอผล: ผู้เรียกไม่ต้อง await อีเมลส่งไม่สำเร็จดูได้ใน log แต่ไม่ทำให้การส่ง/ตรวจเอกสารล้มตามไปด้วย
 import { appUrl } from '../../config/env.js';
 import { escapeHtml, isMailConfigured, sendMail } from '../../utils/mailer.js';
+import * as documentRepository from './document.repository.js';
 import * as userRepository from '../users/user.repository.js';
 
 const buttonStyle =
@@ -42,10 +43,16 @@ function buildEmail({ subject, intro, rows, closing, link, linkLabel }) {
   };
 }
 
-function buildPendingEmail(submission) {
+// ชื่อที่ Admin ตั้งไว้ของประเภทนี้ (document_types) ถ้าอ่านไม่ได้ใช้ชื่อเดิมแทน อีเมลจะได้ยังส่งได้
+async function typeNames(docType) {
+  const type = await documentRepository.findType(docType).catch(() => null);
+  return type ?? { label: 'IDP', title: 'แผนพัฒนาบุคลากรรายบุคคล (IDP)' };
+}
+
+function buildPendingEmail(submission, names) {
   return buildEmail({
-    subject: `IDP รอตรวจ: ${submission.users.name} (ปีการศึกษา ${submission.academic_year})`,
-    intro: 'มีแผนพัฒนาบุคลากรรายบุคคล (IDP) ส่งเข้ามารอตรวจ',
+    subject: `${names.label} รอตรวจ: ${submission.users.name} (ปีการศึกษา ${submission.academic_year})`,
+    intro: `มี${names.title} ส่งเข้ามารอตรวจ`,
     rows: [
       ['ผู้ส่ง', `${submission.users.name} (${submission.users.email})`],
       ['ปีการศึกษา', submission.academic_year],
@@ -58,13 +65,13 @@ function buildPendingEmail(submission) {
   });
 }
 
-function buildReviewedEmail(submission) {
+function buildReviewedEmail(submission, names) {
   const approved = submission.status === 'approved';
   const result = approved ? 'ผ่าน' : 'ส่งกลับให้แก้ไข';
 
   return buildEmail({
-    subject: `ผลการตรวจ IDP: ${result} (ปีการศึกษา ${submission.academic_year})`,
-    intro: `สวัสดีคุณ ${submission.users.name} แผนพัฒนาบุคลากรรายบุคคล (IDP) ที่คุณส่งไว้ตรวจเสร็จแล้ว`,
+    subject: `ผลการตรวจ ${names.label}: ${result} (ปีการศึกษา ${submission.academic_year})`,
+    intro: `สวัสดีคุณ ${submission.users.name} ${names.title} ที่คุณส่งไว้ตรวจเสร็จแล้ว`,
     rows: [
       ['ผลการตรวจ', result],
       ['ปีการศึกษา', submission.academic_year],
@@ -76,7 +83,7 @@ function buildReviewedEmail(submission) {
         ? [['ไฟล์ที่แนบกลับ', `${submission.review_file_name} (ดาวน์โหลดได้ในระบบ)`]]
         : []),
     ],
-    closing: approved ? null : 'กรุณาแก้ไขตามหมายเหตุ แล้วส่ง IDP ใหม่ในระบบ',
+    closing: approved ? null : `กรุณาแก้ไขตามหมายเหตุ แล้วส่ง ${names.label} ใหม่ในระบบ`,
     link: `${appUrl}/?tab=idp`,
     linkLabel: 'เปิดระบบเพื่อดูรายละเอียด',
   });
@@ -84,7 +91,7 @@ function buildReviewedEmail(submission) {
 
 // ส่งแยกทีละคน Admin จะไม่เห็นอีเมลของกันและกัน และอีเมลของคนหนึ่งส่งไม่ผ่านก็ไม่กระทบคนอื่น
 async function sendPendingEmails(submission) {
-  const message = buildPendingEmail(submission);
+  const message = buildPendingEmail(submission, await typeNames(submission.doc_type));
   const admins = await userRepository.findAdmins();
   const results = await Promise.allSettled(
     admins.map((admin) => sendMail({ to: admin.email, ...message })),
@@ -98,7 +105,8 @@ async function sendPendingEmails(submission) {
 }
 
 async function sendReviewedEmail(submission) {
-  await sendMail({ to: submission.users.email, ...buildReviewedEmail(submission) });
+  const names = await typeNames(submission.doc_type);
+  await sendMail({ to: submission.users.email, ...buildReviewedEmail(submission, names) });
 }
 
 // สองฟังก์ชันด้านล่างคืนค่าทันทีโดยไม่รอผลส่ง และไม่ throw ออกไปหาผู้เรียกเลย (งานจริงอยู่ใน async function ข้างบน

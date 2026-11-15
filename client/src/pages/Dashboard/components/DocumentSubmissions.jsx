@@ -15,9 +15,9 @@ import CharCount from '../../../components/CharCount.jsx';
 import FileDropInput from '../../../components/FileDropInput.jsx';
 import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
+import { useDocumentTypes } from '../../../hooks/useDocumentTypes.js';
 import {
   DOCUMENT_ACCEPT,
-  DOCUMENT_TYPES,
   MAX_NOTE_LENGTH,
   MIN_ACADEMIC_YEAR,
   STATUS_LABELS,
@@ -29,7 +29,8 @@ import {
 import DocumentReviewResult from './DocumentReviewResult.jsx';
 
 export default function DocumentSubmissions({ type }) {
-  const { label, title, reviewed } = DOCUMENT_TYPES[type];
+  // ชื่อที่ Admin ตั้งไว้ (ชื่อสั้นบนปุ่ม/ข้อความ ชื่อเต็มบนหัวหน้า)
+  const { label, title, reviewed } = useDocumentTypes()[type];
   const queryClient = useQueryClient();
   const { showError, showSuccess } = useToast();
 
