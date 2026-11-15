@@ -22,7 +22,7 @@ import { uploadMaterialImage } from '../../middlewares/upload.middleware.js';
 const materialRouter = express.Router();
 const adminMaterialRouter = express.Router();
 
-materialRouter.use(authenticate);
+materialRouter.use(authenticate, requireAdmin);
 // verifyCsrfToken ก่อน requireAdmin: เป็น check ที่ถูกกว่า (ไม่ query DB) จึงคัดออกก่อน
 adminMaterialRouter.use(authenticate, verifyCsrfToken, requireAdmin);
 

@@ -25,7 +25,7 @@ function limitToOwnRepairs(request, _response, next) {
   next();
 }
 
-repairRouter.use(authenticate, limitToOwnRepairs);
+repairRouter.use(authenticate, requireAdmin, limitToOwnRepairs);
 
 // GET /api/repairs/mine - รายการแจ้งซ่อมที่ตัวเองแจ้ง
 repairRouter.get('/mine', repairController.getMyRepairList);

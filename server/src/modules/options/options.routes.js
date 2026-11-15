@@ -20,14 +20,14 @@ router.use(authenticate);
 adminRouter.use(authenticate, verifyCsrfToken, requireAdmin);
 
 // GET /api/categories
-router.get('/categories', optionsController.getCategories);
+router.get('/categories', requireAdmin, optionsController.getCategories);
 
 // GET /api/locations
-router.get('/locations', optionsController.getLocations);
+router.get('/locations', requireAdmin, optionsController.getLocations);
 
 // GET /api/available-equipment - ครุภัณฑ์ที่ว่างทุกชิ้น (ไม่แบ่งหน้า) สำหรับช่องเลือกในฟอร์มยืม/แจ้งซ่อม
 // แยกจาก GET /api/equipment-items ที่จำกัด limit ไว้ 500 ไม่งั้นของที่เกิน 500 ชิ้นแรกจะเลือกไม่ได้เลย
-router.get('/available-equipment', optionsController.getAvailableEquipment);
+router.get('/available-equipment', requireAdmin, optionsController.getAvailableEquipment);
 
 // POST /api/admin/categories - เพิ่มหมวดหมู่ใหม่ตรงจาก Form ครุภัณฑ์ได้ทันที ไม่ต้องออกไปหน้าอื่น
 adminRouter.post(

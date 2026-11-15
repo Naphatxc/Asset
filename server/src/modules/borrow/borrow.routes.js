@@ -18,7 +18,7 @@ import { verifyCsrfToken } from '../../middlewares/csrf.middleware.js';
 const borrowRouter = express.Router();
 const adminBorrowRouter = express.Router();
 
-borrowRouter.use(authenticate);
+borrowRouter.use(authenticate, requireAdmin);
 adminBorrowRouter.use(authenticate, verifyCsrfToken, requireAdmin);
 
 // GET /api/borrows/mine - ใบยืมของตัวเอง
