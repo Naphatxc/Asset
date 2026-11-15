@@ -8,6 +8,9 @@ import borrowRoutes, {
   adminBorrowRouter,
 } from '../modules/borrow/borrow.routes.js';
 import dashboardRoutes from '../modules/dashboard/dashboard.routes.js';
+import documentRoutes, {
+  adminDocumentRouter,
+} from '../modules/documents/document.routes.js';
 import equipmentRoutes, {
   adminEquipmentRouter,
 } from '../modules/equipment/equipment.routes.js';
@@ -42,6 +45,8 @@ router.use('/admin/materials', adminMaterialRouter);
 router.use('/rooms', roomRoutes);
 router.use('/room-bookings', roomBookingRouter);
 router.use('/admin/rooms', adminRoomRouter);
+router.use('/documents', documentRoutes);
+router.use('/admin/documents', adminDocumentRouter);
 router.use('/', optionRoutes);
 router.use('/admin', adminOptionsRouter);
 

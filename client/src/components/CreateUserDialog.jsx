@@ -75,7 +75,6 @@ export default function CreateUserDialog({ submitting, error, onSubmit, onClose 
               <select value={role} onChange={(event) => setRole(event.target.value)}>
                 <option value="user">User</option>
                 <option value="admin">Admin</option>
-                <option value="student">Student</option>
               </select>
             </label>
           </div>

@@ -21,6 +21,8 @@ import { useToast } from '../../components/ToastProvider.jsx';
 import AuditManager from './components/AuditManager.jsx';
 import BorrowManager from './components/BorrowManager.jsx';
 import DashboardOverview from './components/DashboardOverview.jsx';
+import DocumentManager from './components/DocumentManager.jsx';
+import DocumentSubmissions from './components/DocumentSubmissions.jsx';
 import EquipmentManager from './components/EquipmentManager.jsx';
 import MaterialManager from './components/MaterialManager.jsx';
 import MyBorrows from './components/MyBorrows.jsx';
@@ -28,7 +30,7 @@ import RepairManager from './components/RepairManager.jsx';
 import RoomBooking from './components/RoomBooking.jsx';
 import UserTable, { userSortColumns } from './components/UserTable.jsx';
 
-// ลำดับเมนู: ภาพรวม -> ของในคลัง (ครุภัณฑ์/วัสดุ) -> บริการประจำวัน (ยืม-คืน/จองห้อง/แจ้งซ่อม)
+// ลำดับเมนู: ภาพรวม -> ของในคลัง (ครุภัณฑ์/วัสดุ) -> บริการประจำวัน (ยืม-คืน/จองห้อง/แจ้งซ่อม/เอกสาร)
 // -> งานจัดการของ Admin (ตรวจนับ/ผู้ใช้งาน) อยู่ท้ายสุด
 const adminTabs = [
   { key: 'overview', label: 'ภาพรวม' },
@@ -37,31 +39,28 @@ const adminTabs = [
   { key: 'borrow', label: 'ยืม-คืน' },
   { key: 'room', label: 'จองห้อง' },
   { key: 'repair', label: 'แจ้งซ่อม' },
+  { key: 'documents', label: 'เอกสาร' },
   { key: 'audit', label: 'ตรวจนับประจำปี' },
   { key: 'users', label: 'ผู้ใช้งาน' },
 ];
 
+// แท็บ idp / obe3 / obe5 คือหน้าส่งเอกสาร key ต้องตรงกับประเภทเอกสารใน utils/documents.js (DOCUMENT_TYPES)
+// ฝั่ง Admin เห็นเอกสารที่ทุกคนส่งมารวมกันในแท็บ "เอกสาร" แทน
 const userTabs = [
-  { key: 'equipment', label: 'ครุภัณฑ์' },
-  { key: 'materials', label: 'วัสดุ' },
-  { key: 'borrow', label: 'ยืมของฉัน' },
   { key: 'room', label: 'จองห้อง' },
-  { key: 'repair', label: 'แจ้งซ่อม' },
-];
-
-const studentTabs = [
-  { key: 'room', label: 'จองห้อง' },
+  { key: 'idp', label: 'IDP' },
+  { key: 'obe3', label: 'OBE 3' },
+  { key: 'obe5', label: 'OBE 5' },
 ];
 
 export default function Dashboard({ user, onLogout }) {
   const queryClient = useQueryClient();
   const { showError, showSuccess } = useToast();
   const admin = user.role === 'admin';
-  const student = user.role === 'student';
   // อีเมลยาวเกินความกว้าง sidebar ให้ขึ้นบรรทัดใหม่หลัง @
   const emailBreak = user.email.indexOf('@') + 1;
-  const tabs = student ? studentTabs : admin ? adminTabs : userTabs;
-  const defaultTab = student ? 'room' : admin ? 'overview' : 'equipment';
+  const tabs = admin ? adminTabs : userTabs;
+  const defaultTab = admin ? 'overview' : 'room';
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab');
   // เผื่อ URL ถูกแก้มือเป็นแท็บที่ role นี้ไม่มีสิทธิ์เห็น (เช่น user ทั่วไปใส่ ?tab=users เอง)
@@ -171,7 +170,7 @@ export default function Dashboard({ user, onLogout }) {
               {user.email.slice(emailBreak)}
             </span>
             <span className="role-badge">
-              {student ? 'นักเรียน' : admin ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน'}
+              {admin ? 'ผู้ดูแลระบบ' : 'ผู้ใช้งาน'}
             </span>
           </div>
         </div>
@@ -218,6 +217,13 @@ export default function Dashboard({ user, onLogout }) {
         {activeTab === 'repair' && <RepairManager mine={!admin} />}
 
         {activeTab === 'room' && <RoomBooking user={user} />}
+
+        {activeTab === 'documents' && admin && <DocumentManager />}
+
+        {/* สามแท็บนี้ใช้ component เดียวกัน key ทำให้สลับแท็บแล้วฟอร์ม (ไฟล์ที่เลือก/หมายเหตุ) เริ่มใหม่ ไม่ค้างข้ามประเภท */}
+        {(activeTab === 'idp' || activeTab === 'obe3' || activeTab === 'obe5') && (
+          <DocumentSubmissions key={activeTab} type={activeTab} />
+        )}
 
         {activeTab === 'audit' && admin && <AuditManager />}
 

@@ -1,6 +1,7 @@
 // ตั้งค่า multer สำหรับอัปโหลดไฟล์ เก็บไฟล์จริงไว้ใต้ server/uploads แยกโฟลเดอร์ตามประเภท
 // - repairs: ไฟล์แนบการแจ้งซ่อม (รูป/PDF หลายไฟล์)
 // - equipment / materials: รูปครุภัณฑ์/วัสดุ (รูปเดียวต่อรายการ)
+// - documents: เอกสาร IDP / OBE 3 / OBE 5 ที่ผู้ใช้ส่ง และไฟล์ที่ Admin แนบกลับตอนตรวจ IDP (PDF/Word ครั้งละไฟล์)
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,10 +18,16 @@ const uploadRoot = path.join(__dirname, '..', '..', 'uploads');
 export const repairUploadDir = path.join(uploadRoot, 'repairs');
 export const equipmentImageDir = path.join(uploadRoot, 'equipment');
 export const materialImageDir = path.join(uploadRoot, 'materials');
+export const documentUploadDir = path.join(uploadRoot, 'documents');
 
 // multer ไม่สร้างโฟลเดอร์ปลายทางให้เอง โฟลเดอร์ใน repo มีอยู่ก็จริง (.gitkeep) แต่ถ้าต่อ Railway Volume ไว้ที่
 // server/uploads (ต้องต่อ ไม่งั้นไฟล์หายทุกครั้งที่ deploy) volume ใหม่จะว่างเปล่า อัปโหลดแรกจะพังด้วย ENOENT
-for (const directory of [repairUploadDir, equipmentImageDir, materialImageDir]) {
+for (const directory of [
+  repairUploadDir,
+  equipmentImageDir,
+  materialImageDir,
+  documentUploadDir,
+]) {
   fs.mkdirSync(directory, { recursive: true });
 }
 
@@ -141,3 +148,56 @@ export function uploadedImageFiles(request) {
 
 export const uploadEquipmentImage = createImageUpload(equipmentImageDir);
 export const uploadMaterialImage = createImageUpload(materialImageDir);
+
+// ===== เอกสาร IDP / OBE 3 / OBE 5 =====
+// รับเฉพาะ PDF กับ Word: นามสกุลที่เก็บจริง -> Content-Type ที่ใช้ตอนส่งไฟล์กลับให้ดาวน์โหลด
+const documentTypeByExtension = {
+  '.pdf': 'application/pdf',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+};
+
+// นามสกุลที่จะใช้เก็บไฟล์ (null = ชนิดไฟล์นี้ไม่รับ) ปกติดูจากชนิดไฟล์ที่ browser แจ้งมา
+// แต่บางเครื่อง (เช่น Windows ที่ไม่ได้ลง Office) browser ไม่รู้จัก .docx แล้วแจ้งมาเป็นค่ากลางๆ หรือค่าว่าง
+// กรณีนั้นจึงดูนามสกุลจากชื่อไฟล์แทน ทั้งสองทางได้นามสกุลจาก whitelist ข้างบนเท่านั้น ไม่เอาตามที่ client ตั้งมาตรงๆ
+function documentExtensionOf(file) {
+  const fromType = Object.keys(documentTypeByExtension).find(
+    (extension) => documentTypeByExtension[extension] === file.mimetype,
+  );
+  if (fromType) return fromType;
+
+  const unknownType = !file.mimetype || file.mimetype === 'application/octet-stream';
+  const fromName = path.extname(file.originalname ?? '').toLowerCase();
+
+  return unknownType && documentTypeByExtension[fromName] ? fromName : null;
+}
+
+// Content-Type ของไฟล์เอกสารที่เก็บไว้ ดูจากนามสกุลของชื่อไฟล์ที่ระบบตั้งเอง (ไม่เชื่อชนิดไฟล์ที่ client แจ้งมา)
+export function documentFileType(storedName) {
+  return (
+    documentTypeByExtension[path.extname(storedName).toLowerCase()] ??
+    'application/octet-stream'
+  );
+}
+
+// field "file" ไฟล์เดียว ใช้ทั้งตอนผู้ใช้ส่งเอกสาร และตอน Admin แนบไฟล์กลับ
+// defParamCharset: ชื่อไฟล์ภาษาไทยถูกส่งมาเป็น UTF-8 ถ้าปล่อยค่าเริ่มต้น (latin1) ชื่อที่เก็บจะกลายเป็นตัวอักษรเพี้ยน
+export const uploadDocumentFile = wrapMulter(
+  multer({
+    storage: createStorage(
+      documentUploadDir,
+      (_request, file) => `${uniqueName()}${documentExtensionOf(file)}`,
+    ),
+    limits: { fileSize: 10 * 1024 * 1024, files: 1 },
+    defParamCharset: 'utf8',
+    fileFilter: (_request, file, callback) => {
+      if (!documentExtensionOf(file)) {
+        callback(new AppError(400, 'รองรับเฉพาะไฟล์ PDF หรือ Word (.doc, .docx)'));
+        return;
+      }
+
+      callback(null, true);
+    },
+  }).single('file'),
+  '10MB',
+);

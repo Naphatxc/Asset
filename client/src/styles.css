@@ -2979,3 +2979,75 @@ button:disabled {
 .row-actions .room-toggle {
   min-width: 5.4em;
 }
+
+/* ===== เอกสาร IDP / OBE 3 / OBE 5 (DocumentSubmissions.jsx, DocumentManager.jsx, DocumentReviewDialog.jsx) ===== */
+/* ป้ายสถานะของ IDP ใช้ class แยกจาก .status-returned ของการยืม (สีเขียว = คืนของแล้ว)
+   เพราะ "ส่งกลับให้แก้ไข" คืองานที่ผู้ส่งยังต้องทำต่อ จึงใช้สีส้มแบบเดียวกับรอซ่อม */
+.status-doc-pending {
+  color: #315b84;
+  background: #eaf4ff;
+}
+
+.status-doc-approved {
+  color: #176b4d;
+  background: #e8fff5;
+}
+
+.status-doc-returned {
+  color: #a33a16;
+  background: #fff0e8;
+}
+
+/* แถบแจ้งเหนือฟอร์มว่า IDP ที่ส่งล่าสุดถูกส่งกลับ ต้องแก้แล้วส่งใหม่ */
+.document-notice {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: #a33a16;
+  background: #fff0e8;
+}
+
+.document-history-heading {
+  margin: 24px 0 10px;
+}
+
+/* ลิงก์ดาวน์โหลดไฟล์เอกสาร (ไฟล์ที่ส่ง และไฟล์ที่ Admin แนบกลับ) พื้นอ่อนตัวอักษรเข้ม ให้อ่านชื่อไฟล์ได้ชัด
+   เพราะชื่อไฟล์คือข้อมูลหลักของตารางเอกสาร */
+.document-file-link {
+  display: inline-block;
+  max-width: 100%;
+  padding: 5px 10px;
+  border: 1px solid #f0c4d8;
+  border-radius: 8px;
+  color: var(--stat-plum);
+  background: #fff5fa;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.document-file-link:hover {
+  text-decoration: underline;
+}
+
+/* ผลการตรวจ IDP (DocumentReviewResult.jsx): บรรทัดสั้นๆ เรียงลงมา = เวลา/ผู้ตรวจ, หมายเหตุ, ไฟล์ที่แนบกลับ */
+.document-review {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+}
+
+.document-review p {
+  margin: 0;
+}
+
+.document-review-meta {
+  color: var(--stat-slate-dark);
+  font-size: 0.82rem;
+  font-weight: 400;
+}
+
+/* หมายเหตุที่ผู้ตรวจพิมพ์หลายบรรทัด ให้ขึ้นบรรทัดใหม่ตามที่พิมพ์มา */
+.document-review-note {
+  white-space: pre-line;
+}

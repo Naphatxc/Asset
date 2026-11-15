@@ -17,7 +17,7 @@ import {
 } from '../../config/env.js';
 import { currentSecond } from '../../utils/access-token.js';
 import { AppError } from '../../utils/AppError.js';
-import { isMailConfigured, sendMail } from '../../utils/mailer.js';
+import { escapeHtml, isMailConfigured, sendMail } from '../../utils/mailer.js';
 import { runSerializableTransaction } from '../../utils/transaction.js';
 import * as userRepository from '../users/user.repository.js';
 
@@ -47,10 +47,6 @@ function buildResetEmail(name, link) {
       <p>ลิงก์นี้ใช้ได้ครั้งเดียวภายใน ${minutes} นาที ถ้าคุณไม่ได้เป็นคนขอ ไม่ต้องทำอะไร รหัสผ่านเดิมยังใช้ได้ตามปกติ</p>
     `,
   };
-}
-
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
 }
 
 export async function requestPasswordReset(email) {

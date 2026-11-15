@@ -174,6 +174,8 @@ model users {
   password_reset_tokens   password_reset_tokens[]
   returned_borrow_details borrow_details[]        @relation("borrow_detail_returned_by")
   room_bookings           room_bookings[]
+  document_submissions    document_submissions[]  @relation("document_submission_user")
+  reviewed_documents      document_submissions[]  @relation("document_submission_reviewed_by")
 }
 
 // ห้องที่นักเรียนจองได้ (เริ่มต้น 5 ห้อง ใส่ไว้ใน migration) Admin เพิ่ม/แก้ชื่อ/ปิดห้องได้
@@ -201,6 +203,40 @@ model room_bookings {
 
   @@index([room_id, start_at], map: "idx_room_bookings_room_start")
   @@index([user_id], map: "fk_room_booking_user")
+}
+
+// เอกสารที่ผู้ใช้ส่งให้ Admin ผ่านระบบ: IDP (แผนพัฒนาบุคลากรรายบุคคล), OBE 3, OBE 5
+// หนึ่งแถว = การส่งหนึ่งครั้ง ส่งซ้ำไม่ทับของเดิมแต่เพิ่มแถวใหม่ จึงเป็น log วันเวลาที่ส่งไปในตัว (submitted_at)
+// - IDP ส่งไป-กลับ: เริ่มที่ status = pending (รอตรวจ) -> Admin ตรวจแล้วเป็น approved (ผ่าน) หรือ returned
+//   (ส่งกลับให้แก้ พร้อมหมายเหตุ/ไฟล์กลับ) ถ้าถูกส่งกลับ ผู้ส่งแก้แล้วส่งใหม่เป็นแถวใหม่ที่ pending อีกรอบ
+// - OBE 3 / OBE 5 ส่งอย่างเดียว ไม่มีขั้นตอนตรวจ status เป็น null เสมอ Admin แค่โหลดไฟล์ไปใช้
+model document_submissions {
+  submission_id    Int                           @id @default(autoincrement()) @db.UnsignedInt
+  user_id          Int                           @db.UnsignedInt
+  doc_type         document_submissions_doc_type
+  // ปีการศึกษาเป็น พ.ศ. ตรงๆ เช่น 2569 (ต่างจาก equipment.fiscal_year ที่เก็บ ค.ศ. เพราะ MySQL YEAR เก็บได้ถึงแค่ 2155)
+  academic_year    Int                           @db.UnsignedSmallInt
+  // หมายเหตุจากผู้ส่ง เช่น รหัส/ชื่อรายวิชาของ OBE (ไม่บังคับ)
+  note             String?                       @db.Text
+  // file_name = ชื่อไฟล์ตามที่ผู้ส่งตั้ง (ใช้เป็นชื่อตอนดาวน์โหลด) file_path = ชื่อไฟล์จริงใน uploads/documents (ไม่ใช่ path เต็ม)
+  file_name        String                        @db.VarChar(255)
+  file_path        String                        @db.VarChar(255)
+  file_type        String                        @db.VarChar(100)
+  submitted_at     DateTime                      @default(now()) @db.DateTime(0)
+  status           document_submissions_status?
+  reviewed_by      Int?                          @db.UnsignedInt
+  reviewed_at      DateTime?                     @db.DateTime(0)
+  review_note      String?                       @db.Text
+  // ไฟล์ที่ Admin แนบกลับมาตอนตรวจ IDP (ไม่บังคับ) เก็บใน uploads/documents เหมือนไฟล์ที่ส่ง
+  review_file_name String?                       @db.VarChar(255)
+  review_file_path String?                       @db.VarChar(255)
+  review_file_type String?                       @db.VarChar(100)
+  users            users                         @relation("document_submission_user", fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_document_submission_user")
+  reviewer         users?                        @relation("document_submission_reviewed_by", fields: [reviewed_by], references: [user_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_document_submission_reviewer")
+
+  @@index([user_id], map: "idx_document_submissions_user")
+  @@index([doc_type, status], map: "idx_document_submissions_type_status")
+  @@index([reviewed_by], map: "fk_document_submission_reviewer")
 }
 
 // ลิงก์ "ลืมรหัสผ่าน" ที่ส่งทางอีเมล เก็บแค่ hash (sha256) ของ token ไม่เก็บตัวจริง
@@ -356,12 +392,9 @@ enum equipment_items_status {
   damaged
 }
 
-// student = นักเรียน ใช้ได้แค่จองห้อง (ดู blockStudent ใน auth.middleware.js) สมัครเองจากหน้า login ได้ role นี้
-// user = บุคลากร ยืม-คืน/เบิก/แจ้งซ่อม/จองห้องได้ Admin เป็นคนเปลี่ยน role ให้
 enum users_role {
   admin
   user
-  student
 }
 
 enum borrows_status {
@@ -393,4 +426,17 @@ enum audit_closing_outcome {
   borrowed
   in_repair
   deleted
+}
+
+enum document_submissions_doc_type {
+  idp
+  obe3
+  obe5
+}
+
+// เฉพาะ IDP (OBE 3 / OBE 5 เป็น null): pending = รอตรวจ, approved = ผ่าน, returned = ส่งกลับให้แก้ไข
+enum document_submissions_status {
+  pending
+  approved
+  returned
 }

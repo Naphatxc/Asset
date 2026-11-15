@@ -12,6 +12,11 @@ export function isMailConfigured() {
   return hasCredentials() || !isProduction;
 }
 
+// ข้อความที่มาจากผู้ใช้ (ชื่อ หมายเหตุ ชื่อไฟล์) ต้องผ่านตัวนี้ก่อนใส่ในอีเมลแบบ HTML กันแทรกแท็กเข้าไปในเนื้ออีเมล
+export function escapeHtml(value) {
+  return String(value).replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);
+}
+
 export async function sendMail({ to, subject, html, text }) {
   if (!hasCredentials()) {
     if (isProduction) throw new Error('Mail is not configured (BREVO_API_KEY / MAIL_FROM_EMAIL)');
