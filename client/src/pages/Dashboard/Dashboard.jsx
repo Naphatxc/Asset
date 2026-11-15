@@ -166,7 +166,7 @@ export default function Dashboard({ user, onLogout }) {
       <aside className="dashboard-sidebar">
         <div className="dashboard-account">
           <img className="brand-logo" src="/logo.png" alt="สถิติประยุกต์ Applied Statistics" />
-          <p className="eyebrow">Material & Asset Management</p>
+          <p className="eyebrow">Management & Database System</p>
           <h1>{user.name}</h1>
           <div className="account-summary">
             {/* ใช้ <wbr> ไม่ใช่ zero-width space เพราะ <wbr> ไม่ติดไปตอน copy อีเมล */}
