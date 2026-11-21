@@ -13,8 +13,9 @@ import {
   sortRows,
 } from '../../../components/ListFilters.jsx';
 import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
+import StatusChips from '../../../components/StatusChips.jsx';
 import { useDocumentTypes } from '../../../hooks/useDocumentTypes.js';
-import { STATUS_LABELS, formatDateTime } from '../../../utils/documents.js';
+import { STATUS_LABELS, bangkokDateKey, formatDateTime } from '../../../utils/documents.js';
 import DocumentReviewDialog from './DocumentReviewDialog.jsx';
 import DocumentTypeNamesDialog from './DocumentTypeNamesDialog.jsx';
 
@@ -42,6 +43,9 @@ export default function DocumentManager() {
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
+  // ช่วงวันที่ส่ง (รูป YYYY-MM-DD จาก <input type="date">) ว่าง = ไม่จำกัด
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [sort, setSort] = useState({ key: 'submitted_at', dir: 'desc' });
   const [page, setPage] = useState(1);
   // รหัสรายการ IDP ที่เปิด popup อยู่ (null = ไม่ได้เปิด) เก็บแค่รหัสแล้วหาข้อมูลจากรายการล่าสุดทุกครั้ง
@@ -54,13 +58,18 @@ export default function DocumentManager() {
   });
   const allSubmissions = documentsQuery.data?.submissions ?? [];
 
-  const submissions = allSubmissions.filter(
-    (submission) =>
+  const submissions = allSubmissions.filter((submission) => {
+    const sentOn = bangkokDateKey(submission.submitted_at);
+
+    return (
       (!typeFilter || submission.doc_type === typeFilter) &&
       (!statusFilter || submission.status === statusFilter) &&
       (!yearFilter || String(submission.academic_year) === yearFilter) &&
-      matchesSearch(search, submission.user_name, submission.file_name, submission.note),
-  );
+      (!dateFrom || sentOn >= dateFrom) &&
+      (!dateTo || sentOn <= dateTo) &&
+      matchesSearch(search, submission.user_name, submission.file_name, submission.note)
+    );
+  });
   const { rows: pageSubmissions, pagination } = paginateRows(
     sortRows(submissions, sortColumns, sort),
     page,
@@ -76,8 +85,19 @@ export default function DocumentManager() {
   const openSubmission = allSubmissions.find(
     (submission) => submission.submission_id === openSubmissionId,
   );
-  // สถานะมีเฉพาะ IDP ถ้าเลือกดูเฉพาะ OBE 3 / OBE 5 อยู่ ช่องกรองสถานะจึงใช้ไม่ได้
-  const statusFilterDisabled = Boolean(typeFilter) && !documentTypes[typeFilter].reviewed;
+  // ปุ่มกรองด่วนตามสถานะ นับจากเอกสารทั้งหมด (สถานะมีเฉพาะ IDP จึงใส่ชื่อ IDP นำหน้า)
+  const statusOptions = [
+    { value: '', label: 'ทั้งหมด', count: allSubmissions.length },
+    ...Object.entries(STATUS_LABELS).map(([value, label]) => ({
+      value,
+      label: `${documentTypes.idp.label} ${label}`,
+      tone: value,
+      count: allSubmissions.filter((submission) => submission.status === value).length,
+    })),
+  ];
+  const hasFilters = Boolean(
+    search || typeFilter || statusFilter || yearFilter || dateFrom || dateTo,
+  );
 
   // เปลี่ยนตัวกรองแล้วกลับไปหน้าแรกเสมอ ไม่งั้นอาจค้างอยู่หน้าที่ไม่มีข้อมูลแล้ว
   function changeFilter(setter, value) {
@@ -85,9 +105,26 @@ export default function DocumentManager() {
     setPage(1);
   }
 
+  // สถานะมีเฉพาะ IDP: เลือกประเภท OBE แล้วสถานะที่ค้างอยู่ต้องล้าง ไม่งั้นจะไม่เหลือแถวให้ดูเลย
   function changeType(value) {
     changeFilter(setTypeFilter, value);
     if (value && !documentTypes[value].reviewed) setStatusFilter('');
+  }
+
+  // กดปุ่มสถานะ (ซึ่งเป็นของ IDP) ตอนที่กรองประเภท OBE อยู่ ให้สลับมาดู IDP แทนเอง
+  function changeStatus(value) {
+    changeFilter(setStatusFilter, value);
+    if (value && typeFilter && !documentTypes[typeFilter].reviewed) setTypeFilter('');
+  }
+
+  function clearFilters() {
+    setSearch('');
+    setTypeFilter('');
+    setStatusFilter('');
+    setYearFilter('');
+    setDateFrom('');
+    setDateTo('');
+    setPage(1);
   }
 
   function changeSort(nextSort) {
@@ -112,7 +149,11 @@ export default function DocumentManager() {
         </div>
 
         <div className="toolbar-actions">
-          <span className="item-count">{submissions.length} รายการ</span>
+          <span className="item-count">
+            {hasFilters
+              ? `แสดง ${submissions.length} จาก ${allSubmissions.length} รายการ`
+              : `${submissions.length} รายการ`}
+          </span>
           <button className="button-secondary" type="button" onClick={() => setNamingTypes(true)}>
             ตั้งชื่อเอกสาร
           </button>
@@ -121,52 +162,72 @@ export default function DocumentManager() {
 
       {documentsQuery.error && <p className="error-message">{documentsQuery.error.message}</p>}
 
+      <StatusChips
+        ariaLabel="กรองตามสถานะ"
+        options={statusOptions}
+        value={statusFilter}
+        onChange={changeStatus}
+      />
+
       <div className="equipment-filters">
-        <input
-          type="search"
-          aria-label="ค้นหาผู้ส่ง ชื่อไฟล์ หรือหมายเหตุ"
-          value={search}
-          onChange={(event) => changeFilter(setSearch, event.target.value)}
-          placeholder="ค้นหาผู้ส่ง ชื่อไฟล์ หรือหมายเหตุ"
-        />
-        <select
-          value={typeFilter}
-          onChange={(event) => changeType(event.target.value)}
-          aria-label="ประเภทเอกสาร"
-        >
-          <option value="">ทุกประเภท</option>
-          {Object.entries(documentTypes).map(([value, documentType]) => (
-            <option key={value} value={value}>
-              {documentType.label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(event) => changeFilter(setStatusFilter, event.target.value)}
-          disabled={statusFilterDisabled}
-          aria-label="สถานะของ IDP"
-        >
-          <option value="">ทุกสถานะ</option>
-          {Object.entries(STATUS_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
-        <select
-          value={yearFilter}
-          onChange={(event) => changeFilter(setYearFilter, event.target.value)}
-          aria-label="ปีการศึกษา"
-        >
-          <option value="">ทุกปีการศึกษา</option>
-          {years.map((year) => (
-            <option key={year} value={year}>
-              ปีการศึกษา {year}
-            </option>
-          ))}
-        </select>
+        <label className="filter-field filter-field-grow">
+          <span>ค้นหา</span>
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => changeFilter(setSearch, event.target.value)}
+            placeholder="ผู้ส่ง ชื่อไฟล์ หรือหมายเหตุ"
+          />
+        </label>
+        <label className="filter-field">
+          <span>ประเภทเอกสาร</span>
+          <select value={typeFilter} onChange={(event) => changeType(event.target.value)}>
+            <option value="">ทุกประเภท</option>
+            {Object.entries(documentTypes).map(([value, documentType]) => (
+              <option key={value} value={value}>
+                {documentType.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="filter-field">
+          <span>ปีการศึกษา</span>
+          <select
+            value={yearFilter}
+            onChange={(event) => changeFilter(setYearFilter, event.target.value)}
+          >
+            <option value="">ทุกปีการศึกษา</option>
+            {years.map((year) => (
+              <option key={year} value={year}>
+                ปีการศึกษา {year}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="filter-field">
+          <span>ส่งตั้งแต่วันที่</span>
+          <input
+            type="date"
+            value={dateFrom}
+            max={dateTo || undefined}
+            onChange={(event) => changeFilter(setDateFrom, event.target.value)}
+          />
+        </label>
+        <label className="filter-field">
+          <span>ถึงวันที่</span>
+          <input
+            type="date"
+            value={dateTo}
+            min={dateFrom || undefined}
+            onChange={(event) => changeFilter(setDateTo, event.target.value)}
+          />
+        </label>
         <SortSelect {...sortProps} />
+        {hasFilters && (
+          <button className="button-secondary filter-clear" type="button" onClick={clearFilters}>
+            ล้างตัวกรอง
+          </button>
+        )}
       </div>
 
       {documentsQuery.isLoading ? (
@@ -206,8 +267,14 @@ export default function DocumentManager() {
 
                 return (
                   <tr key={submission.submission_id}>
-                    <td data-label="ผู้ส่ง">{submission.user_name}</td>
-                    <td data-label="ประเภท">{documentType?.label ?? submission.doc_type}</td>
+                    <td data-label="ผู้ส่ง" className="document-sender">
+                      {submission.user_name}
+                    </td>
+                    <td data-label="ประเภท">
+                      <span className="document-type-badge">
+                        {documentType?.label ?? submission.doc_type}
+                      </span>
+                    </td>
                     <td data-label="ปีการศึกษา">{submission.academic_year}</td>
                     <td data-label="วันเวลาที่ส่ง">{formatDateTime(submission.submitted_at)}</td>
                     <td data-label="ไฟล์">

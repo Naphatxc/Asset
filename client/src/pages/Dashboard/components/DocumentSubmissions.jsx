@@ -13,7 +13,9 @@ import {
 } from '../../../api/documents.js';
 import CharCount from '../../../components/CharCount.jsx';
 import FileDropInput from '../../../components/FileDropInput.jsx';
+import { matchesSearch } from '../../../components/ListFilters.jsx';
 import PaginationBar, { paginateRows } from '../../../components/PaginationBar.jsx';
+import StatusChips from '../../../components/StatusChips.jsx';
 import { useToast } from '../../../components/ToastProvider.jsx';
 import { useDocumentTypes } from '../../../hooks/useDocumentTypes.js';
 import {
@@ -39,15 +41,54 @@ export default function DocumentSubmissions({ type }) {
   const [files, setFiles] = useState([]);
   const [note, setNote] = useState('');
   const [page, setPage] = useState(1);
+  // ตัวกรองประวัติการส่ง (ไม่เกี่ยวกับฟอร์มส่งด้านบน)
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [yearFilter, setYearFilter] = useState('');
 
   const documentsQuery = useQuery({
     queryKey: ['documents', 'mine', type],
     queryFn: () => getMyDocuments(type),
   });
   const submissions = documentsQuery.data?.submissions ?? [];
-  const { rows: pageSubmissions, pagination } = paginateRows(submissions, page);
-  // server เรียงใหม่สุดก่อน ตัวแรกจึงเป็นการส่งครั้งล่าสุด
+  const filteredSubmissions = submissions.filter(
+    (submission) =>
+      (!statusFilter || submission.status === statusFilter) &&
+      (!yearFilter || String(submission.academic_year) === yearFilter) &&
+      matchesSearch(search, submission.file_name, submission.note),
+  );
+  const { rows: pageSubmissions, pagination } = paginateRows(filteredSubmissions, page);
+  // server เรียงใหม่สุดก่อน ตัวแรกจึงเป็นการส่งครั้งล่าสุด (ดูจากทั้งหมด ไม่ขึ้นกับตัวกรอง)
   const latest = submissions[0];
+
+  // ปีการศึกษาที่เคยส่งจริง ใหม่สุดก่อน ไว้เป็นตัวเลือกในช่องกรอง
+  const years = [...new Set(submissions.map((submission) => submission.academic_year))].sort(
+    (a, b) => b - a,
+  );
+  // ปุ่มกรองสถานะมีเฉพาะ IDP ที่มีขั้นตอนตรวจ นับจากประวัติทั้งหมด
+  const statusOptions = [
+    { value: '', label: 'ทั้งหมด', count: submissions.length },
+    ...Object.entries(STATUS_LABELS).map(([value, statusLabel]) => ({
+      value,
+      label: statusLabel,
+      tone: value,
+      count: submissions.filter((submission) => submission.status === value).length,
+    })),
+  ];
+  const hasFilters = Boolean(search || statusFilter || yearFilter);
+
+  // เปลี่ยนตัวกรองแล้วกลับไปหน้าแรกเสมอ ไม่งั้นอาจค้างอยู่หน้าที่ไม่มีข้อมูลแล้ว
+  function changeFilter(setter, value) {
+    setter(value);
+    setPage(1);
+  }
+
+  function clearFilters() {
+    setSearch('');
+    setStatusFilter('');
+    setYearFilter('');
+    setPage(1);
+  }
 
   const submitMutation = useMutation({
     mutationFn: submitDocument,
@@ -88,7 +129,11 @@ export default function DocumentSubmissions({ type }) {
         </div>
 
         <div className="toolbar-actions">
-          <span className="item-count">ส่งแล้ว {submissions.length} ครั้ง</span>
+          <span className="item-count">
+            {hasFilters
+              ? `แสดง ${filteredSubmissions.length} จาก ${submissions.length} ครั้ง`
+              : `ส่งแล้ว ${submissions.length} ครั้ง`}
+          </span>
         </div>
       </div>
 
@@ -152,6 +197,50 @@ export default function DocumentSubmissions({ type }) {
 
       <h3 className="document-history-heading">ประวัติการส่ง</h3>
 
+      {submissions.length > 0 && (
+        <>
+          {reviewed && (
+            <StatusChips
+              ariaLabel="กรองตามสถานะ"
+              options={statusOptions}
+              value={statusFilter}
+              onChange={(value) => changeFilter(setStatusFilter, value)}
+            />
+          )}
+
+          <div className="equipment-filters">
+            <label className="filter-field filter-field-grow">
+              <span>ค้นหา</span>
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => changeFilter(setSearch, event.target.value)}
+                placeholder="ชื่อไฟล์หรือหมายเหตุ"
+              />
+            </label>
+            <label className="filter-field">
+              <span>ปีการศึกษา</span>
+              <select
+                value={yearFilter}
+                onChange={(event) => changeFilter(setYearFilter, event.target.value)}
+              >
+                <option value="">ทุกปีการศึกษา</option>
+                {years.map((year) => (
+                  <option key={year} value={year}>
+                    ปีการศึกษา {year}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {hasFilters && (
+              <button className="button-secondary filter-clear" type="button" onClick={clearFilters}>
+                ล้างตัวกรอง
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
       {documentsQuery.isLoading ? (
         <p className="loading-message">กำลังโหลดประวัติการส่ง...</p>
       ) : documentsQuery.isError ? (
@@ -159,6 +248,10 @@ export default function DocumentSubmissions({ type }) {
       ) : submissions.length === 0 ? (
         <div className="empty-state">
           <p>ยังไม่เคยส่ง {label}</p>
+        </div>
+      ) : filteredSubmissions.length === 0 ? (
+        <div className="empty-state">
+          <p>ไม่พบประวัติการส่งที่ตรงกับตัวกรอง</p>
         </div>
       ) : (
         <div className="table-wrap">
