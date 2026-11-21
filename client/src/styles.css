@@ -3143,6 +3143,41 @@ button:disabled {
   align-self: end;
 }
 
+.document-resubmit {
+  margin-top: 12px;
+}
+
+/* ปุ่มหลักของแถวที่ถูกส่งกลับ: ไล่สีเดียวกับปุ่ม "ส่ง IDP" ให้รู้ว่าเป็นขั้นต่อไปที่ต้องทำ ชนะสไตล์ .row-actions button */
+.row-actions .document-resubmit-button {
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  background: linear-gradient(90deg, var(--stat-gold), var(--stat-pink));
+  box-shadow: 0 4px 10px rgba(237, 0, 130, 0.22);
+  font-size: 0.88rem;
+}
+
+.row-actions .document-resubmit-button:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 6px 14px rgba(237, 0, 130, 0.3);
+}
+
+/* กล่องสรุปผลการตรวจบนสุดของ popup ส่งใหม่ โทนส้มเดียวกับป้าย "ส่งกลับให้แก้ไข" */
+.document-returned-summary {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border: 1px solid #f3cdb8;
+  border-radius: 10px;
+  background: #fff7f2;
+}
+
+.document-returned-title {
+  margin: 0 0 8px;
+  color: #a33a16;
+  font-weight: 700;
+}
+
 .document-sender {
   font-weight: 600;
 }
