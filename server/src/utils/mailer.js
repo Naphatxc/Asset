@@ -12,6 +12,11 @@ export function isMailConfigured() {
   return hasCredentials() || !isProduction;
 }
 
+// true = ส่งออกจริงผ่าน Brevo, false = โหมด dev ที่แค่พิมพ์ลง console (หน้าตั้งค่าแจ้งเตือนใช้บอก Admin ว่าอีเมลถึงจริงหรือไม่)
+export function isMailLive() {
+  return hasCredentials();
+}
+
 // ข้อความที่มาจากผู้ใช้ (ชื่อ หมายเหตุ ชื่อไฟล์) ต้องผ่านตัวนี้ก่อนใส่ในอีเมลแบบ HTML กันแทรกแท็กเข้าไปในเนื้ออีเมล
 export function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (char) => `&#${char.charCodeAt(0)};`);

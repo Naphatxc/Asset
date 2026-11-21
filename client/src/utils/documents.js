@@ -48,6 +48,15 @@ export function formatDateTime(value) {
   }).format(new Date(value));
 }
 
+// เวลาจาก server (UTC) -> วันที่ตามเวลาไทยในรูป ค.ศ. "2026-11-14"
+// ให้เทียบกับค่าของ <input type="date"> ได้ตรงๆ (เทียบเป็นข้อความได้เพราะเรียงตามลำดับเดียวกับวันที่)
+export function bangkokDateKey(value) {
+  if (!value) return '';
+
+  // en-CA ให้รูปแบบ YYYY-MM-DD
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date(value));
+}
+
 // ข้อความ error ถ้าไฟล์นี้ส่งไม่ได้ (null = ส่งได้) เช็คก่อนอัปโหลดจะได้ไม่ต้องรอ server ตอบกลับมาว่าไม่ผ่าน
 export function fileProblem(file) {
   if (!file) return 'กรุณาแนบไฟล์เอกสาร';

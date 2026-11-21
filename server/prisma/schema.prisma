@@ -156,27 +156,29 @@ model material_returns {
 }
 
 model users {
-  user_id                 Int                     @id @default(autoincrement()) @db.UnsignedInt
-  name                    String                  @db.VarChar(100)
-  email                   String                  @unique(map: "email") @db.VarChar(255)
-  password_hash           String                  @db.VarChar(255)
-  role                    users_role              @default(user)
-  created_at              DateTime                @default(now()) @db.DateTime(0)
+  user_id                      Int                           @id @default(autoincrement()) @db.UnsignedInt
+  name                         String                        @db.VarChar(100)
+  email                        String                        @unique(map: "email") @db.VarChar(255)
+  password_hash                String                        @db.VarChar(255)
+  role                         users_role                    @default(user)
+  created_at                   DateTime                      @default(now()) @db.DateTime(0)
   // session ที่ login ก่อนเวลานี้ใช้ไม่ได้แล้ว (เปลี่ยน/รีเซ็ตรหัสแล้วอุปกรณ์อื่นต้อง login ใหม่)
-  password_changed_at     DateTime?               @db.DateTime(0)
-  borrows                 borrows[]
-  equipment_history       equipment_history[]
-  repairs                 repairs[]
-  material_withdrawals    material_withdrawals[]
-  material_returns        material_returns[]
-  audit_rounds_opened     audit_rounds[]          @relation("audit_round_opened_by")
-  audit_rounds_closed     audit_rounds[]          @relation("audit_round_closed_by")
-  audit_records           audit_records[]
-  password_reset_tokens   password_reset_tokens[]
-  returned_borrow_details borrow_details[]        @relation("borrow_detail_returned_by")
-  room_bookings           room_bookings[]
-  document_submissions    document_submissions[]  @relation("document_submission_user")
-  reviewed_documents      document_submissions[]  @relation("document_submission_reviewed_by")
+  password_changed_at          DateTime?                     @db.DateTime(0)
+  borrows                      borrows[]
+  equipment_history            equipment_history[]
+  repairs                      repairs[]
+  material_withdrawals         material_withdrawals[]
+  material_returns             material_returns[]
+  audit_rounds_opened          audit_rounds[]                @relation("audit_round_opened_by")
+  audit_rounds_closed          audit_rounds[]                @relation("audit_round_closed_by")
+  audit_records                audit_records[]
+  password_reset_tokens        password_reset_tokens[]
+  returned_borrow_details      borrow_details[]              @relation("borrow_detail_returned_by")
+  room_bookings                room_bookings[]
+  document_submissions         document_submissions[]        @relation("document_submission_user")
+  reviewed_documents           document_submissions[]        @relation("document_submission_reviewed_by")
+  notification_settings_edited notification_settings[]       @relation("notification_setting_updated_by")
+  notification_setting_admins  notification_setting_admins[]
 }
 
 // ห้องที่นักเรียนจองได้ (เริ่มต้น 5 ห้อง ใส่ไว้ใน migration) Admin เพิ่ม/แก้ชื่อ/ปิดห้องได้
@@ -461,4 +463,44 @@ enum document_submissions_status {
   pending
   approved
   returned
+}
+
+// วิธีส่งอีเมลแจ้งเตือนของแต่ละเหตุการณ์ (ลืมรหัสผ่าน / IDP รอตรวจ / ผลตรวจ IDP) ที่ Admin ตั้งได้จากแท็บ "แจ้งเตือนอีเมล"
+// รายชื่อเหตุการณ์และค่าเริ่มต้นอยู่ในโค้ด (modules/notifications/notification.catalog.js) ตารางนี้เก็บเฉพาะสิ่งที่ Admin แก้
+// - ไม่มีแถวของเหตุการณ์ไหน = ใช้ค่าเริ่มต้นทั้งหมด (ส่งเหมือนเดิมก่อนมีหน้านี้)
+// - subject_template / body_template เป็น NULL = ใช้ข้อความเริ่มต้นในโค้ด "คืนค่าเริ่มต้น" จึงแค่ลบแถวทิ้ง
+// event_key เป็น VARCHAR ไม่ใช่ ENUM เพื่อเพิ่มเหตุการณ์ใหม่ในโค้ดได้โดยไม่ต้องทำ migration
+model notification_settings {
+  event_key        String                        @id @db.VarChar(40)
+  enabled          Boolean                       @default(true)
+  recipient_mode   notification_recipient_mode   @default(requester)
+  // อีเมลผู้รับเพิ่มเติม คั่นด้วยจุลภาค (เช่น อีเมลกลางของภาควิชา) ส่งแยกคนเหมือนผู้รับปกติ
+  extra_emails     String?                       @db.Text
+  // ข้อความที่มี {{ตัวแปร}} เช่น {{name}} {{doc_label}} ดูรายการตัวแปรในหน้าตั้งค่า
+  subject_template String?                       @db.VarChar(200)
+  body_template    String?                       @db.Text
+  updated_by       Int?                          @db.UnsignedInt
+  updated_at       DateTime                      @default(now()) @updatedAt @db.DateTime(0)
+  users            users?                        @relation("notification_setting_updated_by", fields: [updated_by], references: [user_id], onDelete: SetNull, onUpdate: NoAction, map: "fk_notification_setting_updated_by")
+  admins           notification_setting_admins[]
+
+  @@index([updated_by], map: "fk_notification_setting_updated_by")
+}
+
+// Admin ที่ถูกเลือกเป็นผู้รับ เมื่อ recipient_mode = selected_admins ลบผู้ใช้แล้วแถวหายตามไปเอง
+model notification_setting_admins {
+  event_key             String                @db.VarChar(40)
+  user_id               Int                   @db.UnsignedInt
+  notification_settings notification_settings @relation(fields: [event_key], references: [event_key], onDelete: Cascade, onUpdate: NoAction, map: "fk_notification_admin_setting")
+  users                 users                 @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_notification_admin_user")
+
+  @@id([event_key, user_id])
+  @@index([user_id], map: "fk_notification_admin_user")
+}
+
+// requester = คนที่เกี่ยวข้องกับเหตุการณ์นั้น (ผู้ส่งเอกสาร / เจ้าของเอกสาร / เจ้าของบัญชีที่ลืมรหัส)
+enum notification_recipient_mode {
+  requester
+  all_admins
+  selected_admins
 }

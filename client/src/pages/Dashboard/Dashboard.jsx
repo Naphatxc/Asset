@@ -27,12 +27,13 @@ import DocumentSubmissions from './components/DocumentSubmissions.jsx';
 import EquipmentManager from './components/EquipmentManager.jsx';
 import MaterialManager from './components/MaterialManager.jsx';
 import MyBorrows from './components/MyBorrows.jsx';
+import NotificationSettings from './components/NotificationSettings.jsx';
 import RepairManager from './components/RepairManager.jsx';
 import RoomBooking from './components/RoomBooking.jsx';
 import UserTable, { userSortColumns } from './components/UserTable.jsx';
 
 // ลำดับเมนู: ภาพรวม -> ของในคลัง (ครุภัณฑ์/วัสดุ) -> บริการประจำวัน (ยืม-คืน/จองห้อง/แจ้งซ่อม/เอกสาร)
-// -> งานจัดการของ Admin (ตรวจนับ/ผู้ใช้งาน) อยู่ท้ายสุด
+// -> งานจัดการของ Admin (ตรวจนับ/ผู้ใช้งาน/ตั้งค่าแจ้งเตือนอีเมล) อยู่ท้ายสุด
 const adminTabs = [
   { key: 'overview', label: 'ภาพรวม' },
   { key: 'equipment', label: 'ครุภัณฑ์' },
@@ -43,6 +44,7 @@ const adminTabs = [
   { key: 'documents', label: 'เอกสาร' },
   { key: 'audit', label: 'ตรวจนับประจำปี' },
   { key: 'users', label: 'ผู้ใช้งาน' },
+  { key: 'notifications', label: 'แจ้งเตือนอีเมล' },
 ];
 
 // แท็บ idp / obe3 / obe5 คือหน้าส่งเอกสาร key ต้องตรงกับประเภทเอกสารใน utils/documents.js (DOCUMENT_TYPES)
@@ -241,6 +243,8 @@ export default function Dashboard({ user, onLogout }) {
         )}
 
         {activeTab === 'audit' && admin && <AuditManager />}
+
+        {activeTab === 'notifications' && admin && <NotificationSettings />}
 
         {activeTab === 'users' && admin && (
           <section className="admin-section">
