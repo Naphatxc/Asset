@@ -83,6 +83,14 @@ approved approved
 returned returned
         }
     
+
+
+        notification_recipient_mode {
+            requester requester
+all_admins all_admins
+selected_admins selected_admins
+        }
+    
   "categories" {
     Int category_id "🗝️"
     String category_name 
@@ -283,6 +291,22 @@ returned returned
     audit_closing_outcome closing_outcome "❓"
     }
   
+
+  "notification_settings" {
+    String event_key "🗝️"
+    Boolean enabled 
+    notification_recipient_mode recipient_mode 
+    String extra_emails "❓"
+    String subject_template "❓"
+    String body_template "❓"
+    DateTime updated_at 
+    }
+  
+
+  "notification_setting_admins" {
+
+    }
+  
     "equipment" }o--|| "categories" : "categories"
     "equipment" }o--|o "locations" : "locations"
     "equipment_history" |o--|| "equipment_history_action" : "enum:action"
@@ -326,4 +350,8 @@ returned returned
     "audit_records" }o--|o "locations" : "moved_from_location"
     "audit_records" }o--|o "repairs" : "repairs"
     "audit_records" }o--|o "users" : "users"
+    "notification_settings" |o--|| "notification_recipient_mode" : "enum:recipient_mode"
+    "notification_settings" }o--|o "users" : "users"
+    "notification_setting_admins" }o--|| "notification_settings" : "notification_settings"
+    "notification_setting_admins" }o--|| "users" : "users"
 ```

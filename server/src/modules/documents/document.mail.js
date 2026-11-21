@@ -1,14 +1,13 @@
 // อีเมลแจ้งเตือนของเอกสาร IDP (OBE 3 / OBE 5 ส่งอย่างเดียว ไม่มีอีเมล)
 // - IDP เข้าสถานะรอตรวจ (ส่งครั้งแรก หรือแก้แล้วส่งใหม่) -> แจ้ง Admin ทุกคน
 // - Admin ตรวจเสร็จ (ผ่าน / ส่งกลับให้แก้ไข) -> แจ้งเจ้าของเอกสาร
+// ไฟล์นี้แค่เตรียมข้อมูลของอีเมล ส่วนผู้รับ เปิด/ปิด และข้อความ Admin ปรับได้จากแท็บ "แจ้งเตือนอีเมล"
+// (modules/notifications) ถ้าไม่เคยตั้งค่าจะส่งตามค่าเริ่มต้นเหมือนเดิมทุกอย่าง
 // ส่งแบบไม่รอผล: ผู้เรียกไม่ต้อง await อีเมลส่งไม่สำเร็จดูได้ใน log แต่ไม่ทำให้การส่ง/ตรวจเอกสารล้มตามไปด้วย
 import { appUrl } from '../../config/env.js';
-import { escapeHtml, isMailConfigured, sendMail } from '../../utils/mailer.js';
+import { isMailConfigured } from '../../utils/mailer.js';
+import { sendNotification } from '../notifications/notification.service.js';
 import * as documentRepository from './document.repository.js';
-import * as userRepository from '../users/user.repository.js';
-
-const buttonStyle =
-  'display:inline-block;padding:12px 20px;border-radius:8px;background:#ed0082;color:#ffffff;text-decoration:none;font-weight:700';
 
 // "14 พ.ย. 2569 15:36" ตามเวลาไทย (server รันเป็น UTC จึงต้องระบุ timeZone เอง)
 function formatDateTime(date) {
@@ -19,94 +18,75 @@ function formatDateTime(date) {
   }).format(date);
 }
 
-// rows = [[หัวข้อ, ค่า], ...] ใช้สร้างทั้งอีเมลแบบข้อความล้วนและแบบ HTML จากข้อมูลชุดเดียวกัน
-function buildEmail({ subject, intro, rows, closing, link, linkLabel }) {
-  return {
-    subject,
-    text: [
-      intro,
-      '',
-      ...rows.map(([label, value]) => `${label}: ${value}`),
-      '',
-      ...(closing ? [closing, ''] : []),
-      `${linkLabel}:`,
-      link,
-    ].join('\n'),
-    html: `
-      <p>${escapeHtml(intro)}</p>
-      <p>${rows
-        .map(([label, value]) => `${escapeHtml(label)}: <strong>${escapeHtml(value)}</strong>`)
-        .join('<br>')}</p>
-      ${closing ? `<p>${escapeHtml(closing)}</p>` : ''}
-      <p><a href="${link}" style="${buttonStyle}">${escapeHtml(linkLabel)}</a></p>
-    `,
-  };
-}
-
 // ชื่อที่ Admin ตั้งไว้ของประเภทนี้ (document_types) ถ้าอ่านไม่ได้ใช้ชื่อเดิมแทน อีเมลจะได้ยังส่งได้
 async function typeNames(docType) {
   const type = await documentRepository.findType(docType).catch(() => null);
   return type ?? { label: 'IDP', title: 'แผนพัฒนาบุคลากรรายบุคคล (IDP)' };
 }
 
-function buildPendingEmail(submission, names) {
-  return buildEmail({
-    subject: `${names.label} รอตรวจ: ${submission.users.name} (ปีการศึกษา ${submission.academic_year})`,
-    intro: `มี${names.title} ส่งเข้ามารอตรวจ`,
+// rows = [[หัวข้อ, ค่า], ...] คือตัวแปร {{details}} ของแม่แบบ ส่วน values คือตัวแปรเดี่ยว (ชื่อตรงกับ notification.catalog.js)
+async function sendPendingEmails(submission) {
+  const names = await typeNames(submission.doc_type);
+  const submittedAt = `${formatDateTime(submission.submitted_at)} น.`;
+
+  await sendNotification('idp_pending', {
+    requester: { name: submission.users.name, email: submission.users.email },
+    values: {
+      doc_label: names.label,
+      doc_title: names.title,
+      sender_name: submission.users.name,
+      sender_email: submission.users.email,
+      academic_year: submission.academic_year,
+      file_name: submission.file_name,
+      submitted_at: submittedAt,
+      note: submission.note ?? '',
+    },
     rows: [
       ['ผู้ส่ง', `${submission.users.name} (${submission.users.email})`],
       ['ปีการศึกษา', submission.academic_year],
       ['ไฟล์', submission.file_name],
-      ['ส่งเมื่อ', `${formatDateTime(submission.submitted_at)} น.`],
+      ['ส่งเมื่อ', submittedAt],
       ...(submission.note ? [['หมายเหตุ', submission.note]] : []),
     ],
     link: `${appUrl}/?tab=documents`,
-    linkLabel: 'เปิดระบบเพื่อตรวจ',
   });
 }
 
-function buildReviewedEmail(submission, names) {
+async function sendReviewedEmail(submission) {
+  const names = await typeNames(submission.doc_type);
   const approved = submission.status === 'approved';
   const result = approved ? 'ผ่าน' : 'ส่งกลับให้แก้ไข';
+  const submittedAt = `${formatDateTime(submission.submitted_at)} น.`;
+  const reviewedAt = `${formatDateTime(submission.reviewed_at)} น.`;
 
-  return buildEmail({
-    subject: `ผลการตรวจ ${names.label}: ${result} (ปีการศึกษา ${submission.academic_year})`,
-    intro: `สวัสดีคุณ ${submission.users.name} ${names.title} ที่คุณส่งไว้ตรวจเสร็จแล้ว`,
+  await sendNotification('idp_reviewed', {
+    requester: { name: submission.users.name, email: submission.users.email },
+    values: {
+      doc_label: names.label,
+      doc_title: names.title,
+      owner_name: submission.users.name,
+      result,
+      academic_year: submission.academic_year,
+      file_name: submission.file_name,
+      submitted_at: submittedAt,
+      reviewed_at: reviewedAt,
+      review_note: submission.review_note ?? '',
+      // ว่างเมื่อผ่าน ย่อหน้าที่มีแต่ตัวแปรนี้จะถูกตัดทิ้งจากอีเมลเอง
+      closing: approved ? '' : `กรุณาแก้ไขตามหมายเหตุ แล้วส่ง ${names.label} ใหม่ในระบบ`,
+    },
     rows: [
       ['ผลการตรวจ', result],
       ['ปีการศึกษา', submission.academic_year],
       ['ไฟล์ที่ส่ง', submission.file_name],
-      ['ส่งเมื่อ', `${formatDateTime(submission.submitted_at)} น.`],
-      ['ตรวจเมื่อ', `${formatDateTime(submission.reviewed_at)} น.`],
+      ['ส่งเมื่อ', submittedAt],
+      ['ตรวจเมื่อ', reviewedAt],
       ...(submission.review_note ? [['หมายเหตุจากผู้ตรวจ', submission.review_note]] : []),
       ...(submission.review_file_name
         ? [['ไฟล์ที่แนบกลับ', `${submission.review_file_name} (ดาวน์โหลดได้ในระบบ)`]]
         : []),
     ],
-    closing: approved ? null : `กรุณาแก้ไขตามหมายเหตุ แล้วส่ง ${names.label} ใหม่ในระบบ`,
     link: `${appUrl}/?tab=idp`,
-    linkLabel: 'เปิดระบบเพื่อดูรายละเอียด',
   });
-}
-
-// ส่งแยกทีละคน Admin จะไม่เห็นอีเมลของกันและกัน และอีเมลของคนหนึ่งส่งไม่ผ่านก็ไม่กระทบคนอื่น
-async function sendPendingEmails(submission) {
-  const message = buildPendingEmail(submission, await typeNames(submission.doc_type));
-  const admins = await userRepository.findAdmins();
-  const results = await Promise.allSettled(
-    admins.map((admin) => sendMail({ to: admin.email, ...message })),
-  );
-
-  for (const result of results) {
-    if (result.status === 'rejected') {
-      console.error('Failed to send IDP pending email', result.reason);
-    }
-  }
-}
-
-async function sendReviewedEmail(submission) {
-  const names = await typeNames(submission.doc_type);
-  await sendMail({ to: submission.users.email, ...buildReviewedEmail(submission, names) });
 }
 
 // สองฟังก์ชันด้านล่างคืนค่าทันทีโดยไม่รอผลส่ง และไม่ throw ออกไปหาผู้เรียกเลย (งานจริงอยู่ใน async function ข้างบน
