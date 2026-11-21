@@ -1,0 +1,202 @@
+/* สไตล์ของหน้า "แจ้งเตือนอีเมล" (NotificationSettings.jsx / NotificationEditDialog.jsx)
+   แยกไฟล์จาก styles.css ให้ลบหรือแก้ทั้งหน้านี้ได้ในที่เดียว ใช้สีชุดเดียวกับทั้งเว็บ (var(--stat-*)) */
+
+.notification-mail-note {
+  margin: 0 0 18px;
+}
+
+.notification-table-wrap {
+  margin-top: 4px;
+}
+
+.notification-description {
+  margin: 4px 0 0;
+  color: var(--stat-slate-dark);
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+/* สวิตช์เปิด/ปิด */
+.notification-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px 4px 4px;
+  border: 1px solid #d7cbcf;
+  border-radius: 999px;
+  color: var(--stat-slate-dark);
+  background: #ffffff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notification-switch-knob {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #c4b8bc;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.notification-switch.is-on {
+  color: #176b4d;
+  border-color: #9bd8bf;
+  background: #e8fff5;
+}
+
+.notification-switch.is-on .notification-switch-knob {
+  background: #1f9d6f;
+}
+
+.notification-switch:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.notification-switch:focus-visible {
+  outline: 3px solid rgba(245, 71, 150, 0.35);
+  outline-offset: 2px;
+}
+
+/* ===== popup ===== */
+.notification-dialog {
+  width: min(100%, 780px);
+}
+
+.notification-fieldset {
+  margin: 18px 0 0;
+  padding: 14px 16px 16px;
+  border: 1px solid #e6dcdf;
+  border-radius: 12px;
+}
+
+.notification-fieldset legend {
+  padding: 0 8px;
+  color: var(--stat-plum);
+  font-weight: 700;
+}
+
+.notification-fieldset:disabled {
+  opacity: 0.55;
+}
+
+.notification-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 6px 0;
+  font-weight: 600;
+}
+
+.notification-check input {
+  margin-top: 5px;
+}
+
+.notification-admins {
+  margin: 4px 0 0 26px;
+}
+
+.notification-field {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  color: #454545;
+  font-weight: 600;
+}
+
+.notification-field input,
+.notification-field textarea {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid #d7cbcf;
+  border-radius: 9px;
+  color: #333333;
+  background: #ffffff;
+}
+
+.notification-field textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.notification-field input:focus,
+.notification-field textarea:focus {
+  border-color: var(--stat-pink-soft);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(245, 71, 150, 0.12);
+}
+
+.notification-muted {
+  color: var(--stat-slate-dark);
+  font-size: 0.88rem;
+  font-weight: 400;
+}
+
+.notification-locked {
+  margin: 14px 0 0;
+  padding: 10px 12px;
+  border-left: 4px solid var(--stat-gold);
+  background: #fffaf0;
+}
+
+/* ชิปตัวแปร */
+.notification-variables {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.notification-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 4px 10px;
+  border: 1px solid #ecc7da;
+  border-radius: 8px;
+  color: var(--stat-plum);
+  background: var(--stat-pink-paper);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.notification-chip span {
+  color: var(--stat-slate-dark);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 400;
+}
+
+.notification-chip:hover {
+  border-color: var(--stat-pink-soft);
+}
+
+.notification-fieldset .form-actions {
+  margin-top: 12px;
+}
+
+/* ตัวอย่างอีเมล */
+.notification-preview {
+  overflow: hidden;
+  border: 1px solid #dbe3e4;
+  border-radius: 10px;
+}
+
+.notification-preview-subject {
+  margin: 0;
+  padding: 10px 12px;
+  border-bottom: 1px solid #dbe3e4;
+  background: #f6f9f9;
+  font-weight: 700;
+}
+
+.notification-preview iframe {
+  display: block;
+  width: 100%;
+  height: 300px;
+  border: 0;
+  background: #ffffff;
+}

@@ -17,36 +17,13 @@ import {
 } from '../../config/env.js';
 import { currentSecond } from '../../utils/access-token.js';
 import { AppError } from '../../utils/AppError.js';
-import { escapeHtml, isMailConfigured, sendMail } from '../../utils/mailer.js';
+import { isMailConfigured } from '../../utils/mailer.js';
 import { runSerializableTransaction } from '../../utils/transaction.js';
+import { sendNotification } from '../notifications/notification.service.js';
 import * as userRepository from '../users/user.repository.js';
 
 function hashToken(token) {
   return crypto.createHash('sha256').update(token).digest('hex');
-}
-
-function buildResetEmail(name, link) {
-  const minutes = Math.round(passwordResetTtlMs / 60000);
-
-  return {
-    subject: 'ตั้งรหัสผ่านใหม่ — ระบบจัดการวัสดุและครุภัณฑ์',
-    text: [
-      `สวัสดีคุณ ${name}`,
-      '',
-      'มีการขอตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ เปิดลิงก์นี้เพื่อตั้งรหัสผ่านใหม่:',
-      link,
-      '',
-      `ลิงก์นี้ใช้ได้ครั้งเดียวภายใน ${minutes} นาที`,
-      'ถ้าคุณไม่ได้เป็นคนขอ ไม่ต้องทำอะไร รหัสผ่านเดิมยังใช้ได้ตามปกติ',
-    ].join('\n'),
-    html: `
-      <p>สวัสดีคุณ ${escapeHtml(name)}</p>
-      <p>มีการขอตั้งรหัสผ่านใหม่สำหรับบัญชีของคุณ กดปุ่มด้านล่างเพื่อตั้งรหัสผ่านใหม่</p>
-      <p><a href="${link}" style="display:inline-block;padding:12px 20px;border-radius:8px;background:#ed0082;color:#ffffff;text-decoration:none;font-weight:700">ตั้งรหัสผ่านใหม่</a></p>
-      <p>หรือคัดลอกลิงก์นี้ไปเปิดในเบราว์เซอร์:<br>${link}</p>
-      <p>ลิงก์นี้ใช้ได้ครั้งเดียวภายใน ${minutes} นาที ถ้าคุณไม่ได้เป็นคนขอ ไม่ต้องทำอะไร รหัสผ่านเดิมยังใช้ได้ตามปกติ</p>
-    `,
-  };
 }
 
 export async function requestPasswordReset(email) {
@@ -78,10 +55,14 @@ export async function requestPasswordReset(email) {
     });
 
     const link = `${appUrl}/reset-password?token=${token}`;
-    const message = buildResetEmail(user.name, link);
 
+    // ข้อความและหัวเรื่อง Admin ปรับได้ที่แท็บ "แจ้งเตือนอีเมล" ส่วนผู้รับตายตัวเป็นเจ้าของบัญชี (ปิด/เปลี่ยนไม่ได้)
     // ไม่ await: ส่งอีเมลใช้เวลา ถ้ารอ คนนอกจะแยกออกจากเวลาตอบว่าอีเมลไหนมีบัญชี ส่งไม่สำเร็จดูได้ใน log
-    sendMail({ to: user.email, ...message }).catch((error) => {
+    sendNotification('password_reset', {
+      requester: { name: user.name, email: user.email },
+      values: { minutes: Math.round(passwordResetTtlMs / 60000) },
+      link,
+    }).catch((error) => {
       console.error('Failed to send password reset email', error);
     });
   } catch (error) {

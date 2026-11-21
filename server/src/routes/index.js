@@ -18,6 +18,7 @@ import healthRoutes from '../modules/health/health.routes.js';
 import materialRoutes, {
   adminMaterialRouter,
 } from '../modules/materials/material.routes.js';
+import adminNotificationRouter from '../modules/notifications/notification.routes.js';
 import optionRoutes, {
   adminOptionsRouter,
 } from '../modules/options/options.routes.js';
@@ -47,6 +48,7 @@ router.use('/room-bookings', roomBookingRouter);
 router.use('/admin/rooms', adminRoomRouter);
 router.use('/documents', documentRoutes);
 router.use('/admin/documents', adminDocumentRouter);
+router.use('/admin/notifications', adminNotificationRouter);
 router.use('/', optionRoutes);
 router.use('/admin', adminOptionsRouter);
 
